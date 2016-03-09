@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model userDefinedModelVersionIdentifier="" type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="9525" systemVersion="15D21" minimumToolsVersion="Xcode 7.0">
+    <entity name="Folder" representedClassName="PKFolder" syncable="YES">
+        <attribute name="name" attributeType="String" indexed="YES" syncable="YES"/>
+        <relationship name="records" optional="YES" toMany="YES" deletionRule="Deny" destinationEntity="Record" inverseName="folder" inverseEntity="Record" syncable="YES"/>
+    </entity>
+    <entity name="Record" representedClassName="PKRecord" syncable="YES">
+        <attribute name="date" attributeType="Date" indexed="YES" syncable="YES"/>
+        <attribute name="detailedDescription" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="login" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="password" optional="YES" attributeType="Transformable" valueTransformerName="PKPasswordTransformer" syncable="YES"/>
+        <attribute name="title" attributeType="String" syncable="YES"/>
+        <relationship name="folder" maxCount="1" deletionRule="Nullify" destinationEntity="Folder" inverseName="records" inverseEntity="Folder" syncable="YES"/>
+        <compoundIndexes>
+            <compoundIndex>
+                <index value="title"/>
+                <index value="login"/>
+                <index value="detailedDescription"/>
+                <index value="date"/>
+            </compoundIndex>
+        </compoundIndexes>
+    </entity>
+    <elements>
+        <element name="Folder" positionX="-10305" positionY="-8937" width="128" height="73"/>
+        <element name="Record" positionX="-9956" positionY="-8937" width="128" height="133"/>
+    </elements>
+</model>
