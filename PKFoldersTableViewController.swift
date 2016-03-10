@@ -74,6 +74,39 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     }
     
     // MARK: - Actions
+    @IBAction func newRecordAction(sender: UIButton) {
+        let newRecord = NSEntityDescription.insertNewObjectForEntityForName("Record", inManagedObjectContext: self.managedObjectContext) as! PKRecord
+        newRecord.date = NSDate()
+        newRecord.detailedDescription = "descr"
+        newRecord.login = "LOGGIN"
+        newRecord.password = "abcdefghijklmnopqrstuvwxyzqwerty"
+        newRecord.title = "titlenah"
+        
+        let buttonPosition = sender.convertPoint(CGPointZero, toView: self.tableView)
+        let indexPath = self.tableView.indexPathForRowAtPoint(buttonPosition)
+        guard indexPath != nil else { return }
+        let cell = self.tableView.cellForRowAtIndexPath(indexPath!) as? PKFolderCell
+        guard cell != nil else { return }
+        
+        let predicate = NSPredicate(format: "name == %@", cell!.folderNameLabel.text!)
+        let fetchRequest = NSFetchRequest(entityName: "Folder")
+        fetchRequest.predicate = predicate
+        
+        do {
+            let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+            newRecord.folder = folders.first
+        } catch {
+            print("Unresolved error \(error), \(error)")
+            return
+        }
+        
+        do {
+            try self.managedObjectContext.save()
+        } catch {
+            print("Unresolved error \(error), \(error)")
+            return
+        }
+    }
     
     func deleteAction() {
         let context = self.fetchedResultsController.managedObjectContext
@@ -93,6 +126,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         }
         
         folderNames.forEach { self.names.remove($0) }
+        self.cellHeights.removeFirst(folderNames.count)
         self.doneAction()
     }
     
@@ -125,6 +159,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
             
             self.insertFolder(name: folderName)
         }
+        self.cellHeights.append(self.kCloseCellHeight)
         
         saveAction.enabled = false
         self.saveAlertAction = saveAction
@@ -243,7 +278,10 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
                 return
             }
             
-            folders.forEach { self.names.insert($0.name!) }
+            folders.forEach {
+                self.names.insert($0.name!)
+                self.cellHeights.append(kCloseCellHeight)
+            }
             
             self.tableView.reloadData()
         } catch {
@@ -254,7 +292,6 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     // MARK: - Table View
     
     override func tableView(tableView: UITableView, willDisplayCell cell: UITableViewCell, forRowAtIndexPath indexPath: NSIndexPath) {
-        
         if cell is FoldingCell {
             let foldingCell = cell as! FoldingCell
             
@@ -287,7 +324,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     }
     
     override func tableView(tableView: UITableView, heightForRowAtIndexPath indexPath: NSIndexPath) -> CGFloat {
-        return cellHeights[indexPath.row]
+        return self.cellHeights[indexPath.row]
     }
     
     override func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {
@@ -326,7 +363,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         
         let number = super.tableView(tableView, numberOfRowsInSection: section)
         self.editBarButton?.enabled = (number > 1)
-        
+
         return number
     }
     
@@ -339,7 +376,14 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         cell.folderNameLabel.text = folder.name
         cell.openedFolderNameLabel.text = folder.name
         cell.recordsCountLabel.text = "\(folder.records!.count)"
-        cell.openedRecordsCountLabel.text = "No Records"
+        
+        let cellsCOunt = self.names.count
+        
+        switch cellsCOunt {
+        case 0: cell.openedRecordsCountLabel.text = "No Records"
+        case 1: cell.openedRecordsCountLabel.text = "1 Record"
+        default : cell.openedRecordsCountLabel.text = "\(cellsCOunt) Records"
+        }
 //        cell.textLabel!.text = folder.name
 //        cell.detailTextLabel!.text = "\(folder.records!.count)"
     }
@@ -368,11 +412,13 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         do {
             try self.managedObjectContext.save()
         } catch {
+            if self.cellHeights.count != 0 { self.cellHeights.removeFirst() }
             print("Unresolved error \(error), \(error)")
             return
         }
         
         self.names.insert(name)
+        if self.cellHeights.count < self.names.count { self.cellHeights.append(kCloseCellHeight) }
     }
     
     func updateFolder(oldName oldName: String, newName: String) {
@@ -408,10 +454,6 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         
         self.tapGesture = UITapGestureRecognizer(target: self, action: "handleTap:")
         self.longTapGesture = UILongPressGestureRecognizer(target: self, action: "handleTap:")
-        
-        for _ in 0...2 {
-            cellHeights.append(kCloseCellHeight)
-        }
     }
     
     override func viewWillAppear(animated: Bool) {
