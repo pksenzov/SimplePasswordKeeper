@@ -9,6 +9,20 @@
 import UIKit
 import CryptoSwift
 
+extension UITextView {
+    var adjustHeightToRealIPhoneSize: Bool {
+        set {
+            if newValue {
+                self.constraints.filter{ $0.identifier == "DescriptionHeight" }.first!.constant = UIScreen.mainScreen().bounds.size.height - self.frame.origin.y - 80.0
+            }
+        }
+        
+        get {
+            return false
+        }
+    }
+}
+
 extension String {
     func aesDecrypt(key: String, iv: String) throws -> String {
         let data = NSData(base64EncodedString: self, options: NSDataBase64DecodingOptions(rawValue: 0))

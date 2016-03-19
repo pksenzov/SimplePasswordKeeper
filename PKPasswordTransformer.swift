@@ -55,7 +55,7 @@ private class PKPasswordTransformer: NSValueTransformer {
             return nil
         }
         
-        var str = String(NSString(data: encData, encoding: NSUTF8StringEncoding))
+        var str = NSString(data: encData, encoding: NSUTF8StringEncoding) as! String
         let iv = str.truncate(16)
         
         return try! str.aesDecrypt(strike(), iv: iv!)

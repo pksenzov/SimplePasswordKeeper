@@ -8,7 +8,6 @@
 
 import UIKit
 import CoreData
-import FoldingCell
 
 class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginControllerDelegate, UIGestureRecognizerDelegate {
     var isAuthenticated = false
@@ -25,9 +24,6 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     var addBarButton: UIBarButtonItem?
     var tapGesture: UITapGestureRecognizer!
     var longTapGesture: UILongPressGestureRecognizer!
-    let kCloseCellHeight: CGFloat = 71
-    let kOpenCellHeight: CGFloat = 126
-    var cellHeights = [CGFloat]()
     
     override var fetchedResultsController: NSFetchedResultsController {
         if _fetchedResultsController != nil {
@@ -56,12 +52,6 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     }
     var _fetchedResultsController: NSFetchedResultsController? = nil
     
-    // MARK: - Init & Deinit
-    
-    deinit {
-        NSNotificationCenter.defaultCenter().removeObserver(self)
-    }
-    
     // MARK: - Notifications
     
     func handleTextFieldTextDidChangeNotification() {
@@ -74,39 +64,6 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     }
     
     // MARK: - Actions
-    @IBAction func newRecordAction(sender: UIButton) {
-        let newRecord = NSEntityDescription.insertNewObjectForEntityForName("Record", inManagedObjectContext: self.managedObjectContext) as! PKRecord
-        newRecord.date = NSDate()
-        newRecord.detailedDescription = "descr"
-        newRecord.login = "LOGGIN"
-        newRecord.password = "abcdefghijklmnopqrstuvwxyzqwerty"
-        newRecord.title = "titlenah"
-        
-        let buttonPosition = sender.convertPoint(CGPointZero, toView: self.tableView)
-        let indexPath = self.tableView.indexPathForRowAtPoint(buttonPosition)
-        guard indexPath != nil else { return }
-        let cell = self.tableView.cellForRowAtIndexPath(indexPath!) as? PKFolderCell
-        guard cell != nil else { return }
-        
-        let predicate = NSPredicate(format: "name == %@", cell!.folderNameLabel.text!)
-        let fetchRequest = NSFetchRequest(entityName: "Folder")
-        fetchRequest.predicate = predicate
-        
-        do {
-            let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
-            newRecord.folder = folders.first
-        } catch {
-            print("Unresolved error \(error), \(error)")
-            return
-        }
-        
-        do {
-            try self.managedObjectContext.save()
-        } catch {
-            print("Unresolved error \(error), \(error)")
-            return
-        }
-    }
     
     func deleteAction() {
         let context = self.fetchedResultsController.managedObjectContext
@@ -126,7 +83,6 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         }
         
         folderNames.forEach { self.names.remove($0) }
-        self.cellHeights.removeFirst(folderNames.count)
         self.doneAction()
     }
     
@@ -159,7 +115,6 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
             
             self.insertFolder(name: folderName)
         }
-        self.cellHeights.append(self.kCloseCellHeight)
         
         saveAction.enabled = false
         self.saveAlertAction = saveAction
@@ -173,7 +128,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
             $0.keyboardAppearance = .Dark
             $0.autocapitalizationType = .Words
             
-            NSNotificationCenter.defaultCenter().removeObserver(self)//???
+            NSNotificationCenter.defaultCenter().removeObserver(self)
             NSNotificationCenter.defaultCenter().addObserver(self, selector: "handleTextFieldTextDidChangeNotification",
                                                                    name: UITextFieldTextDidChangeNotification,
                                                                    object: $0)
@@ -237,7 +192,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
                     $0.keyboardAppearance = .Dark
                     $0.autocapitalizationType = .Words
                     
-                    NSNotificationCenter.defaultCenter().removeObserver(self)//???
+                    NSNotificationCenter.defaultCenter().removeObserver(self)
                     NSNotificationCenter.defaultCenter().addObserver(self, selector: "handleTextFieldTextDidChangeNotification",
                         name: UITextFieldTextDidChangeNotification,
                         object: $0)
@@ -278,10 +233,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
                 return
             }
             
-            folders.forEach {
-                self.names.insert($0.name!)
-                self.cellHeights.append(kCloseCellHeight)
-            }
+            folders.forEach { self.names.insert($0.name!) }
             
             self.tableView.reloadData()
         } catch {
@@ -290,42 +242,6 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     }
     
     // MARK: - Table View
-    
-    override func tableView(tableView: UITableView, willDisplayCell cell: UITableViewCell, forRowAtIndexPath indexPath: NSIndexPath) {
-        if cell is FoldingCell {
-            let foldingCell = cell as! FoldingCell
-            
-            if cellHeights[indexPath.row] == kCloseCellHeight {
-                foldingCell.selectedAnimation(false, animated: false, completion:nil)
-            } else {
-                foldingCell.selectedAnimation(true, animated: false, completion: nil)
-            }
-        }
-    }
-    
-    override func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
-        let cell = tableView.cellForRowAtIndexPath(indexPath) as! FoldingCell
-        
-        var duration = 0.0
-        if cellHeights[indexPath.row] == kCloseCellHeight { // open cell
-            cellHeights[indexPath.row] = kOpenCellHeight
-            cell.selectedAnimation(true, animated: true, completion: nil)
-            duration = 0.5
-        } else {// close cell
-            cellHeights[indexPath.row] = kCloseCellHeight
-            cell.selectedAnimation(false, animated: true, completion: nil)
-            duration = 1.1
-        }
-        
-        UIView.animateWithDuration(duration, delay: 0, options: .CurveEaseOut, animations: { () -> Void in
-            tableView.beginUpdates()
-            tableView.endUpdates()
-            }, completion: nil)
-    }
-    
-    override func tableView(tableView: UITableView, heightForRowAtIndexPath indexPath: NSIndexPath) -> CGFloat {
-        return self.cellHeights[indexPath.row]
-    }
     
     override func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {
         if editingStyle == .Delete {
@@ -351,7 +267,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     }
     
     override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCellWithIdentifier("FoldingCell", forIndexPath: indexPath)
+        let cell = tableView.dequeueReusableCellWithIdentifier("FolderCell", forIndexPath: indexPath)
         self.configureCell(cell, atIndexPath: indexPath)
         return cell
     }
@@ -371,21 +287,9 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     
     override func configureCell(cell: UITableViewCell, atIndexPath indexPath: NSIndexPath) {
         let folder = self.fetchedResultsController.objectAtIndexPath(indexPath) as! PKFolder
-        let cell = cell as! PKFolderCell
-        
-        cell.folderNameLabel.text = folder.name
-        cell.openedFolderNameLabel.text = folder.name
-        cell.recordsCountLabel.text = "\(folder.records!.count)"
-        
-        let cellsCOunt = self.names.count
-        
-        switch cellsCOunt {
-        case 0: cell.openedRecordsCountLabel.text = "No Records"
-        case 1: cell.openedRecordsCountLabel.text = "1 Record"
-        default : cell.openedRecordsCountLabel.text = "\(cellsCOunt) Records"
-        }
-//        cell.textLabel!.text = folder.name
-//        cell.detailTextLabel!.text = "\(folder.records!.count)"
+
+        cell.textLabel!.text = folder.name
+        cell.detailTextLabel!.text = "\(folder.records!.count)"
     }
     
     // MARK: - My Functions
@@ -411,14 +315,11 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         
         do {
             try self.managedObjectContext.save()
-        } catch {
-            if self.cellHeights.count != 0 { self.cellHeights.removeFirst() }
-            print("Unresolved error \(error), \(error)")
+        } catch {            print("Unresolved error \(error), \(error)")
             return
         }
         
         self.names.insert(name)
-        if self.cellHeights.count < self.names.count { self.cellHeights.append(kCloseCellHeight) }
     }
     
     func updateFolder(oldName oldName: String, newName: String) {
@@ -471,6 +372,11 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         self.navigationController?.navigationBar.shadowImage = UIImage()
     }
     
+    override func viewWillDisappear(animated: Bool) {
+        super.viewWillDisappear(animated)
+        NSNotificationCenter.defaultCenter().removeObserver(self)
+    }
+    
     override func viewDidAppear(animated: Bool) {
         super.viewDidAppear(animated)
 
@@ -496,7 +402,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
             backItem.title = ""
             self.navigationItem.backBarButtonItem = backItem
             
-            vc.folderName = folder.name
+            vc.folder = folder
         }
     }
 

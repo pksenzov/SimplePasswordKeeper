@@ -10,7 +10,7 @@ import UIKit
 import CoreData
 
 class PKRecordsTableViewController: PKCoreDataTableViewController {
-    var folderName: String! = nil
+    var folder: PKFolder! = nil
     var editBarButton: UIBarButtonItem?
     @IBOutlet var recordsLabel: UILabel!
     
@@ -22,7 +22,7 @@ class PKRecordsTableViewController: PKCoreDataTableViewController {
         let fetchRequest = NSFetchRequest()
         let entity = NSEntityDescription.entityForName("Record", inManagedObjectContext: self.managedObjectContext)
         let sortDescriptor = NSSortDescriptor(key: "date", ascending: false)
-        let predicate = NSPredicate(format: "folder.name = %@", folderName)
+        let predicate = NSPredicate(format: "folder.name = %@", self.folder.name!)
         
         fetchRequest.entity = entity
         fetchRequest.fetchBatchSize = 20
@@ -71,28 +71,42 @@ class PKRecordsTableViewController: PKCoreDataTableViewController {
         return cell
     }
     
+    // MARK: - My Functions
+    
+    func dateToString(date: NSDate) -> String {
+        let dateFormatter = NSDateFormatter()
+        dateFormatter.dateFormat = "dd/MM/yy HH:mm"
+        
+        return dateFormatter.stringFromDate(date)
+    }
+    
     // MARK: - CoreDataTableViewController
     
     override func configureCell(cell: UITableViewCell, atIndexPath indexPath: NSIndexPath) {
         let record = self.fetchedResultsController.objectAtIndexPath(indexPath) as! PKRecord
         cell.textLabel!.text = record.title
-        cell.detailTextLabel!.text = record.date!.description
+        cell.detailTextLabel!.text = dateToString(record.date!)
     }
     
     // MARK: - Views
     
     override func viewDidLoad() {
         super.viewDidLoad()
-    }
-    
-    override func viewWillAppear(animated: Bool) {
-        super.viewWillAppear(animated)
         
-        self.navigationItem.title = folderName
         self.editBarButton = self.navigationItem.rightBarButtonItem
+        self.navigationItem.title = self.folder.name!
         
         let textBarButton = UIBarButtonItem(customView: self.recordsLabel)
         self.toolbarItems?.insert(textBarButton, atIndex: 1)
+    }
+    
+    // MARK: - Navigation
+    
+    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+        if segue.identifier == "RecordsToNewRecordSegue" {
+            let vc = segue.destinationViewController as! PKRecordEditingViewController
+            vc.folder = self.folder
+        }
     }
 
     /*
@@ -127,16 +141,6 @@ class PKRecordsTableViewController: PKCoreDataTableViewController {
     override func tableView(tableView: UITableView, canMoveRowAtIndexPath indexPath: NSIndexPath) -> Bool {
         // Return false if you do not want the item to be re-orderable.
         return true
-    }
-    */
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
-        // Get the new view controller using segue.destinationViewController.
-        // Pass the selected object to the new view controller.
     }
     */
 
