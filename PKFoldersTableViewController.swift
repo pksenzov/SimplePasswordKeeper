@@ -9,6 +9,23 @@
 import UIKit
 import CoreData
 
+private extension Selector {
+    static let handleTextFieldTextDidChangeNotification =
+        #selector(PKFoldersTableViewController.handleTextFieldTextDidChangeNotification)
+    
+    static let handleTextDidBeginEditingNotification =
+        #selector(PKFoldersTableViewController.handleTextDidBeginEditingNotification)
+    
+    static let handleTap =
+        #selector(PKFoldersTableViewController.handleTap(_:))
+    
+    static let doneAction =
+        #selector(PKFoldersTableViewController.doneAction)
+    
+    static let deleteAction =
+        #selector(PKFoldersTableViewController.deleteAction)
+}
+
 class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginControllerDelegate, UIGestureRecognizerDelegate {
     var isAuthenticated = false
     var names = Set<String>()
@@ -129,7 +146,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
             $0.autocapitalizationType = .Words
             
             NSNotificationCenter.defaultCenter().removeObserver(self)
-            NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(self.handleTextFieldTextDidChangeNotification),
+            NSNotificationCenter.defaultCenter().addObserver(self, selector: .handleTextFieldTextDidChangeNotification,
                                                                    name: UITextFieldTextDidChangeNotification,
                                                                    object: $0)
         }
@@ -193,10 +210,10 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
                     $0.autocapitalizationType = .Words
                     
                     NSNotificationCenter.defaultCenter().removeObserver(self)
-                    NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(self.handleTextFieldTextDidChangeNotification),
+                    NSNotificationCenter.defaultCenter().addObserver(self, selector: .handleTextFieldTextDidChangeNotification,
                         name: UITextFieldTextDidChangeNotification,
                         object: $0)
-                    NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(self.handleTextDidBeginEditingNotification),
+                    NSNotificationCenter.defaultCenter().addObserver(self, selector: .handleTextDidBeginEditingNotification,
                         name: UITextFieldTextDidBeginEditingNotification,
                         object: $0)
                 }
@@ -353,18 +370,18 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        self.tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
-        self.longTapGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        self.tapGesture = UITapGestureRecognizer(target: self, action: .handleTap)
+        self.longTapGesture = UILongPressGestureRecognizer(target: self, action: .handleTap)
     }
     
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
         
         self.editBarButton = self.navigationItem.rightBarButtonItem
-        self.doneBarButton = UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: #selector(doneAction))
+        self.doneBarButton = UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: .doneAction)
         
         self.toolbarButtons = self.toolbarItems
-        self.deleteBarButton = UIBarButtonItem(title: "Delete", style: .Plain, target: self, action: #selector(deleteAction))
+        self.deleteBarButton = UIBarButtonItem(title: "Delete", style: .Plain, target: self, action: .deleteAction)
         self.deleteBarButton?.enabled = false
         self.addBarButton = self.toolbarButtons![1]
         
