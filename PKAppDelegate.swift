@@ -50,7 +50,7 @@ extension String {
         var newString = self
         let start = self.startIndex
         let end = self.startIndex.advancedBy(count)
-        let range = Range(start: start, end: end)
+        let range = start..<end
         
         newString = self.substringToIndex(end)
         self.removeRange(range)

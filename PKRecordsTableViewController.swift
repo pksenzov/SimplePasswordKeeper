@@ -10,6 +10,10 @@ import UIKit
 import CoreData
 
 class PKRecordsTableViewController: PKCoreDataTableViewController {
+    var cancelBarButton: UIBarButtonItem?
+    var moveBarButton: UIBarButtonItem?
+    var deleteBarButton: UIBarButtonItem?
+    var currentDate: NSDate! = nil
     var folder: PKFolder! = nil
     var editBarButton: UIBarButtonItem?
     @IBOutlet var recordsLabel: UILabel!
@@ -48,11 +52,23 @@ class PKRecordsTableViewController: PKCoreDataTableViewController {
     }
     var _fetchedResultsController: NSFetchedResultsController? = nil
     
+    // MARK: - Actions
+    
+    func cancelAction() {
+        self.tableView.setEditing(false, animated: true)
+        self.navigationItem.setRightBarButtonItem(self.editBarButton, animated: true)
+    }
+    
+    @IBAction func editAction(sender: UIBarButtonItem) {
+        self.tableView.setEditing(true, animated: true)
+        self.navigationItem.setRightBarButtonItem(self.cancelBarButton, animated: true)
+    }
+    
     // MARK: - Table View
     
     override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         let number = super.tableView(tableView, numberOfRowsInSection: section)
-        self.editBarButton?.enabled = (number > 1)
+        self.editBarButton?.enabled = (number > 0)
         
         switch number {
         case 0: self.recordsLabel.text = "No Records"
@@ -75,7 +91,20 @@ class PKRecordsTableViewController: PKCoreDataTableViewController {
     
     func dateToString(date: NSDate) -> String {
         let dateFormatter = NSDateFormatter()
-        dateFormatter.dateFormat = "dd/MM/yy HH:mm"
+        let calendar = NSCalendar.currentCalendar()
+        let days = calendar.components(.Day, fromDate: date, toDate: self.currentDate, options: []).day
+        
+        if calendar.isDateInToday(date) {
+            dateFormatter.dateFormat = "HH:mm"
+        } else if calendar.isDateInYesterday(date) {
+            return "Yesterday"
+        } else if days < 6 {
+            dateFormatter.dateFormat = "EEEE"
+        } else if NSLocale.preferredLanguages()[0] == "en-US" {
+            dateFormatter.dateFormat = "MM/dd/yy HH:mm"
+        } else {
+            dateFormatter.dateFormat = "dd/MM/yy HH:mm"
+        }
         
         return dateFormatter.stringFromDate(date)
     }
@@ -98,14 +127,29 @@ class PKRecordsTableViewController: PKCoreDataTableViewController {
         
         let textBarButton = UIBarButtonItem(customView: self.recordsLabel)
         self.toolbarItems?.insert(textBarButton, atIndex: 1)
+        
+        self.cancelBarButton = UIBarButtonItem(barButtonSystemItem: .Cancel, target: self, action: #selector(cancelAction))
+    }
+    
+    override func viewWillAppear(animated: Bool) {
+        super.viewWillAppear(animated)
+        self.currentDate = NSDate()
     }
     
     // MARK: - Navigation
     
+    override func shouldPerformSegueWithIdentifier(identifier: String, sender: AnyObject?) -> Bool {
+        return !self.tableView.editing
+    }
+    
     override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
-        if segue.identifier == "RecordsToNewRecordSegue" {
-            let vc = segue.destinationViewController as! PKRecordEditingViewController
-            vc.folder = self.folder
+        let vc = segue.destinationViewController as! PKRecordEditingViewController
+        vc.folder = self.folder
+        
+        if segue.identifier == "RecordsToEditingRecordSegue" {
+            let indexPath = self.tableView.indexPathForCell(sender as! UITableViewCell)
+            let record = self.fetchedResultsController.objectAtIndexPath(indexPath!) as! PKRecord
+            vc.record = record
         }
     }
 

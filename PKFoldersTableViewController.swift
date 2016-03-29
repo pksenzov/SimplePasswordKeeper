@@ -129,7 +129,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
             $0.autocapitalizationType = .Words
             
             NSNotificationCenter.defaultCenter().removeObserver(self)
-            NSNotificationCenter.defaultCenter().addObserver(self, selector: "handleTextFieldTextDidChangeNotification",
+            NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(self.handleTextFieldTextDidChangeNotification),
                                                                    name: UITextFieldTextDidChangeNotification,
                                                                    object: $0)
         }
@@ -193,10 +193,10 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
                     $0.autocapitalizationType = .Words
                     
                     NSNotificationCenter.defaultCenter().removeObserver(self)
-                    NSNotificationCenter.defaultCenter().addObserver(self, selector: "handleTextFieldTextDidChangeNotification",
+                    NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(self.handleTextFieldTextDidChangeNotification),
                         name: UITextFieldTextDidChangeNotification,
                         object: $0)
-                    NSNotificationCenter.defaultCenter().addObserver(self, selector: "handleTextDidBeginEditingNotification",
+                    NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(self.handleTextDidBeginEditingNotification),
                         name: UITextFieldTextDidBeginEditingNotification,
                         object: $0)
                 }
@@ -353,18 +353,18 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        self.tapGesture = UITapGestureRecognizer(target: self, action: "handleTap:")
-        self.longTapGesture = UILongPressGestureRecognizer(target: self, action: "handleTap:")
+        self.tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        self.longTapGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleTap(_:)))
     }
     
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
         
         self.editBarButton = self.navigationItem.rightBarButtonItem
-        self.doneBarButton = UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: "doneAction")
+        self.doneBarButton = UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: #selector(doneAction))
         
         self.toolbarButtons = self.toolbarItems
-        self.deleteBarButton = UIBarButtonItem(title: "Delete", style: .Plain, target: self, action: "deleteAction")
+        self.deleteBarButton = UIBarButtonItem(title: "Delete", style: .Plain, target: self, action: #selector(deleteAction))
         self.deleteBarButton?.enabled = false
         self.addBarButton = self.toolbarButtons![1]
         

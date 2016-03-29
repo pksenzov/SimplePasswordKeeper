@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="9532" systemVersion="15D21" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" initialViewController="sIW-Sn-Hlj">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="10116" systemVersion="15E65" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" initialViewController="sIW-Sn-Hlj">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="9530"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="10085"/>
         <capability name="Constraints with non-1.0 multipliers" minToolsVersion="5.1"/>
     </dependencies>
     <scenes>
@@ -9,7 +9,7 @@
         <scene sceneID="Qyz-Gt-5jy">
             <objects>
                 <tableViewController id="XgW-e2-M4q" customClass="PKFoldersTableViewController" customModule="SimplePasswordKeeper" customModuleProvider="target" sceneMemberID="viewController">
-                    <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" showsHorizontalScrollIndicator="NO" indicatorStyle="black" dataMode="prototypes" style="plain" separatorStyle="none" allowsSelectionDuringEditing="YES" allowsMultipleSelectionDuringEditing="YES" rowHeight="44" sectionHeaderHeight="28" sectionFooterHeight="28" id="uom-oI-fAy">
+                    <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" showsHorizontalScrollIndicator="NO" indicatorStyle="black" dataMode="prototypes" style="plain" separatorStyle="default" allowsSelectionDuringEditing="YES" allowsMultipleSelectionDuringEditing="YES" rowHeight="44" sectionHeaderHeight="28" sectionFooterHeight="28" id="uom-oI-fAy">
                         <rect key="frame" x="0.0" y="64" width="600" height="492"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
@@ -18,7 +18,7 @@
                                 <rect key="frame" x="0.0" y="28" width="600" height="44"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="SDT-GF-wdK" id="mYV-Z0-SN4">
-                                    <rect key="frame" x="0.0" y="0.0" width="567" height="44"/>
+                                    <rect key="frame" x="0.0" y="0.0" width="567" height="43"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                     <subviews>
                                         <label opaque="NO" multipleTouchEnabled="YES" contentMode="left" text="General" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="W2F-BS-HoY">
@@ -73,7 +73,7 @@
         <scene sceneID="nWP-44-6gu">
             <objects>
                 <tableViewController title="Records" id="23m-Ff-9Sf" customClass="PKRecordsTableViewController" customModule="SimplePasswordKeeper" customModuleProvider="target" sceneMemberID="viewController">
-                    <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" showsHorizontalScrollIndicator="NO" indicatorStyle="black" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="44" sectionHeaderHeight="28" sectionFooterHeight="28" id="tag-TG-nSW">
+                    <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" showsHorizontalScrollIndicator="NO" indicatorStyle="black" dataMode="prototypes" style="plain" separatorStyle="default" allowsSelectionDuringEditing="YES" allowsMultipleSelectionDuringEditing="YES" rowHeight="44" sectionHeaderHeight="28" sectionFooterHeight="28" id="tag-TG-nSW">
                         <rect key="frame" x="0.0" y="64" width="600" height="492"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
@@ -101,6 +101,9 @@
                                         </label>
                                     </subviews>
                                 </tableViewCellContentView>
+                                <connections>
+                                    <segue destination="6FN-FA-xdt" kind="show" identifier="RecordsToEditingRecordSegue" id="7xu-LB-Dpn"/>
+                                </connections>
                             </tableViewCell>
                         </prototypes>
                         <connections>
@@ -118,7 +121,11 @@
                         </barButtonItem>
                     </toolbarItems>
                     <navigationItem key="navigationItem" id="hkf-Bq-dJC">
-                        <barButtonItem key="rightBarButtonItem" systemItem="edit" id="Agl-cM-T8e"/>
+                        <barButtonItem key="rightBarButtonItem" systemItem="edit" id="Agl-cM-T8e">
+                            <connections>
+                                <action selector="editAction:" destination="23m-Ff-9Sf" id="UDy-2i-u2z"/>
+                            </connections>
+                        </barButtonItem>
                     </navigationItem>
                     <connections>
                         <outlet property="recordsLabel" destination="11y-YR-zgE" id="91Q-rc-4h5"/>
@@ -219,20 +226,23 @@
                                             <action selector="revealAction:" destination="6FN-FA-xdt" eventType="touchUpInside" id="0tf-7i-o2L"/>
                                         </connections>
                                     </button>
-                                    <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Facebook" minimumFontSize="17" clearButtonMode="whileEditing" translatesAutoresizingMaskIntoConstraints="NO" id="KSE-mr-Ggw">
-                                        <rect key="frame" x="20" y="47" width="560" height="30"/>
-                                        <fontDescription key="fontDescription" type="system" pointSize="14"/>
-                                        <textInputTraits key="textInputTraits" autocapitalizationType="words" keyboardAppearance="alert" returnKeyType="next"/>
-                                        <connections>
-                                            <outlet property="delegate" destination="6FN-FA-xdt" id="pKv-E0-XBE"/>
-                                        </connections>
-                                    </textField>
                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="description" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="3Qk-qU-eyR">
                                         <rect key="frame" x="20" y="297" width="86" height="21"/>
                                         <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                         <color key="textColor" red="0.19376453760000001" green="0.50850099329999998" blue="0.85232251879999998" alpha="1" colorSpace="calibratedRGB"/>
                                         <nil key="highlightedColor"/>
                                     </label>
+                                    <textField opaque="NO" clipsSubviews="YES" tag="1" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Username or Email" minimumFontSize="17" clearButtonMode="whileEditing" translatesAutoresizingMaskIntoConstraints="NO" id="Jxp-Uf-HcQ">
+                                        <rect key="frame" x="20" y="140" width="560" height="30"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="30" id="Djo-gL-3zj"/>
+                                        </constraints>
+                                        <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                        <textInputTraits key="textInputTraits" keyboardType="emailAddress" keyboardAppearance="alert" returnKeyType="next"/>
+                                        <connections>
+                                            <outlet property="delegate" destination="6FN-FA-xdt" id="B5h-p4-J6T"/>
+                                        </connections>
+                                    </textField>
                                     <textView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" scrollEnabled="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Yn1-Zh-En6">
                                         <rect key="frame" x="20" y="326" width="560" height="166"/>
                                         <constraints>
@@ -247,15 +257,12 @@
                                             <outlet property="delegate" destination="6FN-FA-xdt" id="3id-b3-mpv"/>
                                         </connections>
                                     </textView>
-                                    <textField opaque="NO" clipsSubviews="YES" tag="1" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Username or Email" minimumFontSize="17" clearButtonMode="whileEditing" translatesAutoresizingMaskIntoConstraints="NO" id="Jxp-Uf-HcQ">
-                                        <rect key="frame" x="20" y="140" width="560" height="30"/>
-                                        <constraints>
-                                            <constraint firstAttribute="height" constant="30" id="Djo-gL-3zj"/>
-                                        </constraints>
+                                    <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="For example, Facebook" minimumFontSize="17" clearButtonMode="whileEditing" translatesAutoresizingMaskIntoConstraints="NO" id="KSE-mr-Ggw">
+                                        <rect key="frame" x="20" y="47" width="560" height="30"/>
                                         <fontDescription key="fontDescription" type="system" pointSize="14"/>
-                                        <textInputTraits key="textInputTraits" keyboardType="emailAddress" keyboardAppearance="alert" returnKeyType="next"/>
+                                        <textInputTraits key="textInputTraits" autocapitalizationType="words" keyboardAppearance="alert" returnKeyType="next"/>
                                         <connections>
-                                            <outlet property="delegate" destination="6FN-FA-xdt" id="B5h-p4-J6T"/>
+                                            <outlet property="delegate" destination="6FN-FA-xdt" id="pKv-E0-XBE"/>
                                         </connections>
                                     </textField>
                                 </subviews>
@@ -312,10 +319,10 @@
                     </view>
                     <toolbarItems/>
                     <navigationItem key="navigationItem" id="4ds-ju-RCg">
-                        <barButtonItem key="rightBarButtonItem" systemItem="done" id="ACc-YD-dJP">
+                        <barButtonItem key="rightBarButtonItem" systemItem="save" id="ACc-YD-dJP">
                             <color key="tintColor" red="0.19376453760000001" green="0.50850099329999998" blue="0.85232251879999998" alpha="1" colorSpace="calibratedRGB"/>
                             <connections>
-                                <action selector="doneAction:" destination="6FN-FA-xdt" id="zbX-c0-YZl"/>
+                                <action selector="saveAction:" destination="6FN-FA-xdt" id="N22-fe-Uuf"/>
                             </connections>
                         </barButtonItem>
                     </navigationItem>
@@ -396,4 +403,7 @@
             <point key="canvasLocation" x="892" y="1131"/>
         </scene>
     </scenes>
+    <inferredMetricsTieBreakers>
+        <segue reference="7xu-LB-Dpn"/>
+    </inferredMetricsTieBreakers>
 </document>

@@ -30,6 +30,19 @@ private class PKPasswordTransformer: NSValueTransformer {
         return value
     }
     
+    func getInitVector() -> String {
+        let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        let count = UInt32(letters.characters.count)
+        var iv = ""
+        
+        for _ in 0..<16 {
+            let index = Int(arc4random_uniform(count))
+            iv += String(letters[letters.startIndex.advancedBy(index)])
+        }
+        
+        return iv
+    }
+    
     // MARK: - NSValueTransformer
     
     override class func allowsReverseTransformation() -> Bool {
@@ -41,13 +54,11 @@ private class PKPasswordTransformer: NSValueTransformer {
     }
     
     override func transformedValue(value: AnyObject?) -> AnyObject? {
-        guard var value = value as? String else {
+        guard let value = value as? String else {
             return nil
         }
         
-        let iv = value.truncate(16)
-        
-        return try! value.aesEncrypt(strike(), iv: iv!)
+        return try! value.aesEncrypt(strike(), iv: getInitVector())
     }
     
     override func reverseTransformedValue(value: AnyObject?) -> AnyObject? {

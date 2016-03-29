@@ -17,6 +17,7 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     }
     
     var folder: PKFolder! = nil
+    var record: PKRecord?
     
     var managedObjectContext: NSManagedObjectContext {
         if _managedObjectContext == nil {
@@ -43,7 +44,7 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     
     @IBOutlet weak var descriptionTextView: UITextView! {
         didSet {
-            if descriptionTextView.text == "" {
+            if self.record == nil || self.record?.detailedDescription == "" {
                 descriptionTextView.text = "Details"
                 descriptionTextView.textColor = .lightGrayColor()
             }
@@ -150,8 +151,18 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         super.viewWillAppear(animated)
         self.navigationController?.setToolbarHidden(true, animated: false)
         self.defaultDescriptionHeightConstraintHeight = self.descriptionTextView.constraints.filter{ $0.identifier == "DescriptionHeight" }.first!.constant
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: Selector("keyboardWillShowOrHide:"), name:UIKeyboardWillShowNotification, object: nil);
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: Selector("keyboardWillShowOrHide:"), name:UIKeyboardWillHideNotification, object: nil);
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(keyboardWillShowOrHide(_:)), name:UIKeyboardWillShowNotification, object: nil);
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(keyboardWillShowOrHide(_:)), name:UIKeyboardWillHideNotification, object: nil);
+        
+        if let record = self.record {
+            self.allTextFields[TextFieldTag.PKRecordEditingViewControllerTextFieldTagTitle.rawValue].text = record.title
+            self.allTextFields[TextFieldTag.PKRecordEditingViewControllerTextFieldTagLogin.rawValue].text = record.login
+            self.allTextFields[TextFieldTag.PKRecordEditingViewControllerTextFieldTagPassword.rawValue].text = record.password as? String
+            
+            if record.detailedDescription != "" {
+                self.descriptionTextView.text = record.detailedDescription
+            }
+        }
     }
     
     override func viewWillDisappear(animated: Bool) {
@@ -167,7 +178,7 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         self.allTextFields[index].secureTextEntry = !self.allTextFields[index].secureTextEntry
     }
     
-    @IBAction func doneAction(sender: UIBarButtonItem) {
+    @IBAction func saveAction(sender: UIBarButtonItem) {
         let title = self.allTextFields[TextFieldTag.PKRecordEditingViewControllerTextFieldTagTitle.rawValue].text
         guard !title!.isEmpty else {
             let alertController: UIAlertController = UIAlertController(title: "The title is empty", message: "Please fill in the title field", preferredStyle: .Alert)
@@ -182,32 +193,21 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         let login = self.allTextFields[TextFieldTag.PKRecordEditingViewControllerTextFieldTagLogin.rawValue].text
         
         var password = self.allTextFields[TextFieldTag.PKRecordEditingViewControllerTextFieldTagPassword.rawValue].text
-        if password != "" {
-            let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-            let count = UInt32(letters.characters.count)
-            var initVector = ""
-            
-            for _ in 0..<16 {
-                let index = Int(arc4random_uniform(count))
-                
-                initVector += String(letters[letters.startIndex.advancedBy(index)])
-            }
-            
-            password = initVector + password!
-        } else {
-            password = nil
-        }
+        if password == "" { password = nil }
         
-        let description = self.descriptionTextView.text
+        let description = (self.descriptionTextView.textColor == .lightGrayColor()) ? "" : self.descriptionTextView.text
         let date =  NSDate()
         
-        let record = NSEntityDescription.insertNewObjectForEntityForName("Record", inManagedObjectContext: self.managedObjectContext) as! PKRecord
-        record.title = title
-        record.login = login
-        record.password = password
-        record.detailedDescription = description
-        record.date = date
-        record.folder = self.folder
+        let record = (self.record == nil) ?
+            (NSEntityDescription.insertNewObjectForEntityForName("Record", inManagedObjectContext: self.managedObjectContext) as! PKRecord) :
+            self.record
+        
+        record!.title = title
+        record!.login = login
+        record!.password = password
+        record!.detailedDescription = description
+        record!.date = date
+        record!.folder = self.folder
         
         do {
             try self.managedObjectContext.save()
@@ -219,12 +219,6 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         }
         
         self.navigationController?.popViewControllerAnimated(true)
-        
-        //let password = initVector + "1234"
-        
-        //if true - generate iv, save static iv
-        
-        //save context, password(iv+password)
     }
     
     /*
