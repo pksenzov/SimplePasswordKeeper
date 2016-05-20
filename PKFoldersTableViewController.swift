@@ -10,20 +10,11 @@ import UIKit
 import CoreData
 
 private extension Selector {
-    static let handleTextFieldTextDidChangeNotification =
-        #selector(PKFoldersTableViewController.handleTextFieldTextDidChangeNotification)
-    
-    static let handleTextDidBeginEditingNotification =
-        #selector(PKFoldersTableViewController.handleTextDidBeginEditingNotification)
-    
-    static let handleTap =
-        #selector(PKFoldersTableViewController.handleTap(_:))
-    
-    static let doneAction =
-        #selector(PKFoldersTableViewController.doneAction)
-    
-    static let deleteAction =
-        #selector(PKFoldersTableViewController.deleteAction)
+    static let handleTextFieldTextDidChangeNotification = #selector(PKFoldersTableViewController.handleTextFieldTextDidChangeNotification)
+    static let handleTextDidBeginEditingNotification = #selector(PKFoldersTableViewController.handleTextDidBeginEditingNotification)
+    static let handleTap = #selector(PKFoldersTableViewController.handleTap(_:))
+    static let doneAction = #selector(PKFoldersTableViewController.doneAction)
+    static let deleteAction = #selector(PKFoldersTableViewController.deleteAction)
 }
 
 class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginControllerDelegate, UIGestureRecognizerDelegate {
@@ -31,7 +22,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     var names = Set<String>()
     let firstFolderName = "General"
     let navigationItemDefaultName = "Folders"
-    let editBarButtonName = "Edit"
+    //let editBarButtonName = "Edit"
     var saveAlertAction: UIAlertAction?
     var inputTextField: UITextField?
     var doneBarButton: UIBarButtonItem?
@@ -239,6 +230,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     
     // MARK: - PKLoginControllerDelegate
     
+    // FIXME: - БРАТЬ ДАННЫЕ ИЗ FetchedResultController!!!
     func loadData() {
         let preFetchRequest = NSFetchRequest(entityName: "Folder")
         
@@ -332,7 +324,8 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         
         do {
             try self.managedObjectContext.save()
-        } catch {            print("Unresolved error \(error), \(error)")
+        } catch {
+            print("Unresolved error \(error), \(error)")
             return
         }
         
