@@ -3,7 +3,7 @@
 //  SimplePasswordKeeper
 //
 //  Created by Admin on 03/03/16.
-//  Copyright © 2016 pksenzov. All rights reserved.
+//  Copyright © 2016 Pavel Ksenzov. All rights reserved.
 //
 
 import Foundation

@@ -3,7 +3,7 @@
 //  SimplePasswordKeeper
 //
 //  Created by Admin on 18/02/16.
-//  Copyright © 2016 pksenzov. All rights reserved.
+//  Copyright © 2016 Pavel Ksenzov. All rights reserved.
 //
 
 import UIKit
@@ -29,6 +29,9 @@ private class PKPasswordTransformer: NSValueTransformer {
         
         return value
     }
+    
+    
+    // FIXME - NEED USE IV GENERATOR
     
     func getInitVector() -> String {
         let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"

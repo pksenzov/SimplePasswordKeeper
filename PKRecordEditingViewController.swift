@@ -3,7 +3,7 @@
 //  SimplePasswordKeeper
 //
 //  Created by Admin on 19/02/16.
-//  Copyright © 2016 pksenzov. All rights reserved.
+//  Copyright © 2016 Pavel Ksenzov. All rights reserved.
 //
 
 import UIKit
@@ -155,8 +155,8 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         super.viewWillAppear(animated)
         self.navigationController?.setToolbarHidden(true, animated: false)
         self.defaultDescriptionHeightConstraintHeight = self.descriptionTextView.constraints.filter{ $0.identifier == "DescriptionHeight" }.first!.constant
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardWillShowOrHide, name:UIKeyboardWillShowNotification, object: nil);
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardWillShowOrHide, name:UIKeyboardWillHideNotification, object: nil);
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardWillShowOrHide, name:UIKeyboardWillShowNotification, object: nil)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardWillShowOrHide, name:UIKeyboardWillHideNotification, object: nil)
         
         if let record = self.record {
             self.allTextFields[TextFieldTag.PKRecordEditingViewControllerTextFieldTagTitle.rawValue].text = record.title
@@ -213,14 +213,7 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         record!.date = date
         record!.folder = self.folder
         
-        do {
-            try self.managedObjectContext.save()
-        } catch {
-            // Replace this implementation with code to handle the error appropriately.
-            // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-            //print("Unresolved error \(error), \(error.userInfo)")
-            abort()
-        }
+        PKCoreDataManager.sharedManager.saveContext()
         
         self.navigationController?.popViewControllerAnimated(true)
     }

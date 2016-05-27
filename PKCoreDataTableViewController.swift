@@ -3,7 +3,7 @@
 //  SimplePasswordKeeper
 //
 //  Created by Admin on 24/02/16.
-//  Copyright © 2016 pksenzov. All rights reserved.
+//  Copyright © 2016 Pavel Ksenzov. All rights reserved.
 //
 
 import UIKit

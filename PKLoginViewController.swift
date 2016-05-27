@@ -3,7 +3,7 @@
 //  SimplePasswordKeeper
 //
 //  Created by Admin on 17/02/16.
-//  Copyright © 2016 pksenzov. All rights reserved.
+//  Copyright © 2016 Pavel Ksenzov. All rights reserved.
 //
 
 import UIKit
@@ -88,7 +88,7 @@ class PKLoginViewController: UIViewController {
                     "There were too many failed Touch ID attempts and Touch ID is now locked. Please, enter your passcode in Settings for unlock Touch ID" +
                     "\nSettings -> Touch ID & Passcode",
                     "Settings"),
-                    action: settingsAction)
+                               action: settingsAction)
                 self.isRepeatAlert = true
             case LAError.AppCancel.rawValue:
                 self.showAlert(text: ("Authentication was canceled by application", "Oops... something has gone wrong, please restart the application!", "Ok"), action: nil)

@@ -3,7 +3,7 @@
 //  SimplePasswordKeeper
 //
 //  Created by Admin on 12/05/16.
-//  Copyright © 2016 pksenzov. All rights reserved.
+//  Copyright © 2016 Pavel Ksenzov. All rights reserved.
 //
 
 import UIKit
@@ -11,7 +11,7 @@ import ChameleonFramework
 import CoreData
 
 private extension Selector {
-    static let handleTextFieldTextDidChangeNotification = #selector(PKFoldersTableViewController.handleTextFieldTextDidChangeNotification)
+    static let handleTextFieldTextDidChange = #selector(PKFoldersTableViewController.handleTextFieldTextDidChange)
 }
 
 protocol PKMoveRecordsControllerDelegate {
@@ -74,12 +74,7 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
             folder = (NSEntityDescription.insertNewObjectForEntityForName("Folder", inManagedObjectContext: self.managedObjectContext) as! PKFolder)
             folder.name = name
             
-            do {
-                try self.managedObjectContext.save()
-            } catch {
-                print("Unresolved error \(error), \(error)")
-                return
-            }
+            PKCoreDataManager.sharedManager.saveContext()
         } else {
             folder = self.destinationFolder
         }
@@ -88,12 +83,7 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
             $0.folder = folder
         }
         
-        do {
-            try self.managedObjectContext.save()
-        } catch {
-            //error
-            abort()
-        }
+        PKCoreDataManager.sharedManager.saveContext()
         
         self.delegate?.disableEditMode()
         self.dismissViewControllerAnimated(true, completion: nil)
@@ -109,7 +99,7 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
     
     // MARK: - Notifications
     
-    func handleTextFieldTextDidChangeNotification() {
+    func handleTextFieldTextDidChange() {
         self.saveAlertAction!.enabled = self.inputTextField?.text?.characters.count > 0
     }
     
@@ -149,7 +139,7 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
                 $0.autocapitalizationType = .Words
                 
                 NSNotificationCenter.defaultCenter().removeObserver(self)
-                NSNotificationCenter.defaultCenter().addObserver(self, selector: .handleTextFieldTextDidChangeNotification,
+                NSNotificationCenter.defaultCenter().addObserver(self, selector: .handleTextFieldTextDidChange,
                     name: UITextFieldTextDidChangeNotification,
                     object: $0)
             }

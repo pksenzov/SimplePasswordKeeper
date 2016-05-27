@@ -3,7 +3,7 @@
 //  SimplePasswordKeeper
 //
 //  Created by Admin on 17/02/16.
-//  Copyright © 2016 pksenzov. All rights reserved.
+//  Copyright © 2016 Pavel Ksenzov. All rights reserved.
 //
 
 import UIKit
@@ -12,7 +12,7 @@ import CoreData
 private extension Selector {
     static let cancelAction = #selector(PKRecordsTableViewController.cancelAction)
     static let moveAction = #selector(PKRecordsTableViewController.moveAction(_:))
-    static let deleteAction = #selector(PKRecordsTableViewController.deleteAction)
+    static let deleteAction = #selector(PKRecordsTableViewController.deleteAction(_:))
     static let doneAction = #selector(PKRecordsTableViewController.doneAction)
 }
 
@@ -75,7 +75,38 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
         self.tableView.setEditing(false, animated: true)
     }
     
-    func deleteAction() {
+    func deleteAction(barButtonItem: UIBarButtonItem) {
+        let context = self.fetchedResultsController.managedObjectContext
+        
+        if barButtonItem.title == "Delete All" {
+            let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .ActionSheet)
+            
+            let deleteAction = UIAlertAction(title: "Delete All", style: .Destructive) { _ in
+                self.fetchedResultsController.fetchedObjects?.forEach() {
+                    context.deleteObject($0 as! PKRecord)
+                }
+                
+                PKCoreDataManager.sharedManager.saveContext()
+                
+                self.cancelAction()
+            }
+            
+            let cancelAction = UIAlertAction(title: "Cancel", style: .Cancel, handler: nil)
+            
+            alertController.addAction(deleteAction)
+            alertController.addAction(cancelAction)
+            
+            self.presentViewController(alertController, animated: true, completion: nil)
+        } else {
+            self.tableView.indexPathsForSelectedRows!.forEach {
+                let record = self.fetchedResultsController.objectAtIndexPath($0) as! PKRecord
+                context.deleteObject(record)
+            }
+            
+            PKCoreDataManager.sharedManager.saveContext()
+            
+            self.cancelAction()
+        }
     }
     
     func moveAction(barButtonItem: UIBarButtonItem) {
@@ -136,12 +167,7 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
             
             context.deleteObject(record)
             
-            do {
-                try context.save()
-            } catch {
-                print("Unresolved error \(error), \(error)")
-                return
-            }
+            PKCoreDataManager.sharedManager.saveContext()
         }
         
         delete.backgroundColor = .redColor()

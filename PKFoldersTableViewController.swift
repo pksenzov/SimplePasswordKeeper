@@ -3,18 +3,33 @@
 //  SimplePasswordKeeper
 //
 //  Created by Pavel Ksenzov on 12/02/16.
-//  Copyright © 2016 pksenzov. All rights reserved.
+//  Copyright © 2016 Pavel Ksenzov. All rights reserved.
 //
 
 import UIKit
 import CoreData
 
+extension UIAlertController {
+    override public func viewWillDisappear(animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        let tag = self.view.tag
+        
+        if (tag == 1001 || tag == 1002) { //Rename UIAlertController and NewFolder UIAlertController
+            let textField = self.view.viewWithTag(tag - 900) as! UITextField // UITextField tag = UIAlertController tag - 900
+            let zeroPosition = textField.beginningOfDocument
+            
+            textField.selectedTextRange = textField.textRangeFromPosition(zeroPosition, toPosition: zeroPosition)
+        }
+    }
+}
+
 private extension Selector {
-    static let handleTextFieldTextDidChangeNotification = #selector(PKFoldersTableViewController.handleTextFieldTextDidChangeNotification)
-    static let handleTextDidBeginEditingNotification = #selector(PKFoldersTableViewController.handleTextDidBeginEditingNotification)
+    static let handleTextFieldTextDidChange = #selector(PKFoldersTableViewController.handleTextFieldTextDidChange)
     static let handleTap = #selector(PKFoldersTableViewController.handleTap(_:))
     static let doneAction = #selector(PKFoldersTableViewController.doneAction)
     static let deleteAction = #selector(PKFoldersTableViewController.deleteAction)
+    static let keyboardDidShow = #selector(PKFoldersTableViewController.keyboardDidShow)
 }
 
 class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginControllerDelegate, UIGestureRecognizerDelegate {
@@ -62,11 +77,11 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     
     // MARK: - Notifications
     
-    func handleTextFieldTextDidChangeNotification() {
+    func handleTextFieldTextDidChange() {
         self.saveAlertAction!.enabled = self.inputTextField?.text?.characters.count > 0
     }
     
-    func handleTextDidBeginEditingNotification() {
+    func keyboardDidShow() {
         self.inputTextField?.selectedTextRange = self.inputTextField?.textRangeFromPosition(self.inputTextField!.beginningOfDocument,
                                                                                             toPosition: self.inputTextField!.endOfDocument)
     }
@@ -74,24 +89,15 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     // MARK: - Actions
     
     func deleteAction() {
-        let context = self.fetchedResultsController.managedObjectContext
-        var folderNames = [String]()
+        var folders = [PKFolder]()
         
         self.tableView.indexPathsForSelectedRows!.forEach {
             let folder = self.fetchedResultsController.objectAtIndexPath($0) as! PKFolder
-            folderNames.append(folder.name!)
-            context.deleteObject(folder)
+            
+            folders.append(folder)
         }
         
-        do {
-            try context.save()
-        } catch {
-            print("Unresolved error \(error), \(error)")
-            return
-        }
-        
-        folderNames.forEach { self.names.remove($0) }
-        self.doneAction()
+        self.checkFolders(folders, isMany: (folders.count != 1))
     }
     
     func doneAction() {
@@ -127,17 +133,19 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         saveAction.enabled = false
         self.saveAlertAction = saveAction
         
+        alertController.view.tag = 1002
         alertController.addAction(cancelAction)
         alertController.addAction(saveAction)
         alertController.addTextFieldWithConfigurationHandler {
             self.inputTextField = $0
+            $0.tag = 102
             $0.placeholder = "Name"
             $0.clearButtonMode = .WhileEditing
             $0.keyboardAppearance = .Dark
             $0.autocapitalizationType = .Words
             
             NSNotificationCenter.defaultCenter().removeObserver(self)
-            NSNotificationCenter.defaultCenter().addObserver(self, selector: .handleTextFieldTextDidChangeNotification,
+            NSNotificationCenter.defaultCenter().addObserver(self, selector: .handleTextFieldTextDidChange,
                                                                    name: UITextFieldTextDidChangeNotification,
                                                                    object: $0)
         }
@@ -175,9 +183,11 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
             let rect = CGRectMake(cell!.frame.origin.x + indent, cell!.frame.origin.y, cell!.frame.size.width - indent, cell!.frame.size.height)
 
             if CGRectContainsPoint(rect, point) {
-                let alertController: UIAlertController = UIAlertController(title: "Rename Folder", message: "Enter a new name for this folder.", preferredStyle: .Alert)
-                let cancelAction: UIAlertAction = UIAlertAction(title: "Cancel", style: .Cancel, handler: nil)
-                let saveAction: UIAlertAction = UIAlertAction(title: "Save", style: .Default) { _ in
+                let alertController = UIAlertController(title: "Rename Folder", message: "Enter a new name for this folder.", preferredStyle: .Alert)
+                
+                let cancelAction = UIAlertAction(title: "Cancel", style: .Cancel, handler: nil)
+                
+                let saveAction = UIAlertAction(title: "Save", style: .Default) { _ in
                     let folderName = (self.inputTextField?.text)!
                     
                     if self.names.contains(folderName) {
@@ -190,10 +200,12 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
                 
                 self.saveAlertAction = saveAction
                 
+                alertController.view.tag = 1001
                 alertController.addAction(cancelAction)
                 alertController.addAction(saveAction)
                 alertController.addTextFieldWithConfigurationHandler {
                     self.inputTextField = $0
+                    $0.tag = 101
                     $0.placeholder = "Name"
                     $0.text = cell!.textLabel?.text
                     $0.clearButtonMode = .WhileEditing
@@ -201,12 +213,10 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
                     $0.autocapitalizationType = .Words
                     
                     NSNotificationCenter.defaultCenter().removeObserver(self)
-                    NSNotificationCenter.defaultCenter().addObserver(self, selector: .handleTextFieldTextDidChangeNotification,
-                        name: UITextFieldTextDidChangeNotification,
-                        object: $0)
-                    NSNotificationCenter.defaultCenter().addObserver(self, selector: .handleTextDidBeginEditingNotification,
-                        name: UITextFieldTextDidBeginEditingNotification,
-                        object: $0)
+                    NSNotificationCenter.defaultCenter().addObserver(self, selector: .handleTextFieldTextDidChange,
+                                                                           name: UITextFieldTextDidChangeNotification,
+                                                                           object: $0)
+                    NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardDidShow, name:UIKeyboardDidShowNotification, object: nil)
                 }
                 
                 self.presentViewController(alertController, animated: true, completion: nil)
@@ -255,18 +265,8 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     override func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {
         if editingStyle == .Delete {
             let folder = self.fetchedResultsController.objectAtIndexPath(indexPath) as! PKFolder
-            let context = self.fetchedResultsController.managedObjectContext
-            let folderName = folder.name!
-            context.deleteObject(folder)
             
-            do {
-                try context.save()
-            } catch {
-                print("Unresolved error \(error), \(error)")
-                return
-            }
-            
-            self.names.remove(folderName)
+            self.checkFolders([folder], isMany: false)
         }
     }
     
@@ -296,12 +296,103 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     
     override func configureCell(cell: UITableViewCell, atIndexPath indexPath: NSIndexPath) {
         let folder = self.fetchedResultsController.objectAtIndexPath(indexPath) as! PKFolder
-
+        
         cell.textLabel!.text = folder.name
         cell.detailTextLabel!.text = "\(folder.records!.count)"
     }
     
     // MARK: - My Functions
+    
+    func deleteFolders(folders: [PKFolder]) {
+        let context = self.fetchedResultsController.managedObjectContext
+        var folderNames = [String]()
+        
+        folders.forEach {
+            folderNames.append($0.name!)
+            context.deleteObject($0)
+        }
+        
+        PKCoreDataManager.sharedManager.saveContext()
+        
+        folderNames.forEach { self.names.remove($0) }
+        
+        if self.tableView.editing { self.doneAction() }
+    }
+    
+    func showDeleteFolderAlert(isMany: Bool, folders: [PKFolder]) {
+        var alertTitle: String!
+        var deleteAllTitle: String!
+        var deleteFolderTitle: String!
+        var message: String!
+        
+        if isMany {
+            alertTitle = "Delete Folders?"
+            deleteAllTitle = "Delete Folders and Records"
+            deleteFolderTitle = "Delete Folders Only"
+            message = "If you delete the folders only, their records will move to the \(self.firstFolderName) folder"
+            // FIXME: - Rename General to Records !!! and rename messages
+        } else {
+            alertTitle = "Delete Folder?"
+            deleteAllTitle = "Delete Folder and Records"
+            deleteFolderTitle = "Delete Folder Only"
+            message = "If you delete the folder only, its records will move to the \(self.firstFolderName) folder"
+        }
+        
+        let alertController = UIAlertController(title: alertTitle, message: message, preferredStyle: .Alert)
+        
+        let deleteAllAction = UIAlertAction(title: deleteAllTitle, style: .Destructive) { _ in
+            self.deleteFolders(folders)
+        }
+        
+        let deleteFolderAction = UIAlertAction(title: deleteFolderTitle, style: .Destructive) { _ in
+            let context = self.fetchedResultsController.managedObjectContext
+            var mainFolder: PKFolder!
+            let predicate = NSPredicate(format: "name == %@", self.firstFolderName)
+            let fetchRequest = NSFetchRequest(entityName: "Folder")
+            
+            fetchRequest.predicate = predicate
+            
+            do {
+                let fetchedFolders = try context.executeFetchRequest(fetchRequest) as! [PKFolder]
+                mainFolder = fetchedFolders.first
+            } catch {
+                abort()//
+            }
+            
+            folders.forEach() {
+                $0.records?.forEach() { record in
+                    let record = record as! PKRecord
+                    
+                    record.folder = mainFolder
+                }
+            }
+            
+            PKCoreDataManager.sharedManager.saveContext()
+            
+            self.deleteFolders(folders)
+        }
+        
+        let cancelAction = UIAlertAction(title: "Cancel", style: .Cancel, handler: nil)
+        
+        alertController.addAction(deleteAllAction)
+        alertController.addAction(deleteFolderAction)
+        alertController.addAction(cancelAction)
+        self.presentViewController(alertController, animated: true, completion: nil)
+    }
+    
+    func checkFolders(folders: [PKFolder], isMany: Bool) {
+        var isEmpty = true
+        
+        loop: for folder in folders {
+            if folder.records!.count != 0 {
+                isEmpty = false
+                self.showDeleteFolderAlert(isMany, folders: folders)
+                break loop
+            }
+        }
+        
+        if isEmpty { self.deleteFolders(folders) }
+    }
     
     func changeButtons(rightBarButtonItem rightBarButtonItem: UIBarButtonItem, toolbarButtonItem: UIBarButtonItem) {
         self.navigationItem.setRightBarButtonItem(rightBarButtonItem, animated: true)
@@ -311,10 +402,10 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     }
     
     func showNameTakenAlert() {
-        let alertController: UIAlertController = UIAlertController(title: "Name Taken", message: "Please choose a different name.", preferredStyle: .Alert)
-        let action: UIAlertAction = UIAlertAction(title: "OK", style: .Default, handler: nil)
+        let alertController = UIAlertController(title: "Name Taken", message: "Please choose a different name.", preferredStyle: .Alert)
+        let okAction = UIAlertAction(title: "OK", style: .Default, handler: nil)
         
-        alertController.addAction(action)
+        alertController.addAction(okAction)
         self.presentViewController(alertController, animated: true, completion: nil)
     }
     
@@ -322,12 +413,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         let newFolder = NSEntityDescription.insertNewObjectForEntityForName("Folder", inManagedObjectContext: self.managedObjectContext) as! PKFolder
         newFolder.name = name
         
-        do {
-            try self.managedObjectContext.save()
-        } catch {
-            print("Unresolved error \(error), \(error)")
-            return
-        }
+        PKCoreDataManager.sharedManager.saveContext()
         
         self.names.insert(name)
     }
@@ -347,12 +433,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
             return
         }
         
-        do {
-            try self.managedObjectContext.save()
-        } catch {
-            print("Unresolved error \(error), \(error)")
-            return
-        }
+        PKCoreDataManager.sharedManager.saveContext()
         
         self.names.remove(oldName)
         self.names.insert(newName)
