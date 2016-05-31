@@ -52,8 +52,8 @@ class PKLoginViewController: UIViewController {
     // MARK: - My Functions
     
     func showAlert(text text: (String, String, String), action: ((UIAlertAction) -> ())?) {
-        let alertController: UIAlertController = UIAlertController(title: text.0, message: text.1, preferredStyle: .Alert)
-        let action: UIAlertAction = UIAlertAction(title: text.2, style: .Default, handler: action)
+        let alertController = UIAlertController(title: text.0, message: text.1, preferredStyle: .Alert)
+        let action = UIAlertAction(title: text.2, style: .Default, handler: action)
         
         alertController.addAction(action)
         self.presentViewController(alertController, animated: true, completion: nil)

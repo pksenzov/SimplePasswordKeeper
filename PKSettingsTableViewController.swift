@@ -8,44 +8,103 @@
 
 import UIKit
 
+let kSettingsLockOnExit = "lockonexit"        //?
+let kSettingsSpotlight  = "spotlight"
+let kSettingsAutoLock   = "autolock"
+
 class PKSettingsTableViewController: UITableViewController {
-    var textBarButton: UIBarButtonItem!
+    let defaults = NSUserDefaults.standardUserDefaults()
+    var autoLockTime: Int!
+    
+    @IBOutlet weak var spotlightSwitch: UISwitch!
+    @IBOutlet weak var lockOnExitSwitch: UISwitch!
+    @IBOutlet weak var autoLockLabel: UILabel!
+    
+//    #pragma mark - Save and Load
+//    
+//    - (void)loadSettings {
+//    
+//    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+//    
+//    self.firstnameTextField.text = [defaults objectForKey:kSettingsFirstname];
+//    self.lastnameTextField.text = [defaults objectForKey:kSettingsLastname];
+//    self.ageTextField.text = [defaults objectForKey:kSettingsAge];
+//    self.loginTextField.text = [defaults objectForKey:kSettingsLogin];
+//    self.passwordTextField.text = [defaults objectForKey:kSettingsPassword];
+//    self.phoneTextField.text = [defaults objectForKey:kSettingsPhone];
+//    self.emailTextField.text = [defaults objectForKey:kSettingsEmail];
+//    self.marriedSwitch.on = [defaults boolForKey:kSettingsMarried];
+//    self.countrySegmentedControl.selectedSegmentIndex = [defaults integerForKey:kSettingsCountry];
+//    self.toleranceLevelSlider.value = [defaults floatForKey:kSettingsTolerance];
+//    
+//    }
+//    
+//    - (void)saveSettings {
+//    
+//    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+//    
+//    [defaults setObject:self.firstnameTextField.text forKey:kSettingsFirstname];
+//    [defaults setObject:self.lastnameTextField.text forKey:kSettingsLastname];
+//    [defaults setObject:self.ageTextField.text forKey:kSettingsAge];
+//    [defaults setObject:self.loginTextField.text forKey:kSettingsLogin];
+//    [defaults setObject:self.passwordTextField.text forKey:kSettingsPassword];
+//    [defaults setObject:self.phoneTextField.text forKey:kSettingsPhone];
+//    [defaults setObject:self.emailTextField.text forKey:kSettingsEmail];
+//    [defaults setBool:self.marriedSwitch.on forKey:kSettingsMarried];
+//    [defaults setInteger:self.countrySegmentedControl.selectedSegmentIndex forKey:kSettingsCountry];
+//    [defaults setFloat:self.toleranceLevelSlider.value forKey:kSettingsTolerance];
+//    
+//    [defaults synchronize];
+//    
+//    }
+    
+    // MARK: - Save and Load
+    
+    func saveSettings(flag: Bool, key: String) {
+        //self.defaults.setBool(flag, forKey: key)
+        //self.defaults.synchronize()
+    }
+    
+    func loadSettings() {
+        self.lockOnExitSwitch.on = self.defaults.boolForKey(kSettingsLockOnExit)
+        self.spotlightSwitch.on = self.defaults.boolForKey(kSettingsSpotlight)
+        
+        self.autoLockTime = self.defaults.integerForKey(kSettingsAutoLock)
+        self.autoLockLabel.text = (self.autoLockTime != 0) ? "\(self.autoLockTime) minutes" : "Never"
+    }
     
     // MARK: - Actions
     
-    @IBAction func closeAction(sender: UIBarButtonItem) {
-        self.dismissViewControllerAnimated(true, completion: nil)
-    }
+    @IBAction func lockOnExitValueChanged(sender: UISwitch) { self.defaults.setBool(sender.on, forKey: kSettingsLockOnExit) }
+    @IBAction func spotlightValueChanged(sender: UISwitch)  { self.defaults.setBool(sender.on, forKey: kSettingsSpotlight)  }
+    
+    @IBAction func closeAction(sender: UIBarButtonItem) { self.dismissViewControllerAnimated(true, completion: nil) }
     
     // MARK: - Views
-    
-//    override func tableView(tableView: UITableView, willDisplayHeaderView view: UIView, forSection section: Int) {
-//        view.tintColor = .clearColor()
-//    }
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         self.tableView.contentInset = UIEdgeInsets(top: 20.0, left: 0, bottom: 20.0, right: 0)
     }
     
+    override func viewWillAppear(animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        self.loadSettings()
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        self.defaults.registerDefaults([kSettingsLockOnExit : true,
+                                        kSettingsSpotlight  : true,
+                                        kSettingsAutoLock   : 15])
 
         // FIXME: - Add editButton everywhere needed
         // self.navigationItem.rightBarButtonItem = self.editButtonItem()
     }
 
     // MARK: - Table view data source
-
-//    override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
-//        // #warning Incomplete implementation, return the number of sections
-//        return 0
-//    }
-//
-//    override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-//        // #warning Incomplete implementation, return the number of rows
-//        return 0
-//    }
 
     /*
     override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {

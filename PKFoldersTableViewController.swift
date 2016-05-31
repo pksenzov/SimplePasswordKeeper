@@ -15,7 +15,7 @@ extension UIAlertController {
         
         let tag = self.view.tag
         
-        if (tag == 1001 || tag == 1002) { //Rename UIAlertController and NewFolder UIAlertController
+        if (tag == 1001 || tag == 1002 || tag == 1003) {
             let textField = self.view.viewWithTag(tag - 900) as! UITextField // UITextField tag = UIAlertController tag - 900
             let zeroPosition = textField.beginningOfDocument
             
@@ -35,7 +35,7 @@ private extension Selector {
 class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginControllerDelegate, UIGestureRecognizerDelegate {
     var isAuthenticated = false
     var names = Set<String>()
-    let firstFolderName = "General"
+    let firstFolderName = "Records"
     let navigationItemDefaultName = "Folders"
     //let editBarButtonName = "Edit"
     var saveAlertAction: UIAlertAction?
@@ -117,9 +117,9 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     }
     
     @IBAction func newFolderAction(sender: UIBarButtonItem) {
-        let alertController: UIAlertController = UIAlertController(title: "New Folder", message: "Enter a name for this folder.", preferredStyle: .Alert)
-        let cancelAction: UIAlertAction = UIAlertAction(title: "Cancel", style: .Cancel, handler: nil)
-        let saveAction: UIAlertAction = UIAlertAction(title: "Save", style: .Default) { _ in
+        let alertController = UIAlertController(title: "New Folder", message: "Enter a name for this folder.", preferredStyle: .Alert)
+        let cancelAction = UIAlertAction(title: "Cancel", style: .Cancel, handler: nil)
+        let saveAction = UIAlertAction(title: "Save", style: .Default) { _ in
             let folderName = (self.inputTextField?.text)!
             
             guard !self.names.contains(folderName) else {
@@ -330,7 +330,6 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
             deleteAllTitle = "Delete Folders and Records"
             deleteFolderTitle = "Delete Folders Only"
             message = "If you delete the folders only, their records will move to the \(self.firstFolderName) folder"
-            // FIXME: - Rename General to Records !!! and rename messages
         } else {
             alertTitle = "Delete Folder?"
             deleteAllTitle = "Delete Folder and Records"

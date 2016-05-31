@@ -9,6 +9,20 @@
 import UIKit
 import CoreData
 
+extension UITextView {
+    var adjustHeightToRealIPhoneSize: Bool {
+        set {
+            if newValue {
+                self.constraints.filter{ $0.identifier == "DescriptionHeight" }.first!.constant = UIScreen.mainScreen().bounds.size.height - self.frame.origin.y - 80.0
+            }
+        }
+        
+        get {
+            return false
+        }
+    }
+}
+
 private extension Selector {
     static let keyboardWillShowOrHide = #selector(PKRecordEditingViewController.keyboardWillShowOrHide(_:))
 }
@@ -16,8 +30,8 @@ private extension Selector {
 class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITextFieldDelegate, UIScrollViewDelegate {
     enum TextFieldTag: Int {
         case PKRecordEditingViewControllerTextFieldTagTitle = 0,
-             PKRecordEditingViewControllerTextFieldTagLogin,
-             PKRecordEditingViewControllerTextFieldTagPassword
+        PKRecordEditingViewControllerTextFieldTagLogin,
+        PKRecordEditingViewControllerTextFieldTagPassword
     }
     
     var folder: PKFolder! = nil
@@ -119,18 +133,16 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     
     // MARK: - UIScrollViewDelegate
     
-    func scrollViewWillBeginDragging(scrollView: UIScrollView) {
-        self.descriptionTextView.resignFirstResponder()
-    }
+    func scrollViewWillBeginDragging(scrollView: UIScrollView) { self.descriptionTextView.resignFirstResponder() }
     
     // MARK: - Notifications
     
     func keyboardWillShowOrHide(notification: NSNotification) {
         if let userInfo = notification.userInfo,
-               endValue = userInfo[UIKeyboardFrameEndUserInfoKey],
-               durationValue = userInfo[UIKeyboardAnimationDurationUserInfoKey],
-               curveValue = userInfo[UIKeyboardAnimationCurveUserInfoKey] {
-                
+            endValue = userInfo[UIKeyboardFrameEndUserInfoKey],
+            durationValue = userInfo[UIKeyboardAnimationDurationUserInfoKey],
+            curveValue = userInfo[UIKeyboardAnimationCurveUserInfoKey] {
+            
             let endRect = self.view.convertRect(endValue.CGRectValue, fromView: self.view.window)
             let keyboardOverlap = self.scrollView.frame.maxY - endRect.origin.y
             
@@ -153,8 +165,10 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
+        
         self.navigationController?.setToolbarHidden(true, animated: false)
         self.defaultDescriptionHeightConstraintHeight = self.descriptionTextView.constraints.filter{ $0.identifier == "DescriptionHeight" }.first!.constant
+        
         NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardWillShowOrHide, name:UIKeyboardWillShowNotification, object: nil)
         NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardWillShowOrHide, name:UIKeyboardWillHideNotification, object: nil)
         
@@ -167,6 +181,23 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
                 self.descriptionTextView.text = record.detailedDescription
             }
         }
+        
+//        let constraint = self.descriptionTextView.constraints.filter{ $0.identifier == "DescriptionHeight" }.first!
+//        
+//        print(constraint.constant)
+//        print(self.descriptionTextView.intrinsicContentSize().height)
+//        
+//        if self.descriptionTextView.intrinsicContentSize().height > constraint.constant {
+//            
+//            print(self.descriptionTextView.frame.origin.y)
+//            print(self.descriptionTextView.intrinsicContentSize().height)
+//            
+//            self.scrollView.contentSize.height = self.descriptionTextView.frame.origin.y + self.descriptionTextView.intrinsicContentSize().height//self.descriptionTextView.frame.size.height
+//            constraint.constant = self.descriptionTextView.intrinsicContentSize().height
+//            
+//            print(self.scrollView.contentSize.height)
+//            print(constraint.constant)
+//        }
     }
     
     override func viewWillDisappear(animated: Bool) {
@@ -185,8 +216,8 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     @IBAction func saveAction(sender: UIBarButtonItem) {
         let title = self.allTextFields[TextFieldTag.PKRecordEditingViewControllerTextFieldTagTitle.rawValue].text
         guard !title!.isEmpty else {
-            let alertController: UIAlertController = UIAlertController(title: "The title is empty", message: "Please fill in the title field", preferredStyle: .Alert)
-            let action: UIAlertAction = UIAlertAction(title: "OK", style: .Default, handler: nil)
+            let alertController = UIAlertController(title: "The title is empty", message: "Please fill in the title field", preferredStyle: .Alert)
+            let action = UIAlertAction(title: "OK", style: .Default, handler: nil)
             
             alertController.addAction(action)
             self.presentViewController(alertController, animated: true, completion: nil)
@@ -219,13 +250,13 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     }
     
     /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
-        // Get the new view controller using segue.destinationViewController.
-        // Pass the selected object to the new view controller.
-    }
-    */
-
+     // MARK: - Navigation
+     
+     // In a storyboard-based application, you will often want to do a little preparation before navigation
+     override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+     // Get the new view controller using segue.destinationViewController.
+     // Pass the selected object to the new view controller.
+     }
+     */
+    
 }

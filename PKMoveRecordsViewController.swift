@@ -90,8 +90,8 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
     }
     
     func showNameTakenAlert() {
-        let alertController: UIAlertController = UIAlertController(title: "Name Taken", message: "Please choose a different name.", preferredStyle: .Alert)
-        let action: UIAlertAction = UIAlertAction(title: "OK", style: .Default, handler: nil)
+        let alertController = UIAlertController(title: "Name Taken", message: "Please choose a different name.", preferredStyle: .Alert)
+        let action = UIAlertAction(title: "OK", style: .Default, handler: nil)
         
         alertController.addAction(action)
         self.presentViewController(alertController, animated: true, completion: nil)
@@ -113,9 +113,9 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
     
     func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
         if indexPath.row == 0 {
-            let alertController: UIAlertController = UIAlertController(title: "New Folder", message: "Enter a name for this folder.", preferredStyle: .Alert)
-            let cancelAction: UIAlertAction = UIAlertAction(title: "Cancel", style: .Cancel, handler: nil)
-            let saveAction: UIAlertAction = UIAlertAction(title: "Save", style: .Default) { _ in
+            let alertController = UIAlertController(title: "New Folder", message: "Enter a name for this folder.", preferredStyle: .Alert)
+            let cancelAction = UIAlertAction(title: "Cancel", style: .Cancel, handler: nil)
+            let saveAction = UIAlertAction(title: "Save", style: .Default) { _ in
                 let folderName = (self.inputTextField?.text)!
                 
                 guard !self.names.contains(folderName) else {
@@ -129,10 +129,12 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
             saveAction.enabled = false
             self.saveAlertAction = saveAction
             
+            alertController.view.tag = 1003
             alertController.addAction(cancelAction)
             alertController.addAction(saveAction)
             alertController.addTextFieldWithConfigurationHandler {
                 self.inputTextField = $0
+                $0.tag = 103
                 $0.placeholder = "Name"
                 $0.clearButtonMode = .WhileEditing
                 $0.keyboardAppearance = .Dark
