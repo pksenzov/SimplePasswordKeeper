@@ -2,7 +2,7 @@
 //  PKRecord.swift
 //  SimplePasswordKeeper
 //
-//  Created by Admin on 03/03/16.
+//  Created by Admin on 08/06/16.
 //  Copyright © 2016 Pavel Ksenzov. All rights reserved.
 //
 

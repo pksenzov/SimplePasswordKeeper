@@ -2,7 +2,7 @@
 //  PKFolder.swift
 //  SimplePasswordKeeper
 //
-//  Created by Admin on 24/02/16.
+//  Created by Admin on 08/06/16.
 //  Copyright © 2016 Pavel Ksenzov. All rights reserved.
 //
 

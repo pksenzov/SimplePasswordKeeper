@@ -7,12 +7,21 @@
 //
 
 import UIKit
+import CoreSpotlight
+import CoreData
 
 @UIApplicationMain
 class PKAppDelegate: UIResponder, UIApplicationDelegate {
-
     var window: UIWindow?
-
+    
+    var managedObjectContext: NSManagedObjectContext {
+        if _managedObjectContext == nil {
+            _managedObjectContext = PKCoreDataManager.sharedManager.managedObjectContext
+        }
+        
+        return _managedObjectContext!
+    }
+    var _managedObjectContext: NSManagedObjectContext? = nil
 
     func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
         return true
@@ -40,6 +49,55 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
         // Saves changes in the application's managed object context before the application terminates.
         PKCoreDataManager.sharedManager.saveContext()
+    }
+    
+    func application(application: UIApplication, continueUserActivity userActivity: NSUserActivity, restorationHandler: ([AnyObject]?) -> Void) -> Bool {
+        if userActivity.activityType == CSSearchableItemActionType {
+            let uniqueIdentifier = userActivity.userInfo?[CSSearchableItemActivityIdentifier] as? String
+            
+            let mainVC = UIApplication.sharedApplication().windows.first?.rootViewController as! UINavigationController
+            let recordsVC = UIStoryboard(name: "Main", bundle: nil).instantiateViewControllerWithIdentifier("PKRecordsTableViewController") as! PKRecordsTableViewController
+            let recordEditingVc = UIStoryboard(name: "Main", bundle: nil).instantiateViewControllerWithIdentifier("PKRecordEditingViewController") as! PKRecordEditingViewController
+            
+            let fetchRequest = NSFetchRequest(entityName: "Record")
+            var mainRecord: PKRecord!
+            
+            do {
+                let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
+                
+                loop: for record in records {
+                    if String(record.objectID) == uniqueIdentifier {
+                        mainRecord = record
+                        break loop
+                    }
+                }
+                
+                if mainRecord == nil {
+                    mainVC.popToRootViewControllerAnimated(true)
+                    
+                    return true
+                }
+            } catch {
+                print("Unresolved error \(error), \(error)")
+            }
+            
+            mainVC.popToRootViewControllerAnimated(true)
+            
+            recordsVC.folder = mainRecord.folder
+            
+            let backItem = UIBarButtonItem()
+            backItem.title = ""
+            mainVC.navigationItem.backBarButtonItem = backItem
+            
+            mainVC.pushViewController(recordsVC, animated: true)
+            
+            recordEditingVc.record = mainRecord
+            recordEditingVc.folder = mainRecord.folder
+            
+            mainVC.pushViewController(recordEditingVc, animated: true)
+        }
+        
+        return true
     }
 }
 

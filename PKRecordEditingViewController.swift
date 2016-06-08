@@ -8,6 +8,9 @@
 
 import UIKit
 import CoreData
+import CoreSpotlight
+
+let kContentType = "record"
 
 extension UITextView {
     var adjustHeightToRealIPhoneSize: Bool {
@@ -50,7 +53,14 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var descriptionLabel: UILabel!
-    @IBOutlet var allTextFields: [UITextField]!
+    
+    lazy var allTextFields: [UITextField] = { [unowned self] in
+        return [self.titleTextField, self.loginTextField, self.passwordTextField]
+    }()
+    
+    @IBOutlet weak var titleTextField: UITextField!
+    @IBOutlet weak var loginTextField: UITextField!
+    @IBOutlet weak var passwordTextField: UITextField!
     
     @IBOutlet weak var revealButton: UIButton! {
         didSet {
@@ -65,6 +75,26 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
             if self.record == nil || self.record?.detailedDescription == "" {
                 descriptionTextView.text = "Details"
                 descriptionTextView.textColor = .lightGrayColor()
+            }
+        }
+    }
+    
+    // MARK: - Spotlight
+    
+    func titleIndexing(title: String, login: String, id: String) {
+        let attributeSet = CSSearchableItemAttributeSet(itemContentType: kContentType)
+        
+        attributeSet.title = title
+        attributeSet.contentDescription = login.isEmpty ? "Secure Record" : "Login: \(login)"
+        attributeSet.keywords = [title]
+        
+        let item = CSSearchableItem(uniqueIdentifier: id, domainIdentifier: nil, attributeSet: attributeSet)
+        
+        CSSearchableIndex.defaultSearchableIndex().indexSearchableItems([item]) { error in
+            if error != nil {
+                print(error?.localizedDescription)
+            } else {
+                print("Item Indexed")
             }
         }
     }
@@ -101,22 +131,6 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     
     // MARK: - UITextViewDelegate
     
-    func textViewDidChange(textView: UITextView) {
-        let descriptionHeightConstraint = textView.constraints.filter{ $0.identifier == "DescriptionHeight" }.first
-        guard descriptionHeightConstraint != nil else { return }
-        
-        guard !textView.text.isEmpty else {
-            self.scrollView.contentSize.height = textView.frame.origin.y + self.defaultDescriptionHeightConstraintHeight
-            descriptionHeightConstraint!.constant = self.defaultDescriptionHeightConstraintHeight
-            return
-        }
-        
-        guard textView.intrinsicContentSize().height > self.defaultDescriptionHeightConstraintHeight else { return }
-        
-        self.scrollView.contentSize.height = textView.frame.origin.y + textView.frame.size.height
-        descriptionHeightConstraint!.constant = textView.intrinsicContentSize().height
-    }
-    
     func textViewDidBeginEditing(textView: UITextView) {
         if textView.textColor == .lightGrayColor() {
             textView.text = nil
@@ -146,8 +160,8 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
             let endRect = self.view.convertRect(endValue.CGRectValue, fromView: self.view.window)
             let keyboardOverlap = self.scrollView.frame.maxY - endRect.origin.y
             
-            self.scrollView.contentInset.bottom = keyboardOverlap
-            self.scrollView.scrollIndicatorInsets.bottom = keyboardOverlap
+            self.scrollView.contentInset.bottom = keyboardOverlap + (keyboardOverlap == 0 ? 0 : 20)
+            self.scrollView.scrollIndicatorInsets.bottom = keyboardOverlap + (keyboardOverlap == 0 ? 0 : 20)
             
             let duration = durationValue.doubleValue
             let options = UIViewAnimationOptions(rawValue: UInt(curveValue.integerValue << 16))
@@ -158,6 +172,22 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     }
     
     // MARK: - Views
+    
+    override func viewDidLayoutSubviews() {
+        let descriptionHeightConstraint = self.descriptionTextView.constraints.filter{ $0.identifier == "DescriptionHeight" }.first
+        guard descriptionHeightConstraint != nil else { return }
+        
+        guard !self.descriptionTextView.text.isEmpty else {
+            self.scrollView.contentSize.height = self.descriptionTextView.frame.origin.y + self.defaultDescriptionHeightConstraintHeight
+            descriptionHeightConstraint!.constant = self.defaultDescriptionHeightConstraintHeight
+            return
+        }
+        
+        guard self.descriptionTextView.intrinsicContentSize().height > self.defaultDescriptionHeightConstraintHeight else { return }
+        
+        self.scrollView.contentSize.height = self.descriptionTextView.frame.origin.y + self.descriptionTextView.frame.size.height
+        descriptionHeightConstraint!.constant = self.descriptionTextView.intrinsicContentSize().height
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -181,23 +211,6 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
                 self.descriptionTextView.text = record.detailedDescription
             }
         }
-        
-//        let constraint = self.descriptionTextView.constraints.filter{ $0.identifier == "DescriptionHeight" }.first!
-//        
-//        print(constraint.constant)
-//        print(self.descriptionTextView.intrinsicContentSize().height)
-//        
-//        if self.descriptionTextView.intrinsicContentSize().height > constraint.constant {
-//            
-//            print(self.descriptionTextView.frame.origin.y)
-//            print(self.descriptionTextView.intrinsicContentSize().height)
-//            
-//            self.scrollView.contentSize.height = self.descriptionTextView.frame.origin.y + self.descriptionTextView.intrinsicContentSize().height//self.descriptionTextView.frame.size.height
-//            constraint.constant = self.descriptionTextView.intrinsicContentSize().height
-//            
-//            print(self.scrollView.contentSize.height)
-//            print(constraint.constant)
-//        }
     }
     
     override func viewWillDisappear(animated: Bool) {
@@ -215,6 +228,7 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     
     @IBAction func saveAction(sender: UIBarButtonItem) {
         let title = self.allTextFields[TextFieldTag.PKRecordEditingViewControllerTextFieldTagTitle.rawValue].text
+        
         guard !title!.isEmpty else {
             let alertController = UIAlertController(title: "The title is empty", message: "Please fill in the title field", preferredStyle: .Alert)
             let action = UIAlertAction(title: "OK", style: .Default, handler: nil)
@@ -233,18 +247,22 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         let description = (self.descriptionTextView.textColor == .lightGrayColor()) ? "" : self.descriptionTextView.text
         let date =  NSDate()
         
-        let record = (self.record == nil) ?
-            (NSEntityDescription.insertNewObjectForEntityForName("Record", inManagedObjectContext: self.managedObjectContext) as! PKRecord) :
-            self.record
+        let record = self.record ?? (NSEntityDescription.insertNewObjectForEntityForName("Record", inManagedObjectContext: self.managedObjectContext) as! PKRecord)
         
-        record!.title = title
-        record!.login = login
-        record!.password = password
-        record!.detailedDescription = description
-        record!.date = date
-        record!.folder = self.folder
+        record.title = title
+        record.login = login
+        record.password = password
+        record.detailedDescription = description
+        record.date = date
+        record.folder = self.folder
         
         PKCoreDataManager.sharedManager.saveContext()
+        
+        let isSpotlightEnabled = NSUserDefaults.standardUserDefaults().boolForKey(kSettingsSpotlight)
+        
+        if isSpotlightEnabled {
+            self.titleIndexing(title!, login: login!, id: String(record.objectID))
+        }
         
         self.navigationController?.popViewControllerAnimated(true)
     }

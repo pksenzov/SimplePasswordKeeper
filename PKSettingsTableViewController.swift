@@ -7,70 +7,43 @@
 //
 
 import UIKit
+import CoreSpotlight
+import CoreData
 
-let kSettingsLockOnExit = "lockonexit"        //?
+let kSettingsLockOnExit = "lockonexit"
 let kSettingsSpotlight  = "spotlight"
 let kSettingsAutoLock   = "autolock"
 
 class PKSettingsTableViewController: UITableViewController {
     let defaults = NSUserDefaults.standardUserDefaults()
     var autoLockTime: Int!
+    var isSpotlightEnabled = true
+    
+    var managedObjectContext: NSManagedObjectContext {
+        if _managedObjectContext == nil {
+            _managedObjectContext = PKCoreDataManager.sharedManager.managedObjectContext
+        }
+        
+        return _managedObjectContext!
+    }
+    var _managedObjectContext: NSManagedObjectContext? = nil
     
     @IBOutlet weak var spotlightSwitch: UISwitch!
     @IBOutlet weak var lockOnExitSwitch: UISwitch!
     @IBOutlet weak var autoLockLabel: UILabel!
     
-//    #pragma mark - Save and Load
-//    
-//    - (void)loadSettings {
-//    
-//    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-//    
-//    self.firstnameTextField.text = [defaults objectForKey:kSettingsFirstname];
-//    self.lastnameTextField.text = [defaults objectForKey:kSettingsLastname];
-//    self.ageTextField.text = [defaults objectForKey:kSettingsAge];
-//    self.loginTextField.text = [defaults objectForKey:kSettingsLogin];
-//    self.passwordTextField.text = [defaults objectForKey:kSettingsPassword];
-//    self.phoneTextField.text = [defaults objectForKey:kSettingsPhone];
-//    self.emailTextField.text = [defaults objectForKey:kSettingsEmail];
-//    self.marriedSwitch.on = [defaults boolForKey:kSettingsMarried];
-//    self.countrySegmentedControl.selectedSegmentIndex = [defaults integerForKey:kSettingsCountry];
-//    self.toleranceLevelSlider.value = [defaults floatForKey:kSettingsTolerance];
-//    
-//    }
-//    
-//    - (void)saveSettings {
-//    
-//    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-//    
-//    [defaults setObject:self.firstnameTextField.text forKey:kSettingsFirstname];
-//    [defaults setObject:self.lastnameTextField.text forKey:kSettingsLastname];
-//    [defaults setObject:self.ageTextField.text forKey:kSettingsAge];
-//    [defaults setObject:self.loginTextField.text forKey:kSettingsLogin];
-//    [defaults setObject:self.passwordTextField.text forKey:kSettingsPassword];
-//    [defaults setObject:self.phoneTextField.text forKey:kSettingsPhone];
-//    [defaults setObject:self.emailTextField.text forKey:kSettingsEmail];
-//    [defaults setBool:self.marriedSwitch.on forKey:kSettingsMarried];
-//    [defaults setInteger:self.countrySegmentedControl.selectedSegmentIndex forKey:kSettingsCountry];
-//    [defaults setFloat:self.toleranceLevelSlider.value forKey:kSettingsTolerance];
-//    
-//    [defaults synchronize];
-//    
-//    }
-    
-    // MARK: - Save and Load
-    
-    func saveSettings(flag: Bool, key: String) {
-        //self.defaults.setBool(flag, forKey: key)
-        //self.defaults.synchronize()
-    }
+    // MARK: - Load
     
     func loadSettings() {
         self.lockOnExitSwitch.on = self.defaults.boolForKey(kSettingsLockOnExit)
+        
         self.spotlightSwitch.on = self.defaults.boolForKey(kSettingsSpotlight)
+        self.isSpotlightEnabled = self.defaults.boolForKey(kSettingsSpotlight)
         
         self.autoLockTime = self.defaults.integerForKey(kSettingsAutoLock)
         self.autoLockLabel.text = (self.autoLockTime != 0) ? "\(self.autoLockTime) minutes" : "Never"
+        
+        
     }
     
     // MARK: - Actions
@@ -78,7 +51,49 @@ class PKSettingsTableViewController: UITableViewController {
     @IBAction func lockOnExitValueChanged(sender: UISwitch) { self.defaults.setBool(sender.on, forKey: kSettingsLockOnExit) }
     @IBAction func spotlightValueChanged(sender: UISwitch)  { self.defaults.setBool(sender.on, forKey: kSettingsSpotlight)  }
     
-    @IBAction func closeAction(sender: UIBarButtonItem) { self.dismissViewControllerAnimated(true, completion: nil) }
+    @IBAction func closeAction(sender: UIBarButtonItem) {
+        if self.spotlightSwitch.on != self.isSpotlightEnabled {
+            CSSearchableIndex.defaultSearchableIndex().deleteAllSearchableItemsWithCompletionHandler() { error in
+                if error != nil {
+                    print(error?.localizedDescription)
+                } else {
+                    print("Items Indexes Deleted")
+                }
+            }
+            
+            if self.spotlightSwitch.on {
+                let fetchRequest = NSFetchRequest(entityName: "Record")
+                
+                do {
+                    var items = [CSSearchableItem]()
+                    let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
+                    
+                    records.forEach() {
+                        let attributeSet = CSSearchableItemAttributeSet(itemContentType: kContentType)
+                        
+                        attributeSet.title = $0.title
+                        attributeSet.contentDescription = $0.login!.isEmpty ? "Secure Record" : "Login: \($0.login!)"
+                        attributeSet.keywords = [$0.title!]
+                        
+                        let item = CSSearchableItem(uniqueIdentifier: String($0.objectID), domainIdentifier: nil, attributeSet: attributeSet)
+                        items.append(item)
+                    }
+                    
+                    CSSearchableIndex.defaultSearchableIndex().indexSearchableItems(items) { error in
+                        if error != nil {
+                            print(error?.localizedDescription)
+                        } else {
+                            print("All Items Indexed")
+                        }
+                    }
+                } catch {
+                    print("Unresolved error \(error), \(error)")
+                }
+            }
+        }
+        
+        self.dismissViewControllerAnimated(true, completion: nil)
+    }
     
     // MARK: - Views
     
