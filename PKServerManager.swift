@@ -14,8 +14,9 @@ class PKServerManager: NSObject {
     func authorizeUser() {
         let mainVC = UIApplication.sharedApplication().windows.first?.rootViewController as! UINavigationController
         let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewControllerWithIdentifier("PKLoginViewController") as! PKLoginViewController
-        vc.delegate = mainVC.viewControllers.first as! PKFoldersTableViewController
+        //vc.delegate = mainVC.viewControllers.first as! PKFoldersTableViewController
         
-        mainVC.presentViewController(vc, animated: true, completion: nil)
+        mainVC.dismissViewControllerAnimated(false, completion: nil)
+        mainVC.presentViewController(vc, animated: false, completion: nil)
     }
 }

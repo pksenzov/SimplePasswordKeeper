@@ -9,7 +9,18 @@
 import UIKit
 import CoreData
 
+extension UIViewController {
+    func checkIsLocked() {
+        if isLocked { PKServerManager.sharedManager.authorizeUser() }
+    }
+}
+
 extension UIAlertController {
+    override public func viewWillAppear(animated: Bool) {
+        super.viewWillAppear(animated)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: .checkIsLocked, name: UIApplicationWillEnterForegroundNotification, object: nil)
+    }
+    
     override public func viewWillDisappear(animated: Bool) {
         super.viewWillDisappear(animated)
         
@@ -21,7 +32,13 @@ extension UIAlertController {
             
             textField.selectedTextRange = textField.textRangeFromPosition(zeroPosition, toPosition: zeroPosition)
         }
+        
+        NSNotificationCenter.defaultCenter().removeObserver(self)
     }
+}
+
+extension Selector {
+    static let checkIsLocked = #selector(UIViewController.checkIsLocked)
 }
 
 private extension Selector {
@@ -33,7 +50,6 @@ private extension Selector {
 }
 
 class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginControllerDelegate, UIGestureRecognizerDelegate {
-    var isAuthenticated = false
     var names = Set<String>()
     let firstFolderName = "Records"
     let navigationItemDefaultName = "Folders"
@@ -242,22 +258,22 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     
     // FIXME: - БРАТЬ ДАННЫЕ ИЗ FetchedResultController!!!
     func loadData() {
-        let preFetchRequest = NSFetchRequest(entityName: "Folder")
-        
-        do {
-            let folders = try self.managedObjectContext.executeFetchRequest(preFetchRequest) as! [PKFolder]
-            
-            guard folders.count != 0 else {
-                self.insertFolder(name: self.firstFolderName)
-                return
-            }
-            
-            folders.forEach { self.names.insert($0.name!) }
-            
-            self.tableView.reloadData()
-        } catch {
-            print("Unresolved error \(error), \(error)")
-        }
+//        let preFetchRequest = NSFetchRequest(entityName: "Folder")
+//        
+//        do {
+//            let folders = try self.managedObjectContext.executeFetchRequest(preFetchRequest) as! [PKFolder]
+//            
+//            guard folders.count != 0 else {
+//                self.insertFolder(name: self.firstFolderName)
+//                return
+//            }
+//            
+//            folders.forEach { self.names.insert($0.name!) }
+//            
+//            self.tableView.reloadData()
+//        } catch {
+//            print("Unresolved error \(error), \(error)")
+//        }
     }
     
     // MARK: - Table View
@@ -282,9 +298,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     }
     
     override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        if !isAuthenticated {
-            return 0
-        }
+        if isLocked { return 0 }
         
         let number = super.tableView(tableView, numberOfRowsInSection: section)
         self.editBarButton?.enabled = (number > 1)
@@ -460,20 +474,17 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         
         self.navigationController?.navigationBar.setBackgroundImage(UIImage(), forBarPosition: .Any, barMetrics: .Default)
         self.navigationController?.navigationBar.shadowImage = UIImage()
+        
+        self.tableView.reloadData()
     }
     
     override func viewWillDisappear(animated: Bool) {
         super.viewWillDisappear(animated)
-        NSNotificationCenter.defaultCenter().removeObserver(self)
     }
     
     override func viewDidAppear(animated: Bool) {
         super.viewDidAppear(animated)
-
-        if !isAuthenticated {
-            isAuthenticated = true
-            PKServerManager.sharedManager.authorizeUser()
-        }
+        self.checkIsLocked()
     }
     
     // MARK: - Navigation

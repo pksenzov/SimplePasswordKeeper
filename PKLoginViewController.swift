@@ -20,7 +20,7 @@ protocol PKLoginControllerDelegate {
 
 class PKLoginViewController: UIViewController {
     var isRepeatAlert = false
-    var delegate: PKLoginControllerDelegate! = nil
+    var delegate: PKLoginControllerDelegate? //! = nil
     
     // MARK: - Actions
     
@@ -103,7 +103,9 @@ class PKLoginViewController: UIViewController {
             
             if success {
                 NSOperationQueue.mainQueue().addOperationWithBlock({
-                    self.delegate.loadData()
+                    isLocked = false
+                    
+                    self.delegate?.loadData()
                     self.dismissViewControllerAnimated(true, completion: nil)
                 })
             } else {

@@ -6,7 +6,6 @@
 //  Copyright © 2016 Pavel Ksenzov. All rights reserved.
 //
 
-import UIKit
 import CoreData
 
 class PKCoreDataManager: NSObject {

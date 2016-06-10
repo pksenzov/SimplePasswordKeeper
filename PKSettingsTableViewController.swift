@@ -10,14 +10,10 @@ import UIKit
 import CoreSpotlight
 import CoreData
 
-let kSettingsLockOnExit = "lockonexit"
-let kSettingsSpotlight  = "spotlight"
-let kSettingsAutoLock   = "autolock"
-
 class PKSettingsTableViewController: UITableViewController {
     let defaults = NSUserDefaults.standardUserDefaults()
     var autoLockTime: Int!
-    var isSpotlightEnabled = true
+    //var isSpotlightEnabled = true
     
     var managedObjectContext: NSManagedObjectContext {
         if _managedObjectContext == nil {
@@ -38,7 +34,7 @@ class PKSettingsTableViewController: UITableViewController {
         self.lockOnExitSwitch.on = self.defaults.boolForKey(kSettingsLockOnExit)
         
         self.spotlightSwitch.on = self.defaults.boolForKey(kSettingsSpotlight)
-        self.isSpotlightEnabled = self.defaults.boolForKey(kSettingsSpotlight)
+        //self.isSpotlightEnabled = self.defaults.boolForKey(kSettingsSpotlight)
         
         self.autoLockTime = self.defaults.integerForKey(kSettingsAutoLock)
         self.autoLockLabel.text = (self.autoLockTime != 0) ? "\(self.autoLockTime) minutes" : "Never"
@@ -48,49 +44,91 @@ class PKSettingsTableViewController: UITableViewController {
     
     // MARK: - Actions
     
-    @IBAction func lockOnExitValueChanged(sender: UISwitch) { self.defaults.setBool(sender.on, forKey: kSettingsLockOnExit) }
+    @IBAction func lockOnExitValueChanged(sender: UISwitch) {
+        self.defaults.setBool(sender.on, forKey: kSettingsLockOnExit)
+        
+        CSSearchableIndex.defaultSearchableIndex().deleteAllSearchableItemsWithCompletionHandler() { error in
+            if error != nil {
+                print(error?.localizedDescription)
+            } else {
+                print("Items Indexes Deleted")
+            }
+        }
+        
+        if sender.on {
+            let fetchRequest = NSFetchRequest(entityName: "Record")
+            
+            do {
+                var items = [CSSearchableItem]()
+                let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
+                
+                records.forEach() {
+                    let attributeSet = CSSearchableItemAttributeSet(itemContentType: kContentType)
+                    
+                    attributeSet.title = $0.title
+                    attributeSet.contentDescription = $0.login!.isEmpty ? "Secure Record" : "Login: \($0.login!)"
+                    attributeSet.keywords = [$0.title!]
+                    //attributeSet.lastUsedDate
+                    
+                    let item = CSSearchableItem(uniqueIdentifier: String($0.objectID), domainIdentifier: nil, attributeSet: attributeSet)
+                    items.append(item)
+                }
+                
+                CSSearchableIndex.defaultSearchableIndex().indexSearchableItems(items) { error in
+                    if error != nil {
+                        print(error?.localizedDescription)
+                    } else {
+                        print("All Items Indexed")
+                    }
+                }
+            } catch {
+                print("Unresolved error \(error), \(error)")
+            }
+        }
+    }
+    
     @IBAction func spotlightValueChanged(sender: UISwitch)  { self.defaults.setBool(sender.on, forKey: kSettingsSpotlight)  }
     
     @IBAction func closeAction(sender: UIBarButtonItem) {
-        if self.spotlightSwitch.on != self.isSpotlightEnabled {
-            CSSearchableIndex.defaultSearchableIndex().deleteAllSearchableItemsWithCompletionHandler() { error in
-                if error != nil {
-                    print(error?.localizedDescription)
-                } else {
-                    print("Items Indexes Deleted")
-                }
-            }
-            
-            if self.spotlightSwitch.on {
-                let fetchRequest = NSFetchRequest(entityName: "Record")
-                
-                do {
-                    var items = [CSSearchableItem]()
-                    let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
-                    
-                    records.forEach() {
-                        let attributeSet = CSSearchableItemAttributeSet(itemContentType: kContentType)
-                        
-                        attributeSet.title = $0.title
-                        attributeSet.contentDescription = $0.login!.isEmpty ? "Secure Record" : "Login: \($0.login!)"
-                        attributeSet.keywords = [$0.title!]
-                        
-                        let item = CSSearchableItem(uniqueIdentifier: String($0.objectID), domainIdentifier: nil, attributeSet: attributeSet)
-                        items.append(item)
-                    }
-                    
-                    CSSearchableIndex.defaultSearchableIndex().indexSearchableItems(items) { error in
-                        if error != nil {
-                            print(error?.localizedDescription)
-                        } else {
-                            print("All Items Indexed")
-                        }
-                    }
-                } catch {
-                    print("Unresolved error \(error), \(error)")
-                }
-            }
-        }
+//        if self.spotlightSwitch.on != self.isSpotlightEnabled {
+//            CSSearchableIndex.defaultSearchableIndex().deleteAllSearchableItemsWithCompletionHandler() { error in
+//                if error != nil {
+//                    print(error?.localizedDescription)
+//                } else {
+//                    print("Items Indexes Deleted")
+//                }
+//            }
+//            
+//            if self.spotlightSwitch.on {
+//                let fetchRequest = NSFetchRequest(entityName: "Record")
+//                
+//                do {
+//                    var items = [CSSearchableItem]()
+//                    let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
+//                    
+//                    records.forEach() {
+//                        let attributeSet = CSSearchableItemAttributeSet(itemContentType: kContentType)
+//                        
+//                        attributeSet.title = $0.title
+//                        attributeSet.contentDescription = $0.login!.isEmpty ? "Secure Record" : "Login: \($0.login!)"
+//                        attributeSet.keywords = [$0.title!]
+//                        
+//                        let item = CSSearchableItem(uniqueIdentifier: String($0.objectID), domainIdentifier: nil, attributeSet: attributeSet)
+//                        items.append(item)
+//                    }
+//                    
+//                    CSSearchableIndex.defaultSearchableIndex().indexSearchableItems(items) { error in
+//                        if error != nil {
+//                            print(error?.localizedDescription)
+//                        } else {
+//                            print("All Items Indexed")
+//                        }
+//                    }
+//                } catch {
+//                    print("Unresolved error \(error), \(error)")
+//                }
+//            }
+//        }
         
         self.dismissViewControllerAnimated(true, completion: nil)
     }
@@ -102,19 +140,20 @@ class PKSettingsTableViewController: UITableViewController {
         self.tableView.contentInset = UIEdgeInsets(top: 20.0, left: 0, bottom: 20.0, right: 0)
     }
     
+    override func viewWillDisappear(animated: Bool) {
+        super.viewWillDisappear(animated)
+        NSNotificationCenter.defaultCenter().removeObserver(self)
+    }
+    
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
-        
         self.loadSettings()
+        
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: .checkIsLocked, name: UIApplicationWillEnterForegroundNotification, object: nil)
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        self.defaults.registerDefaults([kSettingsLockOnExit : true,
-                                        kSettingsSpotlight  : true,
-                                        kSettingsAutoLock   : 15])
-
         // FIXME: - Add editButton everywhere needed
         // self.navigationItem.rightBarButtonItem = self.editButtonItem()
     }

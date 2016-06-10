@@ -189,9 +189,18 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
     
     // MARK: - Views
     
+    override func viewWillDisappear(animated: Bool) {
+        super.viewWillDisappear(animated)
+        NSNotificationCenter.defaultCenter().removeObserver(self)
+    }
+    
     override func viewWillAppear(animated: Bool) {
+        super.viewWillAppear(animated)
+        
         self.navigationBar.setBackgroundImage(UIImage(), forBarPosition: .Any, barMetrics: .Default)
         self.navigationBar.shadowImage = UIImage()
+        
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: .checkIsLocked, name: UIApplicationWillEnterForegroundNotification, object: nil)
     }
     
     override func viewDidLoad() {

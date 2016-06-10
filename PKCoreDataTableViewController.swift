@@ -28,6 +28,16 @@ class PKCoreDataTableViewController: UITableViewController, NSFetchedResultsCont
     
     // MARK: - Views
     
+    override func viewWillDisappear(animated: Bool) {
+        super.viewWillDisappear(animated)
+        NSNotificationCenter.defaultCenter().removeObserver(self)
+    }
+    
+    override func viewWillAppear(animated: Bool) {
+        super.viewWillAppear(animated)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: .checkIsLocked, name: UIApplicationWillEnterForegroundNotification, object: nil)
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
     }

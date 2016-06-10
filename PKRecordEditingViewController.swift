@@ -201,6 +201,7 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         
         NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardWillShowOrHide, name:UIKeyboardWillShowNotification, object: nil)
         NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardWillShowOrHide, name:UIKeyboardWillHideNotification, object: nil)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: .checkIsLocked, name: UIApplicationWillEnterForegroundNotification, object:nil)
         
         if let record = self.record {
             self.allTextFields[TextFieldTag.PKRecordEditingViewControllerTextFieldTagTitle.rawValue].text = record.title
