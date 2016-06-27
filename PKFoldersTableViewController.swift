@@ -9,18 +9,7 @@
 import UIKit
 import CoreData
 
-extension UIViewController {
-    func checkIsLocked() {
-        if isLocked { PKServerManager.sharedManager.authorizeUser() }
-    }
-}
-
 extension UIAlertController {
-    override public func viewWillAppear(animated: Bool) {
-        super.viewWillAppear(animated)
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: .checkIsLocked, name: UIApplicationWillEnterForegroundNotification, object: nil)
-    }
-    
     override public func viewWillDisappear(animated: Bool) {
         super.viewWillDisappear(animated)
         
@@ -35,10 +24,6 @@ extension UIAlertController {
         
         NSNotificationCenter.defaultCenter().removeObserver(self)
     }
-}
-
-extension Selector {
-    static let checkIsLocked = #selector(UIViewController.checkIsLocked)
 }
 
 private extension Selector {
@@ -256,24 +241,17 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     
     // MARK: - PKLoginControllerDelegate
     
-    // FIXME: - БРАТЬ ДАННЫЕ ИЗ FetchedResultController!!!
     func loadData() {
-//        let preFetchRequest = NSFetchRequest(entityName: "Folder")
-//        
-//        do {
-//            let folders = try self.managedObjectContext.executeFetchRequest(preFetchRequest) as! [PKFolder]
-//            
-//            guard folders.count != 0 else {
-//                self.insertFolder(name: self.firstFolderName)
-//                return
-//            }
-//            
-//            folders.forEach { self.names.insert($0.name!) }
-//            
-//            self.tableView.reloadData()
-//        } catch {
-//            print("Unresolved error \(error), \(error)")
-//        }
+        let folders = self.fetchedResultsController.fetchedObjects as! [PKFolder]
+        
+        guard folders.count != 0 else {
+            self.insertFolder(name: self.firstFolderName)
+            return
+        }
+        
+        //folders.forEach { self.names.insert($0.name!) }
+        
+        self.tableView.reloadData()
     }
     
     // MARK: - Table View
@@ -313,6 +291,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         
         cell.textLabel!.text = folder.name
         cell.detailTextLabel!.text = "\(folder.records!.count)"
+        self.names.insert(folder.name!)
     }
     
     // MARK: - My Functions
@@ -423,12 +402,12 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     }
     
     func insertFolder(name name: String) {
-        let newFolder = NSEntityDescription.insertNewObjectForEntityForName("Folder", inManagedObjectContext: self.managedObjectContext) as! PKFolder
+        let newFolder: PKFolder = self.managedObjectContext.insertObject()
         newFolder.name = name
         
         PKCoreDataManager.sharedManager.saveContext()
         
-        self.names.insert(name)
+        //self.names.insert(name)
     }
     
     func updateFolder(oldName oldName: String, newName: String) {
@@ -449,7 +428,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         PKCoreDataManager.sharedManager.saveContext()
         
         self.names.remove(oldName)
-        self.names.insert(newName)
+        //self.names.insert(newName)
     }
     
     // MARK: - Views
@@ -475,18 +454,26 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         self.navigationController?.navigationBar.setBackgroundImage(UIImage(), forBarPosition: .Any, barMetrics: .Default)
         self.navigationController?.navigationBar.shadowImage = UIImage()
         
-        self.tableView.reloadData()
+//        print(self.fetchedResultsController.fetchedObjects?.count)
+//        if self.fetchedResultsController.fetchedObjects?.count == 0 {
+//            self.insertFolder(name: self.firstFolderName)
+//            return
+//        }
+        
+        //self.tableView.reloadData()
+    }
+    
+    override func viewDidAppear(animated: Bool) {
+        super.viewDidAppear(animated)
+        //self.checkIsLocked()
+        
+        if isLocked { PKServerManager.sharedManager.authorizeUser() }
     }
     
     override func viewWillDisappear(animated: Bool) {
         super.viewWillDisappear(animated)
     }
-    
-    override func viewDidAppear(animated: Bool) {
-        super.viewDidAppear(animated)
-        self.checkIsLocked()
-    }
-    
+
     // MARK: - Navigation
     
     override func shouldPerformSegueWithIdentifier(identifier: String?, sender: AnyObject?) -> Bool {
@@ -506,21 +493,4 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
             vc.folder = folder
         }
     }
-
-
-    /*
-    // Override to support rearranging the table view.
-    override func tableView(tableView: UITableView, moveRowAtIndexPath fromIndexPath: NSIndexPath, toIndexPath: NSIndexPath) {
-
-    }
-    */
-
-    /*
-    // Override to support conditional rearranging of the table view.
-    override func tableView(tableView: UITableView, canMoveRowAtIndexPath indexPath: NSIndexPath) -> Bool {
-        // Return false if you do not want the item to be re-orderable.
-        return true
-    }
-    */
-
 }

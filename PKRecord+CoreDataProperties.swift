@@ -22,3 +22,7 @@ extension PKRecord {
     @NSManaged var folder: PKFolder?
 
 }
+
+extension PKRecord: ManagedObjectType {
+    @nonobjc static let entityName = "Record"
+}

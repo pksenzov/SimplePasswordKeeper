@@ -8,6 +8,20 @@
 
 import CoreData
 
+extension NSManagedObjectContext {
+    func insertObject<A: NSManagedObject where A: ManagedObjectType>() -> A {
+        guard let obj = NSEntityDescription.insertNewObjectForEntityForName(A.entityName, inManagedObjectContext: self) as? A else {
+            fatalError("Entity \(A.entityName) does not correspond to \(A.self)")
+        }
+        
+        return obj
+    }
+}
+
+protocol ManagedObjectType {
+    static var entityName: String { get }
+}
+
 class PKCoreDataManager: NSObject {
     static let sharedManager = PKCoreDataManager()
     
@@ -21,7 +35,7 @@ class PKCoreDataManager: NSObject {
     
     lazy var managedObjectModel: NSManagedObjectModel = {
         // The managed object model for the application. This property is not optional. It is a fatal error for the application not to be able to find and load its model.
-        let modelURL = NSBundle.mainBundle().URLForResource("SimplePasswordKeeper", withExtension: "momd")!
+        let modelURL = NSBundle.mainBundle().URLForResource("Records", withExtension: "momd")!
         return NSManagedObjectModel(contentsOfURL: modelURL)!
     }()
     

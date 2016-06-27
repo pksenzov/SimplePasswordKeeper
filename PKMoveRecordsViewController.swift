@@ -68,10 +68,10 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
     // MARK: - My Functions
     
     func updateNotes(name: String?) {
-        var folder: PKFolder! = nil
+        var folder: PKFolder
         
         if let name = name {
-            folder = (NSEntityDescription.insertNewObjectForEntityForName("Folder", inManagedObjectContext: self.managedObjectContext) as! PKFolder)
+            folder = self.managedObjectContext.insertObject()
             folder.name = name
             
             PKCoreDataManager.sharedManager.saveContext()
@@ -191,7 +191,7 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
     
     override func viewWillDisappear(animated: Bool) {
         super.viewWillDisappear(animated)
-        NSNotificationCenter.defaultCenter().removeObserver(self)
+        //NSNotificationCenter.defaultCenter().removeObserver(self)
     }
     
     override func viewWillAppear(animated: Bool) {
@@ -200,7 +200,7 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
         self.navigationBar.setBackgroundImage(UIImage(), forBarPosition: .Any, barMetrics: .Default)
         self.navigationBar.shadowImage = UIImage()
         
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: .checkIsLocked, name: UIApplicationWillEnterForegroundNotification, object: nil)
+        //NSNotificationCenter.defaultCenter().addObserver(self, selector: .checkIsLocked, name: UIApplicationWillEnterForegroundNotification, object: nil)
     }
     
     override func viewDidLoad() {

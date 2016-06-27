@@ -37,6 +37,21 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         PKRecordEditingViewControllerTextFieldTagPassword
     }
     
+    var savedTitle:     String?
+    var savedLogin:     String?
+    var savedPassword:  String?
+    var savedDetails:   String?
+    
+    var savedIsTitleOnFocus:    Bool?
+    var savedIsLoginOnFocus:    Bool?
+    var savedIsPasswordOnFocus: Bool?
+    var savedIsDetailsOnFocus:  Bool?
+    
+    var savedTitleRange:    UITextRange?
+    var savedLoginRange:    UITextRange?
+    var savedPasswordRange: UITextRange?
+    var savedDetailsRange:  UITextRange?
+    
     var folder: PKFolder! = nil
     var record: PKRecord?
     
@@ -79,22 +94,103 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         }
     }
     
+    // MARK: - My Functions
+    
+    func fillInData() {
+        if self.savedTitle != nil {
+            self.titleTextField.text    = self.savedTitle
+            self.loginTextField.text    = self.savedLogin
+            self.passwordTextField.text = self.savedPassword
+            
+            if self.savedDetails != "" {
+                self.descriptionTextView.text = self.savedDetails
+            }
+            
+            if self.savedIsTitleOnFocus! {
+                self.titleTextField.becomeFirstResponder()
+                self.titleTextField.selectedTextRange =
+                    self.titleTextField.textRangeFromPosition(self.savedTitleRange?.start ?? self.titleTextField.beginningOfDocument,
+                                                              toPosition: self.savedTitleRange?.end ?? self.titleTextField.beginningOfDocument)
+            }
+            else if self.savedIsLoginOnFocus! {
+                self.loginTextField.becomeFirstResponder()
+                self.loginTextField.selectedTextRange =
+                    self.loginTextField.textRangeFromPosition(self.savedLoginRange?.start ?? self.loginTextField.beginningOfDocument,
+                                                              toPosition: self.savedLoginRange?.end ?? self.loginTextField.beginningOfDocument)
+            }
+            else if self.savedIsPasswordOnFocus! {
+                self.passwordTextField.becomeFirstResponder()
+                self.passwordTextField.selectedTextRange =
+                    self.passwordTextField.textRangeFromPosition(self.savedPasswordRange?.start ?? self.passwordTextField.beginningOfDocument,
+                                                              toPosition: self.savedPasswordRange?.end ?? self.passwordTextField.beginningOfDocument)
+            }
+            else if self.savedIsDetailsOnFocus! {
+                self.descriptionTextView.becomeFirstResponder()
+                self.descriptionTextView.selectedTextRange =
+                    self.descriptionTextView.textRangeFromPosition(self.savedDetailsRange?.start ?? self.descriptionTextView.beginningOfDocument,
+                                                              toPosition: self.savedDetailsRange?.end ?? self.descriptionTextView.beginningOfDocument)
+            }
+            
+            self.savedLogin     = nil
+            self.savedLogin     = nil
+            self.savedPassword  = nil
+            self.savedDetails   = nil
+            
+            self.savedIsTitleOnFocus    = nil
+            self.savedIsLoginOnFocus    = nil
+            self.savedIsPasswordOnFocus = nil
+            self.savedIsDetailsOnFocus  = nil
+            
+            self.savedTitleRange    = nil
+            self.savedLoginRange    = nil
+            self.savedPasswordRange = nil
+            self.savedDetailsRange  = nil
+        } else if let record = self.record {
+            self.titleTextField.text    = record.title
+            self.loginTextField.text    = record.login
+            self.passwordTextField.text = record.password as? String
+            
+            if record.detailedDescription != "" {
+                self.descriptionTextView.text = record.detailedDescription
+            }
+        }
+    }
+    
+    func saveData() {
+        self.savedTitle     = self.titleTextField.text
+        self.savedLogin     = self.loginTextField.text
+        self.savedPassword  = self.passwordTextField.text
+        self.savedDetails   = self.descriptionTextView.text
+        
+        self.savedIsTitleOnFocus    = self.titleTextField.isFirstResponder()
+        self.savedIsLoginOnFocus    = self.loginTextField.isFirstResponder()
+        self.savedIsPasswordOnFocus = self.passwordTextField.isFirstResponder()
+        self.savedIsDetailsOnFocus  = self.descriptionTextView.isFirstResponder()
+        
+        if self.savedIsTitleOnFocus!            { self.savedTitleRange      = self.titleTextField.selectedTextRange          }
+        else if self.savedIsLoginOnFocus!       { self.savedLoginRange      = self.loginTextField.selectedTextRange          }
+        else if self.savedIsPasswordOnFocus!    { self.savedPasswordRange   = self.passwordTextField.selectedTextRange       }
+        else if self.savedIsDetailsOnFocus!     { self.savedDetailsRange    = self.descriptionTextView.selectedTextRange     }
+    }
+    
     // MARK: - Spotlight
     
     func titleIndexing(title: String, login: String, id: String) {
-        let attributeSet = CSSearchableItemAttributeSet(itemContentType: kContentType)
-        
-        attributeSet.title = title
-        attributeSet.contentDescription = login.isEmpty ? "Secure Record" : "Login: \(login)"
-        attributeSet.keywords = [title]
-        
-        let item = CSSearchableItem(uniqueIdentifier: id, domainIdentifier: nil, attributeSet: attributeSet)
-        
-        CSSearchableIndex.defaultSearchableIndex().indexSearchableItems([item]) { error in
-            if error != nil {
-                print(error?.localizedDescription)
-            } else {
-                print("Item Indexed")
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
+            let attributeSet = CSSearchableItemAttributeSet(itemContentType: kContentType)
+            attributeSet.title = title
+            attributeSet.contentDescription = login.isEmpty ? "Secure Record" : "Login: \(login)"
+            attributeSet.keywords = [title]
+            
+            let item = CSSearchableItem(uniqueIdentifier: id, domainIdentifier: nil, attributeSet: attributeSet)
+            item.expirationDate = NSDate.distantFuture()
+            
+            CSSearchableIndex.defaultSearchableIndex().indexSearchableItems([item]) { error in
+                if error != nil {
+                    print(error?.localizedDescription)
+                } else {
+                    print("Item Indexed")
+                }
             }
         }
     }
@@ -201,17 +297,8 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         
         NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardWillShowOrHide, name:UIKeyboardWillShowNotification, object: nil)
         NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardWillShowOrHide, name:UIKeyboardWillHideNotification, object: nil)
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: .checkIsLocked, name: UIApplicationWillEnterForegroundNotification, object:nil)
         
-        if let record = self.record {
-            self.allTextFields[TextFieldTag.PKRecordEditingViewControllerTextFieldTagTitle.rawValue].text = record.title
-            self.allTextFields[TextFieldTag.PKRecordEditingViewControllerTextFieldTagLogin.rawValue].text = record.login
-            self.allTextFields[TextFieldTag.PKRecordEditingViewControllerTextFieldTagPassword.rawValue].text = record.password as? String
-            
-            if record.detailedDescription != "" {
-                self.descriptionTextView.text = record.detailedDescription
-            }
-        }
+        self.fillInData()
     }
     
     override func viewWillDisappear(animated: Bool) {
@@ -248,7 +335,7 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         let description = (self.descriptionTextView.textColor == .lightGrayColor()) ? "" : self.descriptionTextView.text
         let date =  NSDate()
         
-        let record = self.record ?? (NSEntityDescription.insertNewObjectForEntityForName("Record", inManagedObjectContext: self.managedObjectContext) as! PKRecord)
+        let record: PKRecord = self.record ?? self.managedObjectContext.insertObject()
         
         record.title = title
         record.login = login
@@ -267,15 +354,4 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         
         self.navigationController?.popViewControllerAnimated(true)
     }
-    
-    /*
-     // MARK: - Navigation
-     
-     // In a storyboard-based application, you will often want to do a little preparation before navigation
-     override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
-     // Get the new view controller using segue.destinationViewController.
-     // Pass the selected object to the new view controller.
-     }
-     */
-    
 }

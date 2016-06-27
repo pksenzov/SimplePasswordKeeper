@@ -25,7 +25,7 @@ class PKLoginViewController: UIViewController {
     // MARK: - Actions
     
     @IBAction func enterAction(sender: UIButton) {
-        authenticateUser()
+        self.authenticateUser()
     }
     
     // MARK: - Notifications
@@ -37,9 +37,9 @@ class PKLoginViewController: UIViewController {
     }
     
     func applicationDidBecomeActive() {
-        if isRepeatAlert && self.presentedViewController == nil {
-            isRepeatAlert = false
-            authenticateUser()
+        if self.isRepeatAlert && self.presentedViewController == nil {
+            self.isRepeatAlert = false
+            self.authenticateUser()
         }
     }
     
@@ -144,7 +144,13 @@ class PKLoginViewController: UIViewController {
     override func viewDidAppear(animated: Bool) {
         super.viewDidAppear(animated)
         
-        authenticateUser()
+        let state = UIApplication.sharedApplication().applicationState
+        
+        if (state == .Active) {
+            self.authenticateUser()
+        } else {
+            self.isRepeatAlert = true
+        }
     }
     
     override func viewDidLoad() {

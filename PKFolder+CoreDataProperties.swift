@@ -16,5 +16,9 @@ extension PKFolder {
 
     @NSManaged var name: String?
     @NSManaged var records: NSSet?
+    
+}
 
+extension PKFolder: ManagedObjectType {
+    @nonobjc static let entityName = "Folder"
 }
