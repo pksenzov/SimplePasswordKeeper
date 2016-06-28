@@ -30,9 +30,25 @@ class PKSettingsTableViewController: UITableViewController {
     }
     var _managedObjectContext: NSManagedObjectContext? = nil
     
+    @IBOutlet weak var upperToolbar: UIToolbar!
     @IBOutlet weak var spotlightSwitch: UISwitch!
     @IBOutlet weak var lockOnExitSwitch: UISwitch!
     @IBOutlet weak var autoLockLabel: UILabel!
+    
+    @IBOutlet weak var settingsLabel: UILabel! {
+        didSet {
+            settingsLabel.font = UIFont.preferredFontForTextStyle(UIFontTextStyleHeadline)
+        }
+    }
+    
+    // MARK: - Navigation
+    
+    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+        if segue.identifier == "AutoLockSegue" {
+            let vc = segue.destinationViewController as! PKAutoLockTableViewController
+            vc.minutes = self.autoLockTime
+        }
+    }
     
     // MARK: - My Functions
     
@@ -82,14 +98,17 @@ class PKSettingsTableViewController: UITableViewController {
     
     func loadSettings() {
         self.lockOnExitSwitch.on = self.defaults.boolForKey(kSettingsLockOnExit)
-        
         self.spotlightSwitch.on = self.defaults.boolForKey(kSettingsSpotlight)
-        //self.isSpotlightEnabled = self.defaults.boolForKey(kSettingsSpotlight)
-        
         self.autoLockTime = self.defaults.integerForKey(kSettingsAutoLock)
-        self.autoLockLabel.text = (self.autoLockTime != 0) ? "\(self.autoLockTime) minutes" : "Never"
         
-        
+        switch self.autoLockTime {
+        case 1:
+            self.autoLockLabel.text = "1 minute"
+        case 60:
+            self.autoLockLabel.text = "1 hour"
+        default:
+            self.autoLockLabel.text = "\(self.autoLockTime) minutes"
+        }
     }
     
     // MARK: - Actions
@@ -105,9 +124,11 @@ class PKSettingsTableViewController: UITableViewController {
         self.tableView.contentInset = UIEdgeInsets(top: 20.0, left: 0, bottom: 20.0, right: 0)
     }
     
-    override func viewWillDisappear(animated: Bool) {
-        super.viewWillDisappear(animated)
-        self.updateSpotlight()
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        self.upperToolbar.clipsToBounds = true
+        // FIXME: - Add editButton everywhere needed
+        // self.navigationItem.rightBarButtonItem = self.editButtonItem()
     }
     
     override func viewWillAppear(animated: Bool) {
@@ -117,10 +138,9 @@ class PKSettingsTableViewController: UITableViewController {
         //NSNotificationCenter.defaultCenter().addObserver(self, selector: .checkIsLocked, name: UIApplicationWillEnterForegroundNotification, object: nil)
     }
     
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        // FIXME: - Add editButton everywhere needed
-        // self.navigationItem.rightBarButtonItem = self.editButtonItem()
+    override func viewWillDisappear(animated: Bool) {
+        super.viewWillDisappear(animated)
+        self.updateSpotlight()
     }
 
     // MARK: - Table view data source

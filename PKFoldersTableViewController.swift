@@ -21,8 +21,6 @@ extension UIAlertController {
             
             textField.selectedTextRange = textField.textRangeFromPosition(zeroPosition, toPosition: zeroPosition)
         }
-        
-        NSNotificationCenter.defaultCenter().removeObserver(self)
     }
 }
 
@@ -41,13 +39,34 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     //let editBarButtonName = "Edit"
     var saveAlertAction: UIAlertAction?
     var inputTextField: UITextField?
-    var doneBarButton: UIBarButtonItem?
-    var editBarButton: UIBarButtonItem?
-    var toolbarButtons: [UIBarButtonItem]?
-    var deleteBarButton: UIBarButtonItem?
-    var addBarButton: UIBarButtonItem?
-    var tapGesture: UITapGestureRecognizer!
-    var longTapGesture: UILongPressGestureRecognizer!
+    
+    var addBarButton: UIBarButtonItem!
+    
+    lazy var doneBarButton: UIBarButtonItem = {
+        return UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: .doneAction)
+    }()
+    
+    lazy var editBarButton: UIBarButtonItem = {
+        return self.navigationItem.rightBarButtonItem!
+    }()
+    
+    lazy var toolbarButtons: [UIBarButtonItem] = {
+        return self.toolbarItems!
+    }()
+    
+    lazy var deleteBarButton: UIBarButtonItem = {
+        let barButton = UIBarButtonItem(title: "Delete", style: .Plain, target: self, action: .deleteAction)
+        barButton.enabled = false
+        return barButton
+    }()
+    
+    lazy var tapGesture: UITapGestureRecognizer = {
+        return UITapGestureRecognizer(target: self, action: .handleTap)
+    }()
+    
+    lazy var longTapGesture: UILongPressGestureRecognizer = {
+        return UILongPressGestureRecognizer(target: self, action: .handleTap)
+    }()
     
     override var fetchedResultsController: NSFetchedResultsController {
         if _fetchedResultsController != nil {
@@ -106,15 +125,15 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         self.tableView.removeGestureRecognizer(self.tapGesture)
         self.tableView.removeGestureRecognizer(self.longTapGesture)
         self.navigationItem.title = self.navigationItemDefaultName
-        self.deleteBarButton?.enabled = false
-        self.changeButtons(rightBarButtonItem: self.editBarButton!, toolbarButtonItem: self.addBarButton!)
+        self.deleteBarButton.enabled = false
+        self.changeButtons(rightBarButtonItem: self.editBarButton, toolbarButtonItem: self.addBarButton)
     }
     
     @IBAction func editAction(sender: UIBarButtonItem) {
         self.tableView.setEditing(true, animated: true)
         self.tableView.addGestureRecognizer(self.tapGesture)
         self.tableView.addGestureRecognizer(self.longTapGesture)
-        self.changeButtons(rightBarButtonItem: self.doneBarButton!, toolbarButtonItem: self.deleteBarButton!)
+        self.changeButtons(rightBarButtonItem: self.doneBarButton, toolbarButtonItem: self.deleteBarButton)
     }
     
     @IBAction func newFolderAction(sender: UIBarButtonItem) {
@@ -230,10 +249,10 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
                 
                 if let selectedCount = tableView!.indexPathsForSelectedRows?.count {
                     self.navigationItem.title = "\(selectedCount) Selected"
-                    self.deleteBarButton?.enabled = true
+                    self.deleteBarButton.enabled = true
                 } else {
                     self.navigationItem.title = self.navigationItemDefaultName
-                    self.deleteBarButton?.enabled = false
+                    self.deleteBarButton.enabled = false
                 }
             }
         }
@@ -279,7 +298,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         if isLocked { return 0 }
         
         let number = super.tableView(tableView, numberOfRowsInSection: section)
-        self.editBarButton?.enabled = (number > 1)
+        self.editBarButton.enabled = (number > 1)
 
         return number
     }
@@ -291,7 +310,6 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         
         cell.textLabel!.text = folder.name
         cell.detailTextLabel!.text = "\(folder.records!.count)"
-        self.names.insert(folder.name!)
     }
     
     // MARK: - My Functions
@@ -389,7 +407,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     func changeButtons(rightBarButtonItem rightBarButtonItem: UIBarButtonItem, toolbarButtonItem: UIBarButtonItem) {
         self.navigationItem.setRightBarButtonItem(rightBarButtonItem, animated: true)
         
-        self.toolbarButtons![1] = toolbarButtonItem
+        self.toolbarButtons[1] = toolbarButtonItem
         self.setToolbarItems(self.toolbarButtons, animated: true)
     }
     
@@ -407,7 +425,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         
         PKCoreDataManager.sharedManager.saveContext()
         
-        //self.names.insert(name)
+        self.names.insert(name)
     }
     
     func updateFolder(oldName oldName: String, newName: String) {
@@ -428,50 +446,37 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         PKCoreDataManager.sharedManager.saveContext()
         
         self.names.remove(oldName)
-        //self.names.insert(newName)
+        self.names.insert(newName)
     }
     
     // MARK: - Views
     
     override func viewDidLoad() {
         super.viewDidLoad()
+//        self.tapGesture = UITapGestureRecognizer(target: self, action: .handleTap)
+//        self.longTapGesture = UILongPressGestureRecognizer(target: self, action: .handleTap)
         
-        self.tapGesture = UITapGestureRecognizer(target: self, action: .handleTap)
-        self.longTapGesture = UILongPressGestureRecognizer(target: self, action: .handleTap)
+//        self.editBarButton = self.navigationItem.rightBarButtonItem
+//        self.doneBarButton = UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: .doneAction)
+//        
+//        self.toolbarButtons = self.toolbarItems
+//        self.deleteBarButton = UIBarButtonItem(title: "Delete", style: .Plain, target: self, action: .deleteAction)
+//        self.deleteBarButton?.enabled = false
+        self.addBarButton = self.toolbarButtons.last
+        
+        let folders = self.fetchedResultsController.fetchedObjects as! [PKFolder]
+        folders.forEach() { self.names.insert($0.name!) }
     }
     
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
-        
-        self.editBarButton = self.navigationItem.rightBarButtonItem
-        self.doneBarButton = UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: .doneAction)
-        
-        self.toolbarButtons = self.toolbarItems
-        self.deleteBarButton = UIBarButtonItem(title: "Delete", style: .Plain, target: self, action: .deleteAction)
-        self.deleteBarButton?.enabled = false
-        self.addBarButton = self.toolbarButtons![1]
-        
         self.navigationController?.navigationBar.setBackgroundImage(UIImage(), forBarPosition: .Any, barMetrics: .Default)
         self.navigationController?.navigationBar.shadowImage = UIImage()
-        
-//        print(self.fetchedResultsController.fetchedObjects?.count)
-//        if self.fetchedResultsController.fetchedObjects?.count == 0 {
-//            self.insertFolder(name: self.firstFolderName)
-//            return
-//        }
-        
-        //self.tableView.reloadData()
     }
     
     override func viewDidAppear(animated: Bool) {
         super.viewDidAppear(animated)
-        //self.checkIsLocked()
-        
         if isLocked { PKServerManager.sharedManager.authorizeUser() }
-    }
-    
-    override func viewWillDisappear(animated: Bool) {
-        super.viewWillDisappear(animated)
     }
 
     // MARK: - Navigation

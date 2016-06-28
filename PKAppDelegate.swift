@@ -48,8 +48,10 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
             topVC = PKServerManager.getTopViewController()
         }
         
-        if isLocked {
+        if isLocked && !(topVC is PKLoginViewController) {
             PKServerManager.sharedManager.authorizeUser()
+        } else if isLocked && topVC is PKLoginViewController {
+            (topVC as! PKLoginViewController).isRepeatAlert = true
         } else if topVC is PKSettingsTableViewController {
             var backgroundTask = UIBackgroundTaskInvalid
             

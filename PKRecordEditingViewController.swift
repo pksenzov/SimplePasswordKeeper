@@ -47,10 +47,7 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     var savedIsPasswordOnFocus: Bool?
     var savedIsDetailsOnFocus:  Bool?
     
-    var savedTitleRange:    UITextRange?
-    var savedLoginRange:    UITextRange?
-    var savedPasswordRange: UITextRange?
-    var savedDetailsRange:  UITextRange?
+    var savedRange:    UITextRange?
     
     var folder: PKFolder! = nil
     var record: PKRecord?
@@ -106,30 +103,10 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
                 self.descriptionTextView.text = self.savedDetails
             }
             
-            if self.savedIsTitleOnFocus! {
-                self.titleTextField.becomeFirstResponder()
-                self.titleTextField.selectedTextRange =
-                    self.titleTextField.textRangeFromPosition(self.savedTitleRange?.start ?? self.titleTextField.beginningOfDocument,
-                                                              toPosition: self.savedTitleRange?.end ?? self.titleTextField.beginningOfDocument)
-            }
-            else if self.savedIsLoginOnFocus! {
-                self.loginTextField.becomeFirstResponder()
-                self.loginTextField.selectedTextRange =
-                    self.loginTextField.textRangeFromPosition(self.savedLoginRange?.start ?? self.loginTextField.beginningOfDocument,
-                                                              toPosition: self.savedLoginRange?.end ?? self.loginTextField.beginningOfDocument)
-            }
-            else if self.savedIsPasswordOnFocus! {
-                self.passwordTextField.becomeFirstResponder()
-                self.passwordTextField.selectedTextRange =
-                    self.passwordTextField.textRangeFromPosition(self.savedPasswordRange?.start ?? self.passwordTextField.beginningOfDocument,
-                                                              toPosition: self.savedPasswordRange?.end ?? self.passwordTextField.beginningOfDocument)
-            }
-            else if self.savedIsDetailsOnFocus! {
-                self.descriptionTextView.becomeFirstResponder()
-                self.descriptionTextView.selectedTextRange =
-                    self.descriptionTextView.textRangeFromPosition(self.savedDetailsRange?.start ?? self.descriptionTextView.beginningOfDocument,
-                                                              toPosition: self.savedDetailsRange?.end ?? self.descriptionTextView.beginningOfDocument)
-            }
+            if self.savedIsTitleOnFocus!            { self.titleTextField.becomeFirstResponder()        }
+            else if self.savedIsLoginOnFocus!       { self.loginTextField.becomeFirstResponder()        }
+            else if self.savedIsPasswordOnFocus!    { self.passwordTextField.becomeFirstResponder()     }
+            else if self.savedIsDetailsOnFocus!     { self.descriptionTextView.becomeFirstResponder()   }
             
             self.savedLogin     = nil
             self.savedLogin     = nil
@@ -140,11 +117,6 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
             self.savedIsLoginOnFocus    = nil
             self.savedIsPasswordOnFocus = nil
             self.savedIsDetailsOnFocus  = nil
-            
-            self.savedTitleRange    = nil
-            self.savedLoginRange    = nil
-            self.savedPasswordRange = nil
-            self.savedDetailsRange  = nil
         } else if let record = self.record {
             self.titleTextField.text    = record.title
             self.loginTextField.text    = record.login
@@ -167,10 +139,10 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         self.savedIsPasswordOnFocus = self.passwordTextField.isFirstResponder()
         self.savedIsDetailsOnFocus  = self.descriptionTextView.isFirstResponder()
         
-        if self.savedIsTitleOnFocus!            { self.savedTitleRange      = self.titleTextField.selectedTextRange          }
-        else if self.savedIsLoginOnFocus!       { self.savedLoginRange      = self.loginTextField.selectedTextRange          }
-        else if self.savedIsPasswordOnFocus!    { self.savedPasswordRange   = self.passwordTextField.selectedTextRange       }
-        else if self.savedIsDetailsOnFocus!     { self.savedDetailsRange    = self.descriptionTextView.selectedTextRange     }
+        if self.savedIsTitleOnFocus!            { self.savedRange       = self.titleTextField.selectedTextRange          }
+        else if self.savedIsLoginOnFocus!       { self.savedRange       = self.loginTextField.selectedTextRange          }
+        else if self.savedIsPasswordOnFocus!    { self.savedRange       = self.passwordTextField.selectedTextRange       }
+        else if self.savedIsDetailsOnFocus!     { self.savedRange       = self.descriptionTextView.selectedTextRange     }
     }
     
     // MARK: - Spotlight
@@ -264,6 +236,21 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
             UIView.animateWithDuration(duration, delay: 0, options: options, animations: {
                 self.view.layoutIfNeeded()
                 }, completion: nil)
+            
+            if notification.name == "UIKeyboardWillShowNotification" && self.savedRange != nil {
+                self.allTextFields.forEach() {
+                    if $0.isFirstResponder() {
+                        $0.selectedTextRange = $0.textRangeFromPosition(self.savedRange!.start, toPosition: self.savedRange!.end)
+                        self.savedRange = nil
+                        return
+                    }
+                }
+                
+                if self.savedRange != nil {
+                    self.descriptionTextView.selectedTextRange = self.descriptionTextView.textRangeFromPosition(self.savedRange!.start, toPosition: self.savedRange!.end)
+                    self.savedRange = nil
+                }
+            }
         }
     }
     

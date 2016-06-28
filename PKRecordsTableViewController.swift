@@ -19,15 +19,42 @@ private extension Selector {
 class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecordsControllerDelegate {
     var currentDate: NSDate! = nil
     var folder: PKFolder! = nil
-    var textBarButton: UIBarButtonItem!
-    var doneBarButton: UIBarButtonItem?
-    var cancelBarButton: UIBarButtonItem?
-    var moveBarButton: UIBarButtonItem?
-    var deleteBarButton: UIBarButtonItem?
-    var editBarButton: UIBarButtonItem?
-    var addBarButton: UIBarButtonItem?
-    var toolbarButtons: [UIBarButtonItem]?
-    @IBOutlet var recordsLabel: UILabel!
+    
+    var addBarButton: UIBarButtonItem!
+    
+    lazy var textBarButton: UIBarButtonItem = {
+        return UIBarButtonItem(customView: self.recordsLabel)
+    }()
+    
+    lazy var doneBarButton: UIBarButtonItem = {
+        return UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: .doneAction)
+    }()
+    
+    lazy var cancelBarButton: UIBarButtonItem = {
+        return UIBarButtonItem(barButtonSystemItem: .Cancel, target: self, action: .cancelAction)
+    }()
+    
+    lazy var moveBarButton: UIBarButtonItem = {
+        return UIBarButtonItem(title: "Move All", style: .Plain, target: self, action: .moveAction)
+    }()
+    
+    lazy var deleteBarButton: UIBarButtonItem = {
+        return UIBarButtonItem(title: "Delete All", style: .Plain, target: self, action: .deleteAction)
+    }()
+    
+    lazy var editBarButton: UIBarButtonItem = {
+        return self.navigationItem.rightBarButtonItem!
+    }()
+    
+    lazy var toolbarButtons: [UIBarButtonItem] = {
+        return self.toolbarItems!
+    }()
+    
+    @IBOutlet var recordsLabel: UILabel! {
+        didSet {
+            recordsLabel.font = UIFont.preferredFontForTextStyle(UIFontTextStyleFootnote)
+        }
+    }
     
     override var fetchedResultsController: NSFetchedResultsController {
         if _fetchedResultsController != nil {
@@ -133,8 +160,8 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
     func cancelAction() {
         self.changeToolbar(false)
         self.navigationItem.title = self.folder.name
-        self.moveBarButton?.title = "Move All"
-        self.deleteBarButton?.title = "Delete All"
+        self.moveBarButton.title = "Move All"
+        self.deleteBarButton.title = "Delete All"
     }
     
     @IBAction func editAction(sender: UIBarButtonItem) {
@@ -179,7 +206,7 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
     
     override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         let number = super.tableView(tableView, numberOfRowsInSection: section)
-        self.editBarButton?.enabled = (number > 0)
+        self.editBarButton.enabled = (number > 0)
         
         switch number {
         case 0: self.recordsLabel.text = "No Records"
@@ -228,14 +255,14 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
         self.navigationItem.setHidesBackButton(isEditing, animated: true)
         
         if isEditing {
-            self.toolbarButtons?.insert(self.moveBarButton!, atIndex: 0)
-            self.toolbarButtons?.removeAtIndex(2)
+            self.toolbarButtons.insert(self.moveBarButton, atIndex: 0)
+            self.toolbarButtons.removeAtIndex(2)
         } else {
-            self.toolbarButtons?.removeFirst()
-            self.toolbarButtons?.insert(self.textBarButton, atIndex: 1)
+            self.toolbarButtons.removeFirst()
+            self.toolbarButtons.insert(self.textBarButton, atIndex: 1)
         }
         
-        self.toolbarButtons?[self.toolbarButtons!.count - 1] = isEditing ? self.deleteBarButton! : self.addBarButton!
+        self.toolbarButtons[self.toolbarButtons.count - 1] = isEditing ? self.deleteBarButton : self.addBarButton
         self.setToolbarItems(self.toolbarButtons, animated: isEditing)
     }
     
@@ -272,26 +299,28 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        self.editBarButton = self.navigationItem.rightBarButtonItem
+//        self.editBarButton = self.navigationItem.rightBarButtonItem
         self.navigationItem.title = self.folder.name
-        
-        self.textBarButton = UIBarButtonItem(customView: self.recordsLabel)
+//        
+//        self.textBarButton = UIBarButtonItem(customView: self.recordsLabel)
         self.toolbarItems?.insert(self.textBarButton, atIndex: 1)
+//        
+//        self.cancelBarButton = UIBarButtonItem(barButtonSystemItem: .Cancel, target: self, action: .cancelAction)
+//        self.moveBarButton = UIBarButtonItem(title: "Move All", style: .Plain, target: self, action: .moveAction)
+//        self.deleteBarButton = UIBarButtonItem(title: "Delete All", style: .Plain, target: self, action: .deleteAction)
+//        self.doneBarButton = UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: .doneAction)
         
-        self.cancelBarButton = UIBarButtonItem(barButtonSystemItem: .Cancel, target: self, action: .cancelAction)
-        self.moveBarButton = UIBarButtonItem(title: "Move All", style: .Plain, target: self, action: .moveAction)
-        self.deleteBarButton = UIBarButtonItem(title: "Delete All", style: .Plain, target: self, action: .deleteAction)
-        self.doneBarButton = UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: .doneAction)
+        self.addBarButton = self.toolbarButtons.last
     }
     
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
         self.currentDate = NSDate()
         
-        if self.toolbarButtons == nil {
-            self.toolbarButtons = self.toolbarItems
-            self.addBarButton = self.toolbarButtons?.last
-        }
+//        if self.toolbarButtons == nil {
+//            self.toolbarButtons = self.toolbarItems
+//            self.addBarButton = self.toolbarButtons?.last
+//        }
     }
     
     // MARK: - Navigation
