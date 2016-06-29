@@ -10,9 +10,15 @@ import UIKit
 import CoreSpotlight
 import CoreData
 
-@UIApplicationMain
+private extension Selector {
+    static let applicationDidTimeout = #selector(PKAppDelegate.applicationDidTimeout)
+}
+
+//@UIApplicationMain
 class PKAppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
+    
+    var isNeededAuthorization = false
     
     var managedObjectContext: NSManagedObjectContext {
         if _managedObjectContext == nil {
@@ -23,10 +29,20 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
     }
     var _managedObjectContext: NSManagedObjectContext? = nil
     
+    func applicationDidTimeout() {
+        if UIApplication.sharedApplication().applicationState == .Active {
+            PKServerManager.sharedManager.authorizeUser()
+        } else {
+            self.isNeededAuthorization = true
+        }
+    }
+    
     func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
         NSUserDefaults.standardUserDefaults().registerDefaults([kSettingsLockOnExit : true,
                                                                 kSettingsSpotlight  : true,
                                                                 kSettingsAutoLock   : 15])
+        
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: .applicationDidTimeout, name: kApplicationDidTimeoutNotification, object: nil)
         
         print("APPLICATION DELEGATE - didFinishLaunchingWithOptions")
         
@@ -50,9 +66,17 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
         
         if isLocked && !(topVC is PKLoginViewController) {
             PKServerManager.sharedManager.authorizeUser()
+            return
         } else if isLocked && topVC is PKLoginViewController {
             (topVC as! PKLoginViewController).isRepeatAlert = true
-        } else if topVC is PKSettingsTableViewController {
+            return
+        } else {
+            //if topVC is PKSettingsTableViewController
+            if !(topVC is PKLoginViewController) {
+                let blankVC = UIStoryboard(name: "Main", bundle: nil).instantiateViewControllerWithIdentifier("PKBlankViewController")
+                topVC?.presentViewController(blankVC, animated: false, completion: nil)
+            }
+            
             var backgroundTask = UIBackgroundTaskInvalid
             
             backgroundTask = application.beginBackgroundTaskWithName("SpotlightTask") {
@@ -61,57 +85,57 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
             }
             
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
-                let isSwitchedOn = NSUserDefaults.standardUserDefaults().boolForKey(kSettingsSpotlight)
-                
-                CSSearchableIndex.defaultSearchableIndex().deleteAllSearchableItemsWithCompletionHandler() { error in
-                    if error != nil {
-                        print(error?.localizedDescription)
-                        
-                        application.endBackgroundTask(backgroundTask)
-                        backgroundTask = UIBackgroundTaskInvalid
-                    } else if isSwitchedOn {
-                        print("APP - Items Indexes Deleted")
-                        
-                        let fetchRequest = NSFetchRequest(entityName: "Record")
-                        
-                        do {
-                            var items = [CSSearchableItem]()
-                            let records = try PKCoreDataManager.sharedManager.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
+                    let isSwitchedOn = NSUserDefaults.standardUserDefaults().boolForKey(kSettingsSpotlight)
+                    
+                    CSSearchableIndex.defaultSearchableIndex().deleteAllSearchableItemsWithCompletionHandler() { error in
+                        if error != nil {
+                            print(error?.localizedDescription)
                             
-                            records.forEach() {
-                                let attributeSet = CSSearchableItemAttributeSet(itemContentType: kContentType)
-                                
-                                attributeSet.title = $0.title
-                                attributeSet.contentDescription = $0.login!.isEmpty ? "Secure Record" : "Login: \($0.login!)"
-                                attributeSet.keywords = [$0.title!]
-                                
-                                let item = CSSearchableItem(uniqueIdentifier: String($0.objectID), domainIdentifier: nil, attributeSet: attributeSet)
-                                item.expirationDate = NSDate.distantFuture()
-                                
-                                items.append(item)
-                            }
+                            application.endBackgroundTask(backgroundTask)
+                            backgroundTask = UIBackgroundTaskInvalid
+                        } else if isSwitchedOn {
+                            print("APP - Items Indexes Deleted")
                             
-                            CSSearchableIndex.defaultSearchableIndex().indexSearchableItems(items) { error in
-                                if error != nil {
-                                    print(error?.localizedDescription)
-                                } else {
-                                    print("APP - All Items Indexed")
+                            let fetchRequest = NSFetchRequest(entityName: "Record")
+                            
+                            do {
+                                var items = [CSSearchableItem]()
+                                let records = try PKCoreDataManager.sharedManager.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
+                                
+                                records.forEach() {
+                                    let attributeSet = CSSearchableItemAttributeSet(itemContentType: kContentType)
+                                    
+                                    attributeSet.title = $0.title
+                                    attributeSet.contentDescription = $0.login!.isEmpty ? "Secure Record" : "Login: \($0.login!)"
+                                    attributeSet.keywords = [$0.title!]
+                                    
+                                    let item = CSSearchableItem(uniqueIdentifier: String($0.objectID), domainIdentifier: nil, attributeSet: attributeSet)
+                                    item.expirationDate = NSDate.distantFuture()
+                                    
+                                    items.append(item)
                                 }
+                                
+                                CSSearchableIndex.defaultSearchableIndex().indexSearchableItems(items) { error in
+                                    if error != nil {
+                                        print(error?.localizedDescription)
+                                    } else {
+                                        print("APP - All Items Indexed")
+                                    }
+                                    
+                                    application.endBackgroundTask(backgroundTask)
+                                    backgroundTask = UIBackgroundTaskInvalid
+                                }
+                            } catch {
+                                print("Unresolved error \(error), \(error)")
                                 
                                 application.endBackgroundTask(backgroundTask)
                                 backgroundTask = UIBackgroundTaskInvalid
                             }
-                        } catch {
-                            print("Unresolved error \(error), \(error)")
-                            
+                        } else {
                             application.endBackgroundTask(backgroundTask)
                             backgroundTask = UIBackgroundTaskInvalid
                         }
-                    } else {
-                        application.endBackgroundTask(backgroundTask)
-                        backgroundTask = UIBackgroundTaskInvalid
                     }
-                }
             }
         }
         
@@ -121,6 +145,17 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationWillEnterForeground(application: UIApplication) {
+        let topVC = PKServerManager.getTopViewController()
+        
+        if topVC?.restorationIdentifier == "PKBlankViewController" {
+            topVC?.dismissViewControllerAnimated(false, completion: nil)
+        }
+        
+        if self.isNeededAuthorization {
+            self.isNeededAuthorization = false
+            PKServerManager.sharedManager.authorizeUser()
+        }
+        
         print("APPLICATION DELEGATE - applicationWillEnterForeground")
         // Called as part of the transition from the background to the inactive state; here you can undo many of the changes made on entering the background.
     }
@@ -134,6 +169,7 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
         print("APPLICATION DELEGATE - applicationWillTerminate")
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
         // Saves changes in the application's managed object context before the application terminates.
+        NSNotificationCenter.defaultCenter().removeObserver(self)
         isLocked = NSUserDefaults.standardUserDefaults().boolForKey(kSettingsLockOnExit)
         PKCoreDataManager.sharedManager.saveContext()
     }

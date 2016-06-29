@@ -453,15 +453,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     
     override func viewDidLoad() {
         super.viewDidLoad()
-//        self.tapGesture = UITapGestureRecognizer(target: self, action: .handleTap)
-//        self.longTapGesture = UILongPressGestureRecognizer(target: self, action: .handleTap)
         
-//        self.editBarButton = self.navigationItem.rightBarButtonItem
-//        self.doneBarButton = UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: .doneAction)
-//        
-//        self.toolbarButtons = self.toolbarItems
-//        self.deleteBarButton = UIBarButtonItem(title: "Delete", style: .Plain, target: self, action: .deleteAction)
-//        self.deleteBarButton?.enabled = false
         self.addBarButton = self.toolbarButtons.last
         
         let folders = self.fetchedResultsController.fetchedObjects as! [PKFolder]

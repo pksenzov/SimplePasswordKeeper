@@ -41,15 +41,6 @@ class PKSettingsTableViewController: UITableViewController {
         }
     }
     
-    // MARK: - Navigation
-    
-    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
-        if segue.identifier == "AutoLockSegue" {
-            let vc = segue.destinationViewController as! PKAutoLockTableViewController
-            vc.minutes = self.autoLockTime
-        }
-    }
-    
     // MARK: - My Functions
     
     func updateSpotlight() {
@@ -134,15 +125,22 @@ class PKSettingsTableViewController: UITableViewController {
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
         self.loadSettings()
-        
-        //NSNotificationCenter.defaultCenter().addObserver(self, selector: .checkIsLocked, name: UIApplicationWillEnterForegroundNotification, object: nil)
     }
     
     override func viewWillDisappear(animated: Bool) {
         super.viewWillDisappear(animated)
         self.updateSpotlight()
     }
-
+    
+    // MARK: - Navigation
+    
+    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+        if segue.identifier == "AutoLockSegue" {
+            let vc = segue.destinationViewController as! PKAutoLockTableViewController
+            vc.minutes = self.autoLockTime
+        }
+    }
+    
     // MARK: - Table view data source
 
     /*
@@ -189,15 +187,4 @@ class PKSettingsTableViewController: UITableViewController {
         return true
     }
     */
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
-        // Get the new view controller using segue.destinationViewController.
-        // Pass the selected object to the new view controller.
-    }
-    */
-
 }

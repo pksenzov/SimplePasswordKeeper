@@ -9,7 +9,8 @@
 import UIKit
 
 class PKAutoLockTableViewController: UITableViewController {
-    var minutes: Int?
+    var minutes: Int!
+    let rowIndexes = [1:0, 2:1, 5:2, 10:3, 15:4, 30:5, 60:6]
     
     @IBOutlet weak var upperToolbar: UIToolbar!
     
@@ -37,33 +38,24 @@ class PKAutoLockTableViewController: UITableViewController {
     
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
-        
-        //USE DICIONARY
-        if let minutes = self.minutes {
-            switch minutes {
-            case 1:
-                self.tableView.cellForRowAtIndexPath(NSIndexPath(forRow: 0, inSection: 0))?.accessoryType = .Checkmark
-            case 2:
-                self.tableView.cellForRowAtIndexPath(NSIndexPath(forRow: 1, inSection: 0))?.accessoryType = .Checkmark
-            case 5:
-                self.tableView.cellForRowAtIndexPath(NSIndexPath(forRow: 2, inSection: 0))?.accessoryType = .Checkmark
-            case 10:
-                self.tableView.cellForRowAtIndexPath(NSIndexPath(forRow: 3, inSection: 0))?.accessoryType = .Checkmark
-            case 15:
-                self.tableView.cellForRowAtIndexPath(NSIndexPath(forRow: 4, inSection: 0))?.accessoryType = .Checkmark
-            case 30:
-                self.tableView.cellForRowAtIndexPath(NSIndexPath(forRow: 5, inSection: 0))?.accessoryType = .Checkmark
-            case 60:
-                self.tableView.cellForRowAtIndexPath(NSIndexPath(forRow: 6, inSection: 0))?.accessoryType = .Checkmark
-            default:
-                return
-            }
-        }
+        self.tableView.cellForRowAtIndexPath(NSIndexPath(forRow: self.rowIndexes[self.minutes]!, inSection: 0))?.accessoryType = .Checkmark
     }
 
     // MARK: - Table View 
     
     override func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
+        let minutes = self.rowIndexes.filter() {
+            $0.1 == indexPath.row
+        }.first!.0
         
+        NSUserDefaults.standardUserDefaults().setInteger(minutes, forKey: kSettingsAutoLock)
+        
+        let app = UIApplication.sharedApplication() as? PKTimerApplication
+        app?.resetIdleTimer()
+        
+        tableView.cellForRowAtIndexPath(NSIndexPath(forRow: self.rowIndexes[self.minutes]!, inSection: 0))?.accessoryType = .None
+        tableView.cellForRowAtIndexPath(indexPath)?.accessoryType = .Checkmark
+        
+        self.dismissViewControllerAnimated(true, completion: nil)
     }
 }

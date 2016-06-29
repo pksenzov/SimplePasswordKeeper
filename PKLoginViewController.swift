@@ -102,37 +102,37 @@ class PKLoginViewController: UIViewController {
         context.evaluatePolicy(.DeviceOwnerAuthenticationWithBiometrics, localizedReason: reasonString, reply: { (success, evalPolicyError) in
             
             if success {
-                NSOperationQueue.mainQueue().addOperationWithBlock({
+                NSOperationQueue.mainQueue().addOperationWithBlock() {
                     isLocked = false
                     
                     self.delegate?.loadData()
                     self.dismissViewControllerAnimated(true, completion: nil)
-                })
+                }
             } else {
                 switch evalPolicyError!.code {
                 case LAError.SystemCancel.rawValue, LAError.UserCancel.rawValue, LAError.AuthenticationFailed.rawValue:
                     return
                 case LAError.TouchIDLockout.rawValue:
-                    NSOperationQueue.mainQueue().addOperationWithBlock({
+                    NSOperationQueue.mainQueue().addOperationWithBlock() {
                         self.showAlert(text:  ("Authentication was not successful",
                             "There were too many failed Touch ID attempts and Touch ID is now locked. Please, enter your passcode in Settings for unlock Touch ID" +
                             "\nSettings -> Touch ID & Passcode",
                             "Settings"),
                             action: settingsAction)
-                    })
+                    }
                     self.isRepeatAlert = true
                 case LAError.AppCancel.rawValue:
-                    NSOperationQueue.mainQueue().addOperationWithBlock({
+                    NSOperationQueue.mainQueue().addOperationWithBlock() {
                         self.showAlert(text: ("Authentication was canceled by application", "Oops... something has gone wrong, please restart the application!", "Ok"), action: nil)
-                    })
+                    }
                 case LAError.InvalidContext.rawValue:
                     NSOperationQueue.mainQueue().addOperationWithBlock({
                         self.showAlert(text: ("Context has been previously invalidated", "Oops... something has gone wrong, please restart the application!", "Ok"), action: nil)
                     })
                 default:
-                    NSOperationQueue.mainQueue().addOperationWithBlock({
+                    NSOperationQueue.mainQueue().addOperationWithBlock() {
                         self.showAlert(text: ("Authentication failed", "Oops... something has gone wrong, please restart the application!", "Ok"), action: nil)
-                    })
+                    }
                 }
             }
             

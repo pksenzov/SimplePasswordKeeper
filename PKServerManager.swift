@@ -25,10 +25,17 @@ class PKServerManager: NSObject {
         var topVC = PKServerManager.getTopViewController()
         let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewControllerWithIdentifier("PKLoginViewController") as! PKLoginViewController
         
+        print(topVC?.restorationIdentifier)
+        
         if topVC is UIAlertController {
             topVC?.dismissViewControllerAnimated(false, completion: nil)
             topVC = PKServerManager.getTopViewController()
         }
+        
+        print(topVC?.description)
+        print(topVC?.restorationIdentifier)
+        
+        guard !(topVC is PKLoginViewController) else { return }
         
         if let topVC = topVC as? UINavigationController {
             switch topVC.visibleViewController {
@@ -41,14 +48,7 @@ class PKServerManager: NSObject {
             }
         }
         
-//        if (topVC as? UINavigationController)?.visibleViewController is PKFoldersTableViewController {
-//            vc.delegate = (topVC as! UINavigationController).visibleViewController as! PKFoldersTableViewController
-//        }
-//        
-//        if (topVC as? UINavigationController)?.visibleViewController is PKRecordEditingViewController {
-//            ((topVC as! UINavigationController).visibleViewController as! PKRecordEditingViewController).saveData()
-//        }
-        
+        UIApplication.sharedApplication().sendAction(#selector(UIApplication.sharedApplication().resignFirstResponder), to: nil, from: nil, forEvent: nil)
         topVC?.presentViewController(vc, animated: false, completion: nil)
     }
 }
