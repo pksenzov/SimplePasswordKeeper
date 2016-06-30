@@ -15,6 +15,8 @@ let kSettingsSpotlight  = "spotlight"
 let kSettingsAutoLock   = "autolock"
 
 var isLocked = NSUserDefaults.standardUserDefaults().boolForKey(kSettingsLockOnExit)
+var isNeededAuthorization = false
+var isSpotlightWaiting = false
 
 class PKSettingsTableViewController: UITableViewController {
     let defaults = NSUserDefaults.standardUserDefaults()
@@ -44,7 +46,7 @@ class PKSettingsTableViewController: UITableViewController {
     // MARK: - My Functions
     
     func updateSpotlight() {
-        //if self.spotlightSwitch.on != self.isSpotlightEnabled {
+        //ADD BACKGROUND TASK
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
             CSSearchableIndex.defaultSearchableIndex().deleteAllSearchableItemsWithCompletionHandler() { error in
                 if error != nil {
@@ -82,7 +84,6 @@ class PKSettingsTableViewController: UITableViewController {
                 }
             }
         }
-        //}
     }
     
     // MARK: - Load

@@ -854,10 +854,10 @@
             </objects>
             <point key="canvasLocation" x="146" y="454"/>
         </scene>
-        <!--View Controller-->
+        <!--Blank View Controller-->
         <scene sceneID="4DC-wX-FtO">
             <objects>
-                <viewController storyboardIdentifier="PKBlankViewController" useStoryboardIdentifierAsRestorationIdentifier="YES" id="FIR-Jx-JKv" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="PKBlankViewController" id="FIR-Jx-JKv" customClass="PKBlankViewController" customModule="Records" customModuleProvider="target" sceneMemberID="viewController">
                     <layoutGuides>
                         <viewControllerLayoutGuide type="top" id="kTN-9s-c9p"/>
                         <viewControllerLayoutGuide type="bottom" id="7bc-aT-OaU"/>

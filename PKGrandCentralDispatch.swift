@@ -20,9 +20,6 @@ func delay(time: NSTimeInterval, closure: () -> Void) -> dispatch_cancelable_clo
             dispatch_get_main_queue(), clsr)
     }
     
-//    dispatch_get_main_queue()
-//    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0))
-    
     var closure: dispatch_block_t? = closure
     var cancelableClosure: dispatch_cancelable_closure?
     

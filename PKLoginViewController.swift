@@ -24,9 +24,7 @@ class PKLoginViewController: UIViewController {
     
     // MARK: - Actions
     
-    @IBAction func enterAction(sender: UIButton) {
-        self.authenticateUser()
-    }
+    @IBAction func enterAction(sender: UIButton) { self.authenticateUser() }
     
     // MARK: - Notifications
     
@@ -45,9 +43,7 @@ class PKLoginViewController: UIViewController {
     
     // MARK: - Init & Deinit
     
-    deinit {
-        NSNotificationCenter.defaultCenter().removeObserver(self)
-    }
+    deinit { NSNotificationCenter.defaultCenter().removeObserver(self) }
     
     // MARK: - My Functions
     
@@ -106,7 +102,19 @@ class PKLoginViewController: UIViewController {
                     isLocked = false
                     
                     self.delegate?.loadData()
-                    self.dismissViewControllerAnimated(true, completion: nil)
+                    
+                    if isSpotlightWaiting {
+                        isSpotlightWaiting = false
+                        
+                        let rootVC = UIApplication.sharedApplication().windows.first?.rootViewController
+                        rootVC?.dismissViewControllerAnimated(true, completion: nil)
+                    } else {
+                        if self.presentingViewController is PKBlankViewController {
+                            self.presentingViewController?.dismissViewControllerAnimated(true, completion: nil)
+                        } else {
+                            self.dismissViewControllerAnimated(true, completion: nil)
+                        }
+                    }
                 }
             } else {
                 switch evalPolicyError!.code {
@@ -141,6 +149,13 @@ class PKLoginViewController: UIViewController {
     
     // MARK: - Views
     
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: .applicationDidBecomeActive, name: UIApplicationDidBecomeActiveNotification, object: nil)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: .applicationWillResignActive, name: UIApplicationWillResignActiveNotification, object: nil)
+    }
+    
     override func viewDidAppear(animated: Bool) {
         super.viewDidAppear(animated)
         
@@ -151,12 +166,5 @@ class PKLoginViewController: UIViewController {
         } else {
             self.isRepeatAlert = true
         }
-    }
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: .applicationDidBecomeActive, name: UIApplicationDidBecomeActiveNotification, object: nil)
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: .applicationWillResignActive, name: UIApplicationWillResignActiveNotification, object: nil)
     }
 }

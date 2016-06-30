@@ -28,6 +28,7 @@ extension UITextView {
 
 private extension Selector {
     static let keyboardWillShowOrHide = #selector(PKRecordEditingViewController.keyboardWillShowOrHide(_:))
+    static let applicationWillResignActive = #selector(PKRecordEditingViewController.applicationWillResignActive)
 }
 
 class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITextFieldDelegate, UIScrollViewDelegate {
@@ -108,7 +109,7 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
             else if self.savedIsPasswordOnFocus!    { self.passwordTextField.becomeFirstResponder()     }
             else if self.savedIsDetailsOnFocus!     { self.descriptionTextView.becomeFirstResponder()   }
             
-            self.savedLogin     = nil
+            self.savedTitle     = nil
             self.savedLogin     = nil
             self.savedPassword  = nil
             self.savedDetails   = nil
@@ -219,6 +220,21 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     
     // MARK: - Notifications
     
+    func applicationWillResignActive() {
+        if self.presentedViewController is UIAlertController {
+            self.dismissViewControllerAnimated(false) {
+                if self.navigationController?.visibleViewController == self {
+                    self.saveData()
+                    return
+                }
+            }
+        }
+        
+        if self.navigationController?.visibleViewController == self {
+            self.saveData()
+        }
+    }
+    
     func keyboardWillShowOrHide(notification: NSNotification) {
         if let userInfo = notification.userInfo,
             endValue = userInfo[UIKeyboardFrameEndUserInfoKey],
@@ -274,6 +290,7 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: .applicationWillResignActive, name: UIApplicationWillResignActiveNotification, object: nil)
     }
     
     override func viewWillAppear(animated: Bool) {
@@ -282,8 +299,8 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         self.navigationController?.setToolbarHidden(true, animated: false)
         self.defaultDescriptionHeightConstraintHeight = self.descriptionTextView.constraints.filter{ $0.identifier == "DescriptionHeight" }.first!.constant
         
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardWillShowOrHide, name:UIKeyboardWillShowNotification, object: nil)
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardWillShowOrHide, name:UIKeyboardWillHideNotification, object: nil)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardWillShowOrHide, name: UIKeyboardWillShowNotification, object: nil)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardWillShowOrHide, name: UIKeyboardWillHideNotification, object: nil)
         
         self.fillInData()
     }
@@ -291,8 +308,13 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     override func viewWillDisappear(animated: Bool) {
         super.viewWillDisappear(animated)
         self.navigationController?.setToolbarHidden(false, animated: false)
-        NSNotificationCenter.defaultCenter().removeObserver(self)
+        NSNotificationCenter.defaultCenter().removeObserver(self, name: UIKeyboardWillShowNotification, object: nil)
+        NSNotificationCenter.defaultCenter().removeObserver(self, name: UIKeyboardWillHideNotification, object: nil)
     }
+    
+    // MARK: - Init & Deinit
+    
+    deinit { NSNotificationCenter.defaultCenter().removeObserver(self, name: UIApplicationWillResignActiveNotification, object: nil) }
     
     // MARK: - Actions
     

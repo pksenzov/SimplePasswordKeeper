@@ -34,7 +34,7 @@ class PKTimerApplication: UIApplication {
     func resetIdleTimer() {
         cancel_delay(self.idleTimer)
         
-        let seconds = 10.0//Double(NSUserDefaults.standardUserDefaults().integerForKey(kSettingsAutoLock) * 60)
+        let seconds = Double(NSUserDefaults.standardUserDefaults().integerForKey(kSettingsAutoLock) * 60)
         self.idleTimer = delay(seconds) { self.idleTimerExceeded() }
     }
     
