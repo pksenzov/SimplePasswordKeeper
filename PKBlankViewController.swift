@@ -17,12 +17,7 @@ class PKBlankViewController: UIViewController {
     // MARK: - Notifications
     
     func applicationDidBecomeActive() {
-        if isNeededAuthorization {
-            isNeededAuthorization = false
-            PKServerManager.sharedManager.authorizeUser()
-        } else {
-            self.dismissViewControllerAnimated(false, completion: nil)
-        }
+        if self.presentedViewController == nil { self.dismissViewControllerAnimated(false, completion: nil) }
     }
     
     // MARK: - Init & Deinit

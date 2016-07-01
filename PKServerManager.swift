@@ -21,27 +21,48 @@ class PKServerManager: NSObject {
         return topVC
     }
     
-    func authorizeUser() {
-        var topVC = PKServerManager.getTopViewController()
+    func presentLoginViewControllerOn(topVC: UIViewController?) {
         let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewControllerWithIdentifier("PKLoginViewController") as! PKLoginViewController
         
-        //ALERT DISMIIS COMPLETION
-        if topVC is UIAlertController {
-            topVC?.dismissViewControllerAnimated(false, completion: nil)
-            topVC = PKServerManager.getTopViewController()
-        }
-        
-        print(topVC?.description)
-        
         guard !(topVC is PKLoginViewController) else { return }
+        print(topVC)
+        vc.delegate = (topVC as? UINavigationController)?.topViewController as? PKFoldersTableViewController
         
-        if let topVC = topVC as? UINavigationController {
-            if topVC.visibleViewController is PKFoldersTableViewController {
-                vc.delegate = topVC.visibleViewController as! PKFoldersTableViewController
-            }
-        }
+        ((topVC as? UINavigationController)?.topViewController as? PKRecordEditingViewController)?.saveData()
+        
+//        if let topVC = topVC as? UINavigationController {
+//            switch topVC.topViewController {
+//            case is PKFoldersTableViewController:
+//                vc.delegate = topVC.topViewController as! PKFoldersTableViewController
+//            case is PKRecordEditingViewController:
+//                print(topVC.topViewController)
+//                (topVC.topViewController as! PKRecordEditingViewController).saveData()
+//            default:
+//                break
+//            }
+        
+//            if topVC.topViewController is PKFoldersTableViewController {
+//                vc.delegate = topVC.topViewController as! PKFoldersTableViewController
+//            }
+//        }
         
         UIApplication.sharedApplication().sendAction(#selector(UIApplication.sharedApplication().resignFirstResponder), to: nil, from: nil, forEvent: nil)
         topVC?.presentViewController(vc, animated: false, completion: nil)
+    }
+    
+    func authorizeUser() {
+        var topVC = PKServerManager.getTopViewController()
+        
+        if topVC is UIAlertController {
+            topVC?.dismissViewControllerAnimated(false) {
+                topVC = PKServerManager.getTopViewController()
+                self.presentLoginViewControllerOn(topVC)
+                
+                return
+            }
+        }
+        
+        print(topVC?.description)
+        self.presentLoginViewControllerOn(topVC)
     }
 }

@@ -68,73 +68,73 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
         } else if isLocked && topVC is PKLoginViewController {
             (topVC as! PKLoginViewController).isRepeatAlert = true
             return
-        } else {
-            //if topVC is PKSettingsTableViewController
-            if !(topVC is PKLoginViewController) {
-                let blankVC = UIStoryboard(name: "Main", bundle: nil).instantiateViewControllerWithIdentifier("PKBlankViewController")
-                topVC?.presentViewController(blankVC, animated: false, completion: nil)
-            }
+        } else if !(topVC is PKLoginViewController) {
+            ((topVC as? UINavigationController)?.topViewController as? PKRecordEditingViewController)?.saveData()
             
-//            var backgroundTask = UIBackgroundTaskInvalid
-//            
-//            backgroundTask = application.beginBackgroundTaskWithName("SpotlightTask") {
-//                application.endBackgroundTask(backgroundTask)
-//                backgroundTask = UIBackgroundTaskInvalid
-//            }
-//            
-//            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
-//                let isSwitchedOn = NSUserDefaults.standardUserDefaults().boolForKey(kSettingsSpotlight)
-//                
-//                CSSearchableIndex.defaultSearchableIndex().deleteAllSearchableItemsWithCompletionHandler() { error in
-//                    if error != nil {
-//                        print(error?.localizedDescription)
-//                        
-//                        application.endBackgroundTask(backgroundTask)
-//                        backgroundTask = UIBackgroundTaskInvalid
-//                    } else if isSwitchedOn {
-//                        print("APP - Items Indexes Deleted")
-//                        
-//                        let fetchRequest = NSFetchRequest(entityName: "Record")
-//                        
-//                        do {
-//                            var items = [CSSearchableItem]()
-//                            let records = try PKCoreDataManager.sharedManager.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
-//                            
-//                            records.forEach() {
-//                                let attributeSet = CSSearchableItemAttributeSet(itemContentType: kContentType)
-//                                
-//                                attributeSet.title = $0.title
-//                                attributeSet.contentDescription = $0.login!.isEmpty ? "Secure Record" : "Login: \($0.login!)"
-//                                attributeSet.keywords = [$0.title!]
-//                                
-//                                let item = CSSearchableItem(uniqueIdentifier: String($0.objectID), domainIdentifier: nil, attributeSet: attributeSet)
-//                                item.expirationDate = NSDate.distantFuture()
-//                                
-//                                items.append(item)
-//                            }
-//                            
-//                            CSSearchableIndex.defaultSearchableIndex().indexSearchableItems(items) { error in
-//                                if error != nil {
-//                                    print(error?.localizedDescription)
-//                                } else {
-//                                    print("APP - All Items Indexed")
-//                                }
-//                                
-//                                application.endBackgroundTask(backgroundTask)
-//                                backgroundTask = UIBackgroundTaskInvalid
-//                            }
-//                        } catch {
-//                            print("Unresolved error \(error), \(error)")
-//                            
-//                            application.endBackgroundTask(backgroundTask)
-//                            backgroundTask = UIBackgroundTaskInvalid
-//                        }
-//                    } else {
-//                        application.endBackgroundTask(backgroundTask)
-//                        backgroundTask = UIBackgroundTaskInvalid
-//                    }
-//                }
-//            }
+            let blankVC = UIStoryboard(name: "Main", bundle: nil).instantiateViewControllerWithIdentifier("PKBlankViewController")
+            topVC?.presentViewController(blankVC, animated: false, completion: nil)
+            
+            
+            //            var backgroundTask = UIBackgroundTaskInvalid
+            //
+            //            backgroundTask = application.beginBackgroundTaskWithName("SpotlightTask") {
+            //                application.endBackgroundTask(backgroundTask)
+            //                backgroundTask = UIBackgroundTaskInvalid
+            //            }
+            //
+            //            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
+            //                let isSwitchedOn = NSUserDefaults.standardUserDefaults().boolForKey(kSettingsSpotlight)
+            //
+            //                CSSearchableIndex.defaultSearchableIndex().deleteAllSearchableItemsWithCompletionHandler() { error in
+            //                    if error != nil {
+            //                        print(error?.localizedDescription)
+            //
+            //                        application.endBackgroundTask(backgroundTask)
+            //                        backgroundTask = UIBackgroundTaskInvalid
+            //                    } else if isSwitchedOn {
+            //                        print("APP - Items Indexes Deleted")
+            //
+            //                        let fetchRequest = NSFetchRequest(entityName: "Record")
+            //
+            //                        do {
+            //                            var items = [CSSearchableItem]()
+            //                            let records = try PKCoreDataManager.sharedManager.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
+            //
+            //                            records.forEach() {
+            //                                let attributeSet = CSSearchableItemAttributeSet(itemContentType: kContentType)
+            //
+            //                                attributeSet.title = $0.title
+            //                                attributeSet.contentDescription = $0.login!.isEmpty ? "Secure Record" : "Login: \($0.login!)"
+            //                                attributeSet.keywords = [$0.title!]
+            //
+            //                                let item = CSSearchableItem(uniqueIdentifier: String($0.objectID), domainIdentifier: nil, attributeSet: attributeSet)
+            //                                item.expirationDate = NSDate.distantFuture()
+            //
+            //                                items.append(item)
+            //                            }
+            //
+            //                            CSSearchableIndex.defaultSearchableIndex().indexSearchableItems(items) { error in
+            //                                if error != nil {
+            //                                    print(error?.localizedDescription)
+            //                                } else {
+            //                                    print("APP - All Items Indexed")
+            //                                }
+            //
+            //                                application.endBackgroundTask(backgroundTask)
+            //                                backgroundTask = UIBackgroundTaskInvalid
+            //                            }
+            //                        } catch {
+            //                            print("Unresolved error \(error), \(error)")
+            //
+            //                            application.endBackgroundTask(backgroundTask)
+            //                            backgroundTask = UIBackgroundTaskInvalid
+            //                        }
+            //                    } else {
+            //                        application.endBackgroundTask(backgroundTask)
+            //                        backgroundTask = UIBackgroundTaskInvalid
+            //                    }
+            //                }
+            //            }
         }
         
         print("APPLICATION DELEGATE - applicationDidEnterBackground")
@@ -148,16 +148,10 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationDidBecomeActive(application: UIApplication) {
-//        let topVC = PKServerManager.getTopViewController()
-//        
-//        if topVC?.restorationIdentifier == "PKBlankViewController" {
-//            topVC?.dismissViewControllerAnimated(false, completion: nil)
-//        }
-//        
-//        if self.isNeededAuthorization {
-//            self.isNeededAuthorization = false
-//            PKServerManager.sharedManager.authorizeUser()
-//        }
+        if isNeededAuthorization {
+            isNeededAuthorization = false
+            PKServerManager.sharedManager.authorizeUser()
+        }
         
         print("APPLICATION DELEGATE - applicationDidBecomeActive")
         // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
@@ -206,8 +200,10 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
             
             let topVC = PKServerManager.getTopViewController()
             
-            if (topVC is PKLoginViewController) || (topVC is PKBlankViewController) {
+            if topVC is PKLoginViewController || isNeededAuthorization {
                 isSpotlightWaiting = true
+                isNeededAuthorization = false
+                PKServerManager.sharedManager.authorizeUser()
             } else {
                 mainVC.dismissViewControllerAnimated(true, completion: nil)
             }

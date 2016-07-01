@@ -46,11 +46,21 @@ class PKSettingsTableViewController: UITableViewController {
     // MARK: - My Functions
     
     func updateSpotlight() {
-        //ADD BACKGROUND TASK
+        var backgroundTask = UIBackgroundTaskInvalid
+        let application = UIApplication.sharedApplication()
+        
+        backgroundTask = application.beginBackgroundTaskWithName("SpotlightTask") {
+            application.endBackgroundTask(backgroundTask)
+            backgroundTask = UIBackgroundTaskInvalid
+        }
+        
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
             CSSearchableIndex.defaultSearchableIndex().deleteAllSearchableItemsWithCompletionHandler() { error in
                 if error != nil {
                     print(error?.localizedDescription)
+                    
+                    application.endBackgroundTask(backgroundTask)
+                    backgroundTask = UIBackgroundTaskInvalid
                 } else if self.spotlightSwitch.on {
                     print("!!! - Items Indexes Deleted")
                     
@@ -63,6 +73,7 @@ class PKSettingsTableViewController: UITableViewController {
                         records.forEach() {
                             let attributeSet = CSSearchableItemAttributeSet(itemContentType: kContentType)
                             attributeSet.title = $0.title
+                            //SECURE RECORD ONLT? IS LOGIN NEEDED?
                             attributeSet.contentDescription = $0.login!.isEmpty ? "Secure Record" : "Login: \($0.login!)"
                             attributeSet.keywords = [$0.title!]
                             
@@ -77,10 +88,19 @@ class PKSettingsTableViewController: UITableViewController {
                             } else {
                                 print("!!! - All Items Indexed")
                             }
+                            
+                            application.endBackgroundTask(backgroundTask)
+                            backgroundTask = UIBackgroundTaskInvalid
                         }
                     } catch {
                         print("Unresolved error \(error), \(error)")
+                        
+                        application.endBackgroundTask(backgroundTask)
+                        backgroundTask = UIBackgroundTaskInvalid
                     }
+                } else {
+                    application.endBackgroundTask(backgroundTask)
+                    backgroundTask = UIBackgroundTaskInvalid
                 }
             }
         }

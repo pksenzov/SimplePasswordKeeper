@@ -110,7 +110,8 @@ class PKLoginViewController: UIViewController {
                         rootVC?.dismissViewControllerAnimated(true, completion: nil)
                     } else {
                         if self.presentingViewController is PKBlankViewController {
-                            self.presentingViewController?.dismissViewControllerAnimated(true, completion: nil)
+                            let blankVC = self.presentingViewController
+                            blankVC?.presentingViewController?.dismissViewControllerAnimated(true, completion: nil)
                         } else {
                             self.dismissViewControllerAnimated(true, completion: nil)
                         }

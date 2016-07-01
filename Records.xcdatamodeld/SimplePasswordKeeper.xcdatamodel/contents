@@ -5,6 +5,7 @@
         <relationship name="records" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Record" inverseName="folder" inverseEntity="Record" syncable="YES"/>
     </entity>
     <entity name="Record" representedClassName="PKRecord" syncable="YES">
+        <attribute name="creationDate" attributeType="Date" indexed="YES" syncable="YES"/>
         <attribute name="date" attributeType="Date" indexed="YES" syncable="YES"/>
         <attribute name="detailedDescription" optional="YES" attributeType="String" syncable="YES"/>
         <attribute name="login" optional="YES" attributeType="String" syncable="YES"/>
@@ -17,11 +18,12 @@
                 <index value="login"/>
                 <index value="detailedDescription"/>
                 <index value="date"/>
+                <index value="creationDate"/>
             </compoundIndex>
         </compoundIndexes>
     </entity>
     <elements>
         <element name="Folder" positionX="-10305" positionY="-8937" width="128" height="73"/>
-        <element name="Record" positionX="-9956" positionY="-8937" width="128" height="133"/>
+        <element name="Record" positionX="-9947" positionY="-8932" width="128" height="148"/>
     </elements>
 </model>
