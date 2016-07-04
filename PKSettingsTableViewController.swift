@@ -10,18 +10,9 @@ import UIKit
 import CoreSpotlight
 import CoreData
 
-let kSettingsLockOnExit = "lockonexit"
-let kSettingsSpotlight  = "spotlight"
-let kSettingsAutoLock   = "autolock"
-
-var isLocked = NSUserDefaults.standardUserDefaults().boolForKey(kSettingsLockOnExit)
-var isNeededAuthorization = false
-var isSpotlightWaiting = false
-
 class PKSettingsTableViewController: UITableViewController {
     let defaults = NSUserDefaults.standardUserDefaults()
     var autoLockTime: Int!
-    //var isSpotlightEnabled = true
     
     var managedObjectContext: NSManagedObjectContext {
         if _managedObjectContext == nil {
@@ -73,8 +64,7 @@ class PKSettingsTableViewController: UITableViewController {
                         records.forEach() {
                             let attributeSet = CSSearchableItemAttributeSet(itemContentType: kContentType)
                             attributeSet.title = $0.title
-                            //SECURE RECORD ONLT? IS LOGIN NEEDED?
-                            attributeSet.contentDescription = $0.login!.isEmpty ? "Secure Record" : "Login: \($0.login!)"
+                            attributeSet.contentDescription = "Secure Record"
                             attributeSet.keywords = [$0.title!]
                             
                             let item = CSSearchableItem(uniqueIdentifier: String($0.objectID), domainIdentifier: nil, attributeSet: attributeSet)

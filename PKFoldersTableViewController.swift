@@ -9,21 +9,6 @@
 import UIKit
 import CoreData
 
-extension UIAlertController {
-    override public func viewWillDisappear(animated: Bool) {
-        super.viewWillDisappear(animated)
-        
-        let tag = self.view.tag
-        
-        if (tag == 1001 || tag == 1002 || tag == 1003) {
-            let textField = self.view.viewWithTag(tag - 900) as! UITextField // UITextField tag = UIAlertController tag - 900
-            let zeroPosition = textField.beginningOfDocument
-            
-            textField.selectedTextRange = textField.textRangeFromPosition(zeroPosition, toPosition: zeroPosition)
-        }
-    }
-}
-
 private extension Selector {
     static let handleTextFieldTextDidChange = #selector(PKFoldersTableViewController.handleTextFieldTextDidChange)
     static let handleTap = #selector(PKFoldersTableViewController.handleTap(_:))

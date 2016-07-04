@@ -164,6 +164,7 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
     
     func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let shortPath = (indexPath.section, indexPath.row)
+        
         switch shortPath {
         case (0, 0):
             let cell = tableView.dequeueReusableCellWithIdentifier("NewFolderCell", forIndexPath: indexPath)
@@ -187,29 +188,6 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
             
             return cell
         }
-        
-//        if indexPath.row == 0 {
-//            let cell = tableView.dequeueReusableCellWithIdentifier("NewFolderCell", forIndexPath: indexPath)
-//            cell.textLabel?.text = "New Folder"
-//            cell.textLabel?.textColor = .flatSkyBlueColor()
-//            cell.textLabel?.font = UIFont.boldSystemFontOfSize(17.0)
-//            
-//            return cell
-//        } else {
-//            let newIndexPath = NSIndexPath(forRow: indexPath.row - 1, inSection: 0)
-//            let folder = self.fetchedResultsController.objectAtIndexPath(newIndexPath) as! PKFolder
-//            let cell = tableView.dequeueReusableCellWithIdentifier("FolderCell", forIndexPath: indexPath)
-//            
-//            cell.textLabel?.text = folder.name
-//            cell.detailTextLabel?.text = "\(folder.records!.count)"
-//            
-//            if folder.name == self.selectedFolderName {
-//                cell.userInteractionEnabled = false
-//                cell.textLabel?.textColor = .grayColor()
-//            }
-//            
-//            return cell
-//        }
     }
     
     // MARK: - Views

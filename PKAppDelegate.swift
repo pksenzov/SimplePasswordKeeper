@@ -14,7 +14,6 @@ private extension Selector {
     static let applicationDidTimeout = #selector(PKAppDelegate.applicationDidTimeout)
 }
 
-//@UIApplicationMain
 class PKAppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     
@@ -104,7 +103,7 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
             //                                let attributeSet = CSSearchableItemAttributeSet(itemContentType: kContentType)
             //
             //                                attributeSet.title = $0.title
-            //                                attributeSet.contentDescription = $0.login!.isEmpty ? "Secure Record" : "Login: \($0.login!)"
+            //                                attributeSet.contentDescription = "Secure Record" 
             //                                attributeSet.keywords = [$0.title!]
             //
             //                                let item = CSSearchableItem(uniqueIdentifier: String($0.objectID), domainIdentifier: nil, attributeSet: attributeSet)

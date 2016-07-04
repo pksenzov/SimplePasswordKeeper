@@ -156,10 +156,45 @@
                                     </tableViewCell>
                                 </cells>
                             </tableViewSection>
+                            <tableViewSection headerTitle="Sync" id="dhs-mq-esQ">
+                                <cells>
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" selectionStyle="default" indentationWidth="10" id="vyf-Kp-24a">
+                                        <rect key="frame" x="0.0" y="328" width="600" height="44"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="vyf-Kp-24a" id="7tY-bZ-zFQ">
+                                            <rect key="frame" x="0.0" y="0.0" width="600" height="44"/>
+                                            <autoresizingMask key="autoresizingMask"/>
+                                            <subviews>
+                                                <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" contentHorizontalAlignment="center" contentVerticalAlignment="center" on="YES" translatesAutoresizingMaskIntoConstraints="NO" id="M2c-ZQ-TuS">
+                                                    <rect key="frame" x="543" y="6" width="51" height="31"/>
+                                                    <color key="tintColor" red="0.19376453760000001" green="0.50850099329999998" blue="0.85232251879999998" alpha="1" colorSpace="calibratedRGB"/>
+                                                    <color key="onTintColor" red="0.19376453760000001" green="0.50850099329999998" blue="0.85232251879999998" alpha="1" colorSpace="calibratedRGB"/>
+                                                    <connections>
+                                                        <action selector="spotlightValueChanged:" destination="Oht-E0-a5S" eventType="valueChanged" id="sY4-hL-ADm"/>
+                                                    </connections>
+                                                </switch>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="iCloud" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="4jp-8L-JVd">
+                                                    <rect key="frame" x="16" y="11" width="49" height="21"/>
+                                                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                                    <color key="textColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
+                                            </subviews>
+                                            <constraints>
+                                                <constraint firstItem="M2c-ZQ-TuS" firstAttribute="centerY" secondItem="7tY-bZ-zFQ" secondAttribute="centerY" id="6BB-kp-P7O"/>
+                                                <constraint firstAttribute="trailingMargin" secondItem="M2c-ZQ-TuS" secondAttribute="trailing" id="cHN-FF-VH7"/>
+                                                <constraint firstAttribute="leadingMargin" secondItem="4jp-8L-JVd" secondAttribute="leading" constant="-8" id="yVF-y5-lXk"/>
+                                                <constraint firstItem="4jp-8L-JVd" firstAttribute="centerY" secondItem="7tY-bZ-zFQ" secondAttribute="centerY" id="zMa-5p-9Xf"/>
+                                            </constraints>
+                                        </tableViewCellContentView>
+                                        <color key="backgroundColor" red="0.90823972230000005" green="0.92638683320000004" blue="0.93171715740000005" alpha="1" colorSpace="calibratedRGB"/>
+                                    </tableViewCell>
+                                </cells>
+                            </tableViewSection>
                             <tableViewSection headerTitle="Advanced" id="nJ9-Ug-IAB">
                                 <cells>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" selectionStyle="default" indentationWidth="10" id="wf8-P3-bjj">
-                                        <rect key="frame" x="0.0" y="328" width="600" height="44"/>
+                                        <rect key="frame" x="0.0" y="423" width="600" height="44"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="wf8-P3-bjj" id="vSQ-6c-9ew">
                                             <rect key="frame" x="0.0" y="0.0" width="600" height="44"/>
@@ -703,17 +738,6 @@
                                         <color key="textColor" red="0.19376453760000001" green="0.50850099329999998" blue="0.85232251879999998" alpha="1" colorSpace="calibratedRGB"/>
                                         <nil key="highlightedColor"/>
                                     </label>
-                                    <textField opaque="NO" clipsSubviews="YES" tag="2" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Password" minimumFontSize="17" clearButtonMode="whileEditing" translatesAutoresizingMaskIntoConstraints="NO" id="zn2-ZQ-t06">
-                                        <rect key="frame" x="20" y="221" width="501" height="30"/>
-                                        <constraints>
-                                            <constraint firstAttribute="height" constant="30" id="9pW-ae-tju"/>
-                                        </constraints>
-                                        <fontDescription key="fontDescription" type="system" pointSize="14"/>
-                                        <textInputTraits key="textInputTraits" keyboardAppearance="alert" returnKeyType="next" secureTextEntry="YES"/>
-                                        <connections>
-                                            <outlet property="delegate" destination="6FN-FA-xdt" id="DB8-AL-LdP"/>
-                                        </connections>
-                                    </textField>
                                     <textView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" scrollEnabled="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Yn1-Zh-En6">
                                         <rect key="frame" x="20" y="314" width="555" height="166"/>
                                         <constraints>
@@ -754,6 +778,17 @@
                                         <textInputTraits key="textInputTraits" autocapitalizationType="words" keyboardAppearance="alert" returnKeyType="next"/>
                                         <connections>
                                             <outlet property="delegate" destination="6FN-FA-xdt" id="pKv-E0-XBE"/>
+                                        </connections>
+                                    </textField>
+                                    <textField opaque="NO" clipsSubviews="YES" tag="2" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Password" minimumFontSize="17" clearButtonMode="whileEditing" translatesAutoresizingMaskIntoConstraints="NO" id="zn2-ZQ-t06">
+                                        <rect key="frame" x="20" y="221" width="501" height="30"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="30" id="9pW-ae-tju"/>
+                                        </constraints>
+                                        <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                        <textInputTraits key="textInputTraits" keyboardAppearance="alert" returnKeyType="next" secureTextEntry="YES"/>
+                                        <connections>
+                                            <outlet property="delegate" destination="6FN-FA-xdt" id="DB8-AL-LdP"/>
                                         </connections>
                                     </textField>
                                 </subviews>

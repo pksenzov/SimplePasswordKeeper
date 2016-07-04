@@ -10,25 +10,8 @@ import UIKit
 import CoreData
 import CoreSpotlight
 
-let kContentType = "record"
-
-extension UITextView {
-    var adjustHeightToRealIPhoneSize: Bool {
-        set {
-            if newValue {
-                self.constraints.filter{ $0.identifier == "DescriptionHeight" }.first!.constant = UIScreen.mainScreen().bounds.size.height - self.frame.origin.y - 80.0
-            }
-        }
-        
-        get {
-            return false
-        }
-    }
-}
-
 private extension Selector {
     static let keyboardWillShowOrHide = #selector(PKRecordEditingViewController.keyboardWillShowOrHide(_:))
-    static let applicationWillResignActive = #selector(PKRecordEditingViewController.applicationWillResignActive)
 }
 
 class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITextFieldDelegate, UIScrollViewDelegate {
@@ -148,12 +131,11 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     
     // MARK: - Spotlight
     
-    func titleIndexing(title: String, login: String, id: String) {
+    func titleIndexing(title: String, id: String) {
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
             let attributeSet = CSSearchableItemAttributeSet(itemContentType: kContentType)
             attributeSet.title = title
-            //SECURE RECORD ONLT? IS LOGIN NEEDED?
-            attributeSet.contentDescription = login.isEmpty ? "Secure Record" : "Login: \(login)"
+            attributeSet.contentDescription = "Secure Record"
             attributeSet.keywords = [title]
             
             let item = CSSearchableItem(uniqueIdentifier: id, domainIdentifier: nil, attributeSet: attributeSet)
@@ -187,6 +169,8 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     
     func textFieldDidBeginEditing(textField: UITextField) {
         if textField.tag == TextFieldTag.PKRecordEditingViewControllerTextFieldTagPassword.rawValue {
+            textField.font = nil
+            textField.font = UIFont.systemFontOfSize(14.0)
             textField.secureTextEntry = false
             self.revealButton.enabled = false
         }
@@ -220,22 +204,6 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     func scrollViewWillBeginDragging(scrollView: UIScrollView) { self.descriptionTextView.resignFirstResponder() }
     
     // MARK: - Notifications
-    
-    func applicationWillResignActive() {
-        if self.presentedViewController is UIAlertController {
-            self.dismissViewControllerAnimated(false) {
-                if self.navigationController?.topViewController == self {
-                    self.saveData()
-                    return
-                }
-            }
-        }
-        
-        print(self.navigationController?.topViewController)
-        if self.navigationController?.topViewController == self {
-            self.saveData()
-        }
-    }
     
     func keyboardWillShowOrHide(notification: NSNotification) {
         if let userInfo = notification.userInfo,
@@ -292,7 +260,6 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        //NSNotificationCenter.defaultCenter().addObserver(self, selector: .applicationWillResignActive, name: UIApplicationWillResignActiveNotification, object: nil)
     }
     
     override func viewWillAppear(animated: Bool) {
@@ -310,11 +277,6 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     override func viewWillDisappear(animated: Bool) {
         super.viewWillDisappear(animated)
         self.navigationController?.setToolbarHidden(false, animated: false)
-        
-//        if !self.isMovingFromParentViewController() {
-//            self.saveData()
-//        }
-        
         NSNotificationCenter.defaultCenter().removeObserver(self, name: UIKeyboardWillShowNotification, object: nil)
         NSNotificationCenter.defaultCenter().removeObserver(self, name: UIKeyboardWillHideNotification, object: nil)
     }
@@ -366,7 +328,7 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         let isSpotlightEnabled = NSUserDefaults.standardUserDefaults().boolForKey(kSettingsSpotlight)
         
         if isSpotlightEnabled {
-            self.titleIndexing(title!, login: login!, id: String(record.objectID))
+            self.titleIndexing(title!, id: String(record.objectID))
         }
         
         self.navigationController?.popViewControllerAnimated(true)

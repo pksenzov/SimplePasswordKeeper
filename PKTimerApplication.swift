@@ -8,8 +8,6 @@
 
 import UIKit
 
-let kApplicationDidTimeoutNotification = "ApplicationTimeout"
-
 class PKTimerApplication: UIApplication {
     var idleTimer: dispatch_cancelable_closure?
     

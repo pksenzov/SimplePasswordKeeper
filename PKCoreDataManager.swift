@@ -8,15 +8,9 @@
 
 import CoreData
 
-extension NSManagedObjectContext {
-    func insertObject<A: NSManagedObject where A: ManagedObjectType>() -> A {
-        guard let obj = NSEntityDescription.insertNewObjectForEntityForName(A.entityName, inManagedObjectContext: self) as? A else {
-            fatalError("Entity \(A.entityName) does not correspond to \(A.self)")
-        }
-        
-        return obj
-    }
-}
+//private extension Selector {
+//    static let handleTextFieldTextDidChange = #selector(PKFoldersTableViewController.handleTextFieldTextDidChange)
+//}
 
 protocol ManagedObjectType {
     static var entityName: String { get }
@@ -44,9 +38,13 @@ class PKCoreDataManager: NSObject {
         // Create the coordinator and store
         let coordinator = NSPersistentStoreCoordinator(managedObjectModel: self.managedObjectModel)
         let url = self.applicationDocumentsDirectory.URLByAppendingPathComponent("SingleViewCoreData.sqlite")
+        let storeOptions = [NSPersistentStoreUbiquitousContentNameKey: "SingleViewCoreData"]
         var failureReason = "There was an error creating or loading the application's saved data."
+        
+        self.registerCoordinatorForStoreNotifications(coordinator)
+        
         do {
-            try coordinator.addPersistentStoreWithType(NSSQLiteStoreType, configuration: nil, URL: url, options: nil)
+            try coordinator.addPersistentStoreWithType(NSSQLiteStoreType, configuration: nil, URL: url, options: storeOptions)
         } catch {
             // Report any error we got.
             var dict = [String: AnyObject]()
@@ -85,6 +83,30 @@ class PKCoreDataManager: NSObject {
                 NSLog("Unresolved error \(nserror), \(nserror.userInfo)")
                 abort()
             }
+        }
+    }
+    
+    // MARK: - My Functions
+    
+    func registerCoordinatorForStoreNotifications(coordinator: NSPersistentStoreCoordinator) {
+        let nc = NSNotificationCenter.defaultCenter();
+        
+        nc.addObserverForName(NSPersistentStoreCoordinatorStoresWillChangeNotification, object: coordinator, queue: NSOperationQueue.mainQueue()) {_ in 
+            self.managedObjectContext.performBlock() {
+                self.managedObjectContext.reset()
+            }
+            
+            //drop
+            //disable user interface
+        }
+        
+        nc.addObserverForName(NSPersistentStoreCoordinatorStoresDidChangeNotification, object: coordinator, queue: NSOperationQueue.mainQueue()) {_ in
+            self.managedObjectContext.performBlock() {
+                self.managedObjectContext.reset()
+            }
+            
+            //refetch data
+            //enable user interface
         }
     }
 }
