@@ -26,6 +26,41 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
     }
     var _managedObjectContext: NSManagedObjectContext? = nil
     
+    // MARK: - iCloud
+    
+    func iCloudAccountIsSignedIn() -> Bool {
+        let token = NSFileManager.defaultManager().ubiquityIdentityToken
+        guard token != nil else { return false }
+        
+        return true
+    }
+    
+    // MARK: - Application
+    
+    func applicationStoresDirectory() -> NSURL? {
+        guard self.applicationDocumentsDirectory() != nil else { return nil }
+        
+        let storesDirectory = NSURL(fileURLWithPath: self.applicationDocumentsDirectory()!).URLByAppendingPathComponent("Stores")
+    
+        NSFileManager *fileManager = [NSFileManager defaultManager];
+        if (![fileManager fileExistsAtPath:[storesDirectory path]]) {
+        NSError *error = nil;
+        if ([fileManager createDirectoryAtURL:storesDirectory
+        withIntermediateDirectories:YES
+        attributes:nil
+        error:&error]) {
+    
+        NSLog(@"Successfully created application Stores directory");}
+    
+        else {NSLog(@"Failed to create application Stores directory: %@", error);}
+        }
+        return storesDirectory;
+        }
+    
+    func applicationDocumentsDirectory() -> String? {
+        return NSSearchPathForDirectoriesInDomains(.DocumentDirectory, NSSearchPathDomainMask.UserDomainMask, true).last
+    }
+    
     func applicationDidTimeout() {
         if UIApplication.sharedApplication().applicationState == .Active {
             PKServerManager.sharedManager.authorizeUser()
@@ -37,11 +72,14 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
     func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
         NSUserDefaults.standardUserDefaults().registerDefaults([kSettingsLockOnExit : true,
                                                                 kSettingsSpotlight  : true,
+                                                                kSettingsICloud     : true,
                                                                 kSettingsAutoLock   : 15])
         
         NSNotificationCenter.defaultCenter().addObserver(self, selector: .applicationDidTimeout, name: kApplicationDidTimeoutNotification, object: nil)
         
         print("APPLICATION DELEGATE - didFinishLaunchingWithOptions")
+        
+        self.iCloudAccountIsSignedIn()
         
         return true
     }

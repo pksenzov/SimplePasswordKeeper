@@ -298,29 +298,14 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-//        self.editBarButton = self.navigationItem.rightBarButtonItem
         self.navigationItem.title = self.folder.name
-//        
-//        self.textBarButton = UIBarButtonItem(customView: self.recordsLabel)
         self.toolbarItems?.insert(self.textBarButton, atIndex: 1)
-//        
-//        self.cancelBarButton = UIBarButtonItem(barButtonSystemItem: .Cancel, target: self, action: .cancelAction)
-//        self.moveBarButton = UIBarButtonItem(title: "Move All", style: .Plain, target: self, action: .moveAction)
-//        self.deleteBarButton = UIBarButtonItem(title: "Delete All", style: .Plain, target: self, action: .deleteAction)
-//        self.doneBarButton = UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: .doneAction)
-        
         self.addBarButton = self.toolbarButtons.last
     }
     
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
         self.currentDate = NSDate()
-        
-//        if self.toolbarButtons == nil {
-//            self.toolbarButtons = self.toolbarItems
-//            self.addBarButton = self.toolbarButtons?.last
-//        }
     }
     
     // MARK: - Navigation

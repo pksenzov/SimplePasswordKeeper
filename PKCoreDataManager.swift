@@ -7,10 +7,13 @@
 //
 
 import CoreData
+import UIKit
 
-//private extension Selector {
-//    static let handleTextFieldTextDidChange = #selector(PKFoldersTableViewController.handleTextFieldTextDidChange)
-//}
+private extension Selector {
+    static let storesWillChange = #selector(PKCoreDataManager.storesWillChange)
+    static let storesDidChange = #selector(PKCoreDataManager.storesDidChange)
+    static let storeDidImportUbiquitousContentChanges = #selector(PKCoreDataManager.storeDidImportUbiquitousContentChanges(_:))
+}
 
 protocol ManagedObjectType {
     static var entityName: String { get }
@@ -18,6 +21,12 @@ protocol ManagedObjectType {
 
 class PKCoreDataManager: NSObject {
     static let sharedManager = PKCoreDataManager()
+    
+    var store: NSPersistentStore?
+    var iCloudStore: NSPersistentStore?
+    
+    let storeFilename = "Records.sqlite"
+    let iCloudStoreFilename = "iCloudRecords.sqlite"
     
     // MARK: - Core Data stack
     
@@ -73,40 +82,63 @@ class PKCoreDataManager: NSObject {
     // MARK: - Core Data Saving support
     
     func saveContext () {
-        if managedObjectContext.hasChanges {
-            do {
-                try managedObjectContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nserror = error as NSError
-                NSLog("Unresolved error \(nserror), \(nserror.userInfo)")
-                abort()
-            }
+        if self.managedObjectContext.hasChanges {
+            self.save()
         }
+    }
+    
+    func save() {
+        do {
+            try self.managedObjectContext.save()
+        } catch {
+            // Replace this implementation with code to handle the error appropriately.
+            // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
+            let nserror = error as NSError
+            NSLog("Unresolved error \(nserror), \(nserror.userInfo)")
+            abort()
+        }
+    }
+    
+    // MARK: - Notifications
+    
+    func storesWillChange() {
+        print("COREDATA ICLOUD - storesWillChange")
+        UIApplication.sharedApplication().beginIgnoringInteractionEvents()
+        //disable user interface
+        dispatch_async(dispatch_get_main_queue(), {
+            if self.managedObjectContext.hasChanges {
+                self.save()
+            } else {
+                //drop any managed object references
+                self.managedObjectContext.reset()
+            }
+        })
+    }
+    
+    func storesDidChange() {
+        print("COREDATA ICLOUD - storesDidChange")
+        dispatch_async(dispatch_get_main_queue(), {
+            self.managedObjectContext.reset()
+        })
+        //refetch data
+        //enable user interface
+        UIApplication.sharedApplication().endIgnoringInteractionEvents()
+    }
+    
+    func storeDidImportUbiquitousContentChanges(notification: NSNotification) {
+        print("COREDATA ICLOUD - storeDidImportUbiquitousContentChanges")
+        dispatch_async(dispatch_get_main_queue(), {
+            self.managedObjectContext.mergeChangesFromContextDidSaveNotification(notification)
+            //loadData()
+        })
     }
     
     // MARK: - My Functions
     
     func registerCoordinatorForStoreNotifications(coordinator: NSPersistentStoreCoordinator) {
         let nc = NSNotificationCenter.defaultCenter();
-        
-        nc.addObserverForName(NSPersistentStoreCoordinatorStoresWillChangeNotification, object: coordinator, queue: NSOperationQueue.mainQueue()) {_ in 
-            self.managedObjectContext.performBlock() {
-                self.managedObjectContext.reset()
-            }
-            
-            //drop
-            //disable user interface
-        }
-        
-        nc.addObserverForName(NSPersistentStoreCoordinatorStoresDidChangeNotification, object: coordinator, queue: NSOperationQueue.mainQueue()) {_ in
-            self.managedObjectContext.performBlock() {
-                self.managedObjectContext.reset()
-            }
-            
-            //refetch data
-            //enable user interface
-        }
+        nc.addObserver(self, selector: .storesWillChange, name: NSPersistentStoreCoordinatorStoresWillChangeNotification, object: nil)
+        nc.addObserver(self, selector: .storesDidChange, name: NSPersistentStoreCoordinatorStoresDidChangeNotification, object: nil)
+        nc.addObserver(self, selector: .storeDidImportUbiquitousContentChanges, name: NSPersistentStoreDidImportUbiquitousContentChangesNotification, object: nil)
     }
 }

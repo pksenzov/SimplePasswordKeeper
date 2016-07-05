@@ -19,7 +19,7 @@
                             <rect key="frame" x="0.0" y="0.0" width="600" height="44"/>
                             <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
                             <items>
-                                <barButtonItem image="cross.png" id="bwD-f1-ub0">
+                                <barButtonItem systemItem="stop" id="bwD-f1-ub0">
                                     <color key="tintColor" red="0.19376453760000001" green="0.50850099329999998" blue="0.85232251879999998" alpha="1" colorSpace="calibratedRGB"/>
                                     <connections>
                                         <action selector="closeAction:" destination="Oht-E0-a5S" id="rhC-bA-F5O"/>
@@ -158,27 +158,28 @@
                             </tableViewSection>
                             <tableViewSection headerTitle="Sync" id="dhs-mq-esQ">
                                 <cells>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" selectionStyle="default" indentationWidth="10" id="vyf-Kp-24a">
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" selectionStyle="none" indentationWidth="10" id="vyf-Kp-24a">
                                         <rect key="frame" x="0.0" y="328" width="600" height="44"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="vyf-Kp-24a" id="7tY-bZ-zFQ">
                                             <rect key="frame" x="0.0" y="0.0" width="600" height="44"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
-                                                <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" contentHorizontalAlignment="center" contentVerticalAlignment="center" on="YES" translatesAutoresizingMaskIntoConstraints="NO" id="M2c-ZQ-TuS">
-                                                    <rect key="frame" x="543" y="6" width="51" height="31"/>
-                                                    <color key="tintColor" red="0.19376453760000001" green="0.50850099329999998" blue="0.85232251879999998" alpha="1" colorSpace="calibratedRGB"/>
-                                                    <color key="onTintColor" red="0.19376453760000001" green="0.50850099329999998" blue="0.85232251879999998" alpha="1" colorSpace="calibratedRGB"/>
-                                                    <connections>
-                                                        <action selector="spotlightValueChanged:" destination="Oht-E0-a5S" eventType="valueChanged" id="sY4-hL-ADm"/>
-                                                    </connections>
-                                                </switch>
                                                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="iCloud" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="4jp-8L-JVd">
                                                     <rect key="frame" x="16" y="11" width="49" height="21"/>
                                                     <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                                     <color key="textColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
                                                     <nil key="highlightedColor"/>
                                                 </label>
+                                                <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" contentHorizontalAlignment="center" contentVerticalAlignment="center" on="YES" translatesAutoresizingMaskIntoConstraints="NO" id="M2c-ZQ-TuS">
+                                                    <rect key="frame" x="543" y="6" width="51" height="31"/>
+                                                    <color key="tintColor" red="0.19376453760000001" green="0.50850099329999998" blue="0.85232251879999998" alpha="1" colorSpace="calibratedRGB"/>
+                                                    <color key="onTintColor" red="0.19376453760000001" green="0.50850099329999998" blue="0.85232251879999998" alpha="1" colorSpace="calibratedRGB"/>
+                                                    <connections>
+                                                        <action selector="iCloudValueChanged:" destination="Oht-E0-a5S" eventType="valueChanged" id="hod-CG-ye1"/>
+                                                        <action selector="spotlightValueChanged:" destination="Oht-E0-a5S" eventType="valueChanged" id="sY4-hL-ADm"/>
+                                                    </connections>
+                                                </switch>
                                             </subviews>
                                             <constraints>
                                                 <constraint firstItem="M2c-ZQ-TuS" firstAttribute="centerY" secondItem="7tY-bZ-zFQ" secondAttribute="centerY" id="6BB-kp-P7O"/>
@@ -214,6 +215,27 @@
                                         </tableViewCellContentView>
                                         <color key="backgroundColor" red="0.90823972230000005" green="0.92638683320000004" blue="0.93171715740000005" alpha="1" colorSpace="calibratedRGB"/>
                                     </tableViewCell>
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" selectionStyle="default" indentationWidth="10" id="iGj-ia-eC3">
+                                        <rect key="frame" x="0.0" y="467" width="600" height="44"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="iGj-ia-eC3" id="n3o-t6-nf9">
+                                            <rect key="frame" x="0.0" y="0.0" width="600" height="44"/>
+                                            <autoresizingMask key="autoresizingMask"/>
+                                            <subviews>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Erase iCloud Data" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ihk-pD-2IU">
+                                                    <rect key="frame" x="16" y="11" width="139" height="21"/>
+                                                    <fontDescription key="fontDescription" type="system" weight="medium" pointSize="17"/>
+                                                    <color key="textColor" red="0.85043728350000003" green="0.21816034619999999" blue="0.15920260550000001" alpha="1" colorSpace="calibratedRGB"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
+                                            </subviews>
+                                            <constraints>
+                                                <constraint firstItem="Ihk-pD-2IU" firstAttribute="centerY" secondItem="n3o-t6-nf9" secondAttribute="centerY" id="aWV-hY-H2E"/>
+                                                <constraint firstAttribute="leadingMargin" secondItem="Ihk-pD-2IU" secondAttribute="leading" constant="-8" id="vdh-lW-5Nd"/>
+                                            </constraints>
+                                        </tableViewCellContentView>
+                                        <color key="backgroundColor" red="0.90823972230000005" green="0.92638683320000004" blue="0.93171715740000005" alpha="1" colorSpace="calibratedRGB"/>
+                                    </tableViewCell>
                                 </cells>
                             </tableViewSection>
                         </sections>
@@ -224,6 +246,7 @@
                     </tableView>
                     <connections>
                         <outlet property="autoLockLabel" destination="ebd-oe-Ccw" id="eTc-K6-WeS"/>
+                        <outlet property="iCloudSwitch" destination="M2c-ZQ-TuS" id="O3u-lI-zKU"/>
                         <outlet property="lockOnExitSwitch" destination="Rsf-Df-Z8m" id="xKj-TL-azA"/>
                         <outlet property="settingsLabel" destination="2Zo-5G-klN" id="btr-vE-HkT"/>
                         <outlet property="spotlightSwitch" destination="8Be-WU-O80" id="QMA-ay-zra"/>
@@ -359,6 +382,7 @@
                     </toolbarItems>
                     <navigationItem key="navigationItem" id="hkf-Bq-dJC">
                         <barButtonItem key="rightBarButtonItem" systemItem="edit" id="Agl-cM-T8e">
+                            <color key="tintColor" red="0.19376453760000001" green="0.50850099329999998" blue="0.85232251879999998" alpha="1" colorSpace="calibratedRGB"/>
                             <connections>
                                 <action selector="editAction:" destination="23m-Ff-9Sf" id="UDy-2i-u2z"/>
                             </connections>
@@ -961,7 +985,6 @@
         </scene>
     </scenes>
     <resources>
-        <image name="cross.png" width="20" height="20"/>
         <image name="menu.png" width="20" height="20"/>
     </resources>
     <inferredMetricsTieBreakers>

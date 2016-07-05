@@ -24,6 +24,7 @@ class PKSettingsTableViewController: UITableViewController {
     var _managedObjectContext: NSManagedObjectContext? = nil
     
     @IBOutlet weak var upperToolbar: UIToolbar!
+    @IBOutlet weak var iCloudSwitch: UISwitch!
     @IBOutlet weak var spotlightSwitch: UISwitch!
     @IBOutlet weak var lockOnExitSwitch: UISwitch!
     @IBOutlet weak var autoLockLabel: UILabel!
@@ -99,9 +100,10 @@ class PKSettingsTableViewController: UITableViewController {
     // MARK: - Load
     
     func loadSettings() {
-        self.lockOnExitSwitch.on = self.defaults.boolForKey(kSettingsLockOnExit)
-        self.spotlightSwitch.on = self.defaults.boolForKey(kSettingsSpotlight)
-        self.autoLockTime = self.defaults.integerForKey(kSettingsAutoLock)
+        self.iCloudSwitch.on        = self.defaults.boolForKey(kSettingsICloud)
+        self.lockOnExitSwitch.on    = self.defaults.boolForKey(kSettingsLockOnExit)
+        self.spotlightSwitch.on     = self.defaults.boolForKey(kSettingsSpotlight)
+        self.autoLockTime           = self.defaults.integerForKey(kSettingsAutoLock)
         
         switch self.autoLockTime {
         case 1:
@@ -115,6 +117,7 @@ class PKSettingsTableViewController: UITableViewController {
     
     // MARK: - Actions
     
+    @IBAction func iCloudValueChanged(sender: UISwitch)     { self.defaults.setBool(sender.on, forKey: kSettingsICloud)     }
     @IBAction func lockOnExitValueChanged(sender: UISwitch) { self.defaults.setBool(sender.on, forKey: kSettingsLockOnExit) }
     @IBAction func spotlightValueChanged(sender: UISwitch)  { self.defaults.setBool(sender.on, forKey: kSettingsSpotlight)  }
     @IBAction func closeAction(sender: UIBarButtonItem)     { self.dismissViewControllerAnimated(true, completion: nil)     }
@@ -153,7 +156,28 @@ class PKSettingsTableViewController: UITableViewController {
     }
     
     // MARK: - Table view data source
-
+    
+    override func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
+        switch (indexPath.section, indexPath.row) {
+        case (3, 1):
+            let alertController = UIAlertController(title: "Erase Remote iCloud Data?", message: "Resetting will delete all Records information stored remotely on iCloud. Your local Records data will be unchanged", preferredStyle: .Alert)
+            
+            let resetAction = UIAlertAction(title: "Reset iCloud Data", style: .Destructive) {_ in
+                print("asd")
+            }
+            
+            let cancelAction = UIAlertAction(title: "Cancel", style: .Cancel, handler: nil)
+            
+            alertController.addAction(resetAction)
+            alertController.addAction(cancelAction)
+            
+            self.presentViewController(alertController, animated: true, completion: nil)
+            tableView.deselectRowAtIndexPath(indexPath, animated: true)
+        default:
+            break
+        }
+    }
+    
     /*
     override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCellWithIdentifier("reuseIdentifier", forIndexPath: indexPath)
