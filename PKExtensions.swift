@@ -20,6 +20,8 @@ let kSettingsSpotlight  = "spotlight"
 let kSettingsAutoLock   = "autolock"
 let kSettingsICloud     = "icloud"
 
+let firstFolderName = "Records"
+
 var isLocked                = NSUserDefaults.standardUserDefaults().boolForKey(kSettingsLockOnExit)
 var isNeededAuthorization   = false
 var isSpotlightWaiting      = false

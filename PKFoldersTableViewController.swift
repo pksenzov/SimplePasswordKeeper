@@ -19,7 +19,6 @@ private extension Selector {
 
 class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginControllerDelegate, UIGestureRecognizerDelegate {
     var names = Set<String>()
-    let firstFolderName = "Records"
     let navigationItemDefaultName = "Folders"
     //let editBarButtonName = "Edit"
     var saveAlertAction: UIAlertAction?
@@ -182,7 +181,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
             if indexPath == nil { return }
             
             let cell = tableView!.cellForRowAtIndexPath(indexPath!)
-            if cell == nil || cell?.textLabel?.text == self.firstFolderName { return }
+            if cell == nil || cell?.textLabel?.text == firstFolderName { return }
             
             let indent = cell!.contentView.frame.origin.x + cell!.indentationWidth
             let rect = CGRectMake(cell!.frame.origin.x + indent, cell!.frame.origin.y, cell!.frame.size.width - indent, cell!.frame.size.height)
@@ -249,7 +248,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         let folders = self.fetchedResultsController.fetchedObjects as! [PKFolder]
         
         guard folders.count != 0 else {
-            self.insertFolder(name: self.firstFolderName)
+            self.insertFolder(name: firstFolderName)
             return
         }
         
@@ -270,7 +269,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     
     override func tableView(tableView: UITableView, canEditRowAtIndexPath indexPath: NSIndexPath) -> Bool {
         let folder = self.fetchedResultsController.objectAtIndexPath(indexPath) as! PKFolder
-        return !(folder.name == self.firstFolderName)
+        return !(folder.name == firstFolderName)
     }
     
     override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
@@ -325,12 +324,12 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
             alertTitle = "Delete Folders?"
             deleteAllTitle = "Delete Folders and Records"
             deleteFolderTitle = "Delete Folders Only"
-            message = "If you delete the folders only, their records will move to the \(self.firstFolderName) folder"
+            message = "If you delete the folders only, their records will move to the \(firstFolderName) folder"
         } else {
             alertTitle = "Delete Folder?"
             deleteAllTitle = "Delete Folder and Records"
             deleteFolderTitle = "Delete Folder Only"
-            message = "If you delete the folder only, its records will move to the \(self.firstFolderName) folder"
+            message = "If you delete the folder only, its records will move to the \(firstFolderName) folder"
         }
         
         let alertController = UIAlertController(title: alertTitle, message: message, preferredStyle: .Alert)
@@ -342,7 +341,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         let deleteFolderAction = UIAlertAction(title: deleteFolderTitle, style: .Destructive) { _ in
             let context = self.fetchedResultsController.managedObjectContext
             var mainFolder: PKFolder!
-            let predicate = NSPredicate(format: "name == %@", self.firstFolderName)
+            let predicate = NSPredicate(format: "name == %@", firstFolderName)
             let fetchRequest = NSFetchRequest(entityName: "Folder")
             
             fetchRequest.predicate = predicate

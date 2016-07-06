@@ -117,7 +117,11 @@ class PKSettingsTableViewController: UITableViewController {
     
     // MARK: - Actions
     
-    @IBAction func iCloudValueChanged(sender: UISwitch)     { self.defaults.setBool(sender.on, forKey: kSettingsICloud)     }
+    @IBAction func iCloudValueChanged(sender: UISwitch)     {
+        self.defaults.setBool(sender.on, forKey: kSettingsICloud)
+        PKCoreDataManager.sharedManager.migrateStore(sender.on)
+    }
+    
     @IBAction func lockOnExitValueChanged(sender: UISwitch) { self.defaults.setBool(sender.on, forKey: kSettingsLockOnExit) }
     @IBAction func spotlightValueChanged(sender: UISwitch)  { self.defaults.setBool(sender.on, forKey: kSettingsSpotlight)  }
     @IBAction func closeAction(sender: UIBarButtonItem)     { self.dismissViewControllerAnimated(true, completion: nil)     }
@@ -159,11 +163,59 @@ class PKSettingsTableViewController: UITableViewController {
     
     override func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
         switch (indexPath.section, indexPath.row) {
+        case (3, 0):
+            let alertController = UIAlertController(title: "Erase Records Data?", message: "This will delete all Records data and preferences on this iPhone.\n\nYour synced data in iCloud will remain intact.", preferredStyle: .Alert)
+            
+            let resetAction = UIAlertAction(title: "Reset All Records Data", style: .Destructive) {_ in
+                let coreDataManager = PKCoreDataManager.sharedManager
+                coreDataManager.migrateStore(false)
+                
+                let fetchRequest = NSFetchRequest(entityName: "Folder")
+                
+                do {
+                    let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+                    
+                    folders.filter({$0.name != firstFolderName}).forEach() {
+                        self.managedObjectContext.deleteObject($0)
+                    }
+                } catch {
+                    abort()
+                }
+                
+                coreDataManager.saveContext()
+                self.defaults.setBool(false, forKey: kSettingsICloud)
+                self.iCloudSwitch.setOn(false, animated: true)
+            }
+            
+            let cancelAction = UIAlertAction(title: "Cancel", style: .Cancel, handler: nil)
+            
+            alertController.addAction(resetAction)
+            alertController.addAction(cancelAction)
+            
+            self.presentViewController(alertController, animated: true, completion: nil)
+            tableView.deselectRowAtIndexPath(indexPath, animated: true)
         case (3, 1):
             let alertController = UIAlertController(title: "Erase Remote iCloud Data?", message: "Resetting will delete all Records information stored remotely on iCloud. Your local Records data will be unchanged", preferredStyle: .Alert)
             
             let resetAction = UIAlertAction(title: "Reset iCloud Data", style: .Destructive) {_ in
-                print("asd")
+                let coreDataManager = PKCoreDataManager.sharedManager
+                
+                let fetchRequest = NSFetchRequest(entityName: "Folder")
+                
+                do {
+                    let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+                    
+                    folders.forEach() {
+                        self.managedObjectContext.deleteObject($0)
+                    }
+                } catch {
+                    abort()
+                }
+                
+                coreDataManager.saveContext()
+                coreDataManager.migrateStore(false)
+                self.defaults.setBool(false, forKey: kSettingsICloud)
+                self.iCloudSwitch.setOn(false, animated: true)
             }
             
             let cancelAction = UIAlertAction(title: "Cancel", style: .Cancel, handler: nil)
