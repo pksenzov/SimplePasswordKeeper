@@ -48,12 +48,14 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
     // MARK: - Application Lifecycle
     
     func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
-        NSUserDefaults.standardUserDefaults().registerDefaults([kSettingsLockOnExit : true,
-                                                                kSettingsSpotlight  : true,
-                                                                kSettingsICloud     : self.iCloudAccountIsSignedIn(),
-                                                                kSettingsAutoLock   : 15])
+        NSUserDefaults.standardUserDefaults().registerDefaults([kSettingsLockOnExit                 : true,
+                                                                kSettingsSpotlight                  : true,
+                                                                kSettingsICloud                     : self.iCloudAccountIsSignedIn(),
+                                                                kSettingsLastCloudKitSyncTimestamp  : NSDate.distantPast(),
+                                                                kSettingsAutoLock                   : 15])
         
         NSNotificationCenter.defaultCenter().addObserver(self, selector: .applicationDidTimeout, name: kApplicationDidTimeoutNotification, object: nil)
+        PKCoreDataManager.sharedManager.sync()
         
         print("APPLICATION DELEGATE - didFinishLaunchingWithOptions")
         

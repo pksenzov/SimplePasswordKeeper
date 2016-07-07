@@ -9,12 +9,6 @@
 import CoreData
 import UIKit
 
-private extension Selector {
-    static let storesWillChange = #selector(PKCoreDataManager.storesWillChange)
-    static let storesDidChange = #selector(PKCoreDataManager.storesDidChange)
-    static let storeDidImportUbiquitousContentChanges = #selector(PKCoreDataManager.storeDidImportUbiquitousContentChanges(_:))
-}
-
 protocol ManagedObjectType {
     static var entityName: String { get }
 }
@@ -22,8 +16,48 @@ protocol ManagedObjectType {
 class PKCoreDataManager: NSObject {
     static let sharedManager = PKCoreDataManager()
     
-    let storeFilename       = "Records.sqlite"
-    let iCloudStoreFilename = "iCloudRecords.sqlite"
+    // MARK: - My Functions
+    
+    func saveBackgroundManagedObjectContext(backgroundManagedObjectContext: NSManagedObjectContext) {
+        if backgroundManagedObjectContext.hasChanges {
+            do {
+                try backgroundManagedObjectContext.save()
+            }
+            catch let error as NSError {
+                fatalError("CoreDataManager - save backgroundManagedObjectContext ERROR: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    func fetchCloudKitManagedObjects(managedObjectContext: NSManagedObjectContext, managedObjectIDs: [NSManagedObjectID]) -> [CloudKitManagedObject] {
+        var cloudKitManagedObjects: [CloudKitManagedObject] = []
+        for managedObjectID in managedObjectIDs {
+            do {
+                let managedObject = try managedObjectContext.existingObjectWithID(managedObjectID)
+                
+                if let cloudKitManagedObject = managedObject as? CloudKitManagedObject {
+                    cloudKitManagedObjects.append(cloudKitManagedObject)
+                }
+            }
+            catch let error as NSError {
+                print("Error fetching from CoreData: \(error.localizedDescription)")
+            }
+        }
+        
+        return cloudKitManagedObjects
+    }
+    
+    func createBackgroundManagedContext() -> NSManagedObjectContext {
+        let backgroundManagedObjectContext = NSManagedObjectContext.init(concurrencyType: NSManagedObjectContextConcurrencyType.PrivateQueueConcurrencyType)
+        backgroundManagedObjectContext.persistentStoreCoordinator = self.persistentStoreCoordinator
+        backgroundManagedObjectContext.undoManager = nil
+        
+        return backgroundManagedObjectContext
+    }
+    
+    func sync() {
+        PKCloudKitManager.sharedManager.performFullSync()
+    }
     
     // MARK: - Core Data stack
     
@@ -42,25 +76,17 @@ class PKCoreDataManager: NSObject {
     lazy var persistentStoreCoordinator: NSPersistentStoreCoordinator = {
         // The persistent store coordinator for the application. This implementation creates and returns a coordinator, having added the store for the application to it. This property is optional since there are legitimate error conditions that could cause the creation of the store to fail.
         // Create the coordinator and store
-        var path: String!
-        var storeOptions: [String: String]?
-        
-        let iCloudSyncEnabled = NSUserDefaults.standardUserDefaults().boolForKey(kSettingsICloud)
-        if iCloudSyncEnabled {
-            path = self.iCloudStoreFilename
-            storeOptions = [NSPersistentStoreUbiquitousContentNameKey: "Records"]
-        } else {
-            path = self.storeFilename
-        }
-        
         let coordinator = NSPersistentStoreCoordinator(managedObjectModel: self.managedObjectModel)
-        let url = self.applicationDocumentsDirectory.URLByAppendingPathComponent(path)//"SingleViewCoreData.sqlite"
+        let url = self.applicationDocumentsDirectory.URLByAppendingPathComponent("Records.sqlite")
         let failureReason = "There was an error creating or loading the application's saved data."
-        
-        if iCloudSyncEnabled { self.registerCoordinatorForStoreNotifications(coordinator) }
+        let options = [
+            NSMigratePersistentStoresAutomaticallyOption: true,
+            NSInferMappingModelAutomaticallyOption: true,
+            NSSQLitePragmasOption: ["journal_mode": "DELETE"]
+        ]
         
         do {
-            try coordinator.addPersistentStoreWithType(NSSQLiteStoreType, configuration: nil, URL: url, options: storeOptions)
+            try coordinator.addPersistentStoreWithType(NSSQLiteStoreType, configuration: nil, URL: url, options: options)
         } catch {
             // Report any error we got.
             var dict = [String: AnyObject]()
@@ -87,120 +113,19 @@ class PKCoreDataManager: NSObject {
         return managedObjectContext
     }()
     
-    // MARK: - Init & Deinit
-    
-    deinit {
-        NSNotificationCenter.defaultCenter().removeObserver(self)
-    }
-    
     // MARK: - Core Data Saving support
     
     func saveContext () {
         if self.managedObjectContext.hasChanges {
-            self.save()
-        }
-    }
-    
-    func save() {
-        do {
-            try self.managedObjectContext.save()
-        } catch {
-            // Replace this implementation with code to handle the error appropriately.
-            // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-            let nserror = error as NSError
-            NSLog("Unresolved error \(nserror), \(nserror.userInfo)")
-            abort()
-        }
-    }
-    
-    // MARK: - Notifications
-    
-    func storesWillChange() {
-        print("COREDATA ICLOUD - storesWillChange")
-        
-        UIApplication.sharedApplication().beginIgnoringInteractionEvents()
-        //disable user interface
-        dispatch_async(dispatch_get_main_queue(), {
-            if self.managedObjectContext.hasChanges {
-                self.save()
-            } else {
-                //drop any managed object references
-                self.managedObjectContext.reset()
-            }
-        })
-    }
-    
-    func storesDidChange() {
-        print("COREDATA ICLOUD - storesDidChange")
-        
-        dispatch_async(dispatch_get_main_queue(), {
-            self.managedObjectContext.reset()
-        })
-        //refetch data
-        //enable user interface
-        UIApplication.sharedApplication().endIgnoringInteractionEvents()
-    }
-    
-    func storeDidImportUbiquitousContentChanges(notification: NSNotification) {
-        print("COREDATA ICLOUD - storeDidImportUbiquitousContentChanges")
-        
-        dispatch_async(dispatch_get_main_queue(), {
-            self.managedObjectContext.mergeChangesFromContextDidSaveNotification(notification)
-            //loadData()
-        })
-    }
-    
-    // MARK: - My Functions
-    
-    func migrateStore(isOn: Bool) {
-        if isOn {
-            let coordinator = self.persistentStoreCoordinator
-            let url = self.applicationDocumentsDirectory.URLByAppendingPathComponent(self.iCloudStoreFilename)
-            let failureReason = "There was an error migration to iCloud data."
-            let storeOptions: [String: String] = [NSPersistentStoreUbiquitousContentNameKey: "Records"]
-            
             do {
-                try coordinator.migratePersistentStore(coordinator.persistentStores.last!, toURL: url, options: storeOptions, withType: NSSQLiteStoreType)
+                try self.managedObjectContext.save()
             } catch {
-                // Report any error we got.
-                var dict = [String: AnyObject]()
-                dict[NSLocalizedDescriptionKey] = "Failed to initialize the application's saved data"
-                dict[NSLocalizedFailureReasonErrorKey] = failureReason
-                dict[NSUnderlyingErrorKey] = error as NSError
-                
-                let wrappedError = NSError(domain: "YOUR_ERROR_DOMAIN", code: 9999, userInfo: dict)
-                // Replace this with code to handle the error appropriately.
+                // Replace this implementation with code to handle the error appropriately.
                 // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                NSLog("Unresolved error \(wrappedError), \(wrappedError.userInfo)")
-                abort()
-            }
-        } else {
-            let coordinator = self.persistentStoreCoordinator
-            let url = self.applicationDocumentsDirectory.URLByAppendingPathComponent(self.storeFilename)
-            let failureReason = "There was an error migration to local data."
-            
-            do {
-                try coordinator.migratePersistentStore(coordinator.persistentStores.last!, toURL: url, options: nil, withType: NSSQLiteStoreType)
-            } catch {
-                // Report any error we got.
-                var dict = [String: AnyObject]()
-                dict[NSLocalizedDescriptionKey] = "Failed to initialize the application's saved data"
-                dict[NSLocalizedFailureReasonErrorKey] = failureReason
-                dict[NSUnderlyingErrorKey] = error as NSError
-                
-                let wrappedError = NSError(domain: "YOUR_ERROR_DOMAIN", code: 9999, userInfo: dict)
-                // Replace this with code to handle the error appropriately.
-                // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                NSLog("Unresolved error \(wrappedError), \(wrappedError.userInfo)")
+                let nserror = error as NSError
+                NSLog("Unresolved error \(nserror), \(nserror.userInfo)")
                 abort()
             }
         }
-    }
-    
-    func registerCoordinatorForStoreNotifications(coordinator: NSPersistentStoreCoordinator) {
-        let nc = NSNotificationCenter.defaultCenter()
-        nc.addObserver(self, selector: .storesWillChange, name: NSPersistentStoreCoordinatorStoresWillChangeNotification, object: coordinator)
-        nc.addObserver(self, selector: .storesDidChange, name: NSPersistentStoreCoordinatorStoresDidChangeNotification, object: coordinator)
-        nc.addObserver(self, selector: .storeDidImportUbiquitousContentChanges, name: NSPersistentStoreDidImportUbiquitousContentChangesNotification, object: coordinator)
     }
 }
