@@ -14,8 +14,6 @@ import CoreData
 
 extension PKFolder {
     
-    @NSManaged var recordName: String?
-    @NSManaged var recordID: NSData?
     @NSManaged var name: String?
     @NSManaged var records: NSSet?
     

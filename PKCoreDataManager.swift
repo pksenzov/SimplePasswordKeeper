@@ -15,50 +15,7 @@ protocol ManagedObjectType {
 
 class PKCoreDataManager: NSObject {
     static let sharedManager = PKCoreDataManager()
-    
-    // MARK: - My Functions
-    
-    func saveBackgroundManagedObjectContext(backgroundManagedObjectContext: NSManagedObjectContext) {
-        if backgroundManagedObjectContext.hasChanges {
-            do {
-                try backgroundManagedObjectContext.save()
-            }
-            catch let error as NSError {
-                fatalError("CoreDataManager - save backgroundManagedObjectContext ERROR: \(error.localizedDescription)")
-            }
-        }
-    }
-    
-    func fetchCloudKitManagedObjects(managedObjectContext: NSManagedObjectContext, managedObjectIDs: [NSManagedObjectID]) -> [CloudKitManagedObject] {
-        var cloudKitManagedObjects: [CloudKitManagedObject] = []
-        for managedObjectID in managedObjectIDs {
-            do {
-                let managedObject = try managedObjectContext.existingObjectWithID(managedObjectID)
-                
-                if let cloudKitManagedObject = managedObject as? CloudKitManagedObject {
-                    cloudKitManagedObjects.append(cloudKitManagedObject)
-                }
-            }
-            catch let error as NSError {
-                print("Error fetching from CoreData: \(error.localizedDescription)")
-            }
-        }
-        
-        return cloudKitManagedObjects
-    }
-    
-    func createBackgroundManagedContext() -> NSManagedObjectContext {
-        let backgroundManagedObjectContext = NSManagedObjectContext.init(concurrencyType: NSManagedObjectContextConcurrencyType.PrivateQueueConcurrencyType)
-        backgroundManagedObjectContext.persistentStoreCoordinator = self.persistentStoreCoordinator
-        backgroundManagedObjectContext.undoManager = nil
-        
-        return backgroundManagedObjectContext
-    }
-    
-    func sync() {
-        PKCloudKitManager.sharedManager.performFullSync()
-    }
-    
+
     // MARK: - Core Data stack
     
     lazy var applicationDocumentsDirectory: NSURL = {

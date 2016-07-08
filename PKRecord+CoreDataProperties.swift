@@ -14,8 +14,6 @@ import CoreData
 
 extension PKRecord {
     
-    @NSManaged var recordName: String?
-    @NSManaged var recordID: NSData?
     @NSManaged var creationDate: NSDate?
     @NSManaged var date: NSDate?
     @NSManaged var detailedDescription: String?

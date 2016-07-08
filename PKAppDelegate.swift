@@ -51,11 +51,9 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
         NSUserDefaults.standardUserDefaults().registerDefaults([kSettingsLockOnExit                 : true,
                                                                 kSettingsSpotlight                  : true,
                                                                 kSettingsICloud                     : self.iCloudAccountIsSignedIn(),
-                                                                kSettingsLastCloudKitSyncTimestamp  : NSDate.distantPast(),
                                                                 kSettingsAutoLock                   : 15])
         
         NSNotificationCenter.defaultCenter().addObserver(self, selector: .applicationDidTimeout, name: kApplicationDidTimeoutNotification, object: nil)
-        PKCoreDataManager.sharedManager.sync()
         
         print("APPLICATION DELEGATE - didFinishLaunchingWithOptions")
         
