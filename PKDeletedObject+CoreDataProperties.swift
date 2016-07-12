@@ -1,8 +1,8 @@
 //
-//  PKFolder+CoreDataProperties.swift
-//  SimplePasswordKeeper
+//  PKDeletedObject+CoreDataProperties.swift
+//  Records
 //
-//  Created by Admin on 08/06/16.
+//  Created by Admin on 12/07/16.
 //  Copyright © 2016 Pavel Ksenzov. All rights reserved.
 //
 //  Choose "Create NSManagedObject Subclass…" from the Core Data editor menu
@@ -12,15 +12,13 @@
 import Foundation
 import CoreData
 
-extension PKFolder {
-    
+extension PKDeletedObject {
+
     @NSManaged var uuid: String?
     @NSManaged var date: NSDate?
-    @NSManaged var name: String?
-    @NSManaged var records: NSSet?
-    
+
 }
 
-extension PKFolder: ManagedObjectType {
-    @nonobjc static let entityName = "Folder"
+extension PKDeletedObject: ManagedObjectType {
+    @nonobjc static let entityName = "DeletedObject"
 }
