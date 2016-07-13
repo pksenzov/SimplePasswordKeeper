@@ -83,6 +83,8 @@ class PKCoreDataManager: NSObject {
                 NSLog("Unresolved error \(nserror), \(nserror.userInfo)")
                 abort()
             }
+            
+            PKCloudKitManager.sharedManager.saveContext()
         }
     }
 }

@@ -48,4 +48,8 @@ class PKServerManager: NSObject {
         print(topVC?.description)
         self.presentLoginViewControllerOn(topVC)
     }
+    
+    func sync() {
+        
+    }
 }

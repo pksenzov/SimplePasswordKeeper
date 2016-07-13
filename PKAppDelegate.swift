@@ -9,6 +9,7 @@
 import UIKit
 import CoreSpotlight
 import CoreData
+import CloudKit
 
 private extension Selector {
     static let applicationDidTimeout = #selector(PKAppDelegate.applicationDidTimeout)
@@ -54,6 +55,10 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
                                                                 kSettingsAutoLock                   : 15])
         
         NSNotificationCenter.defaultCenter().addObserver(self, selector: .applicationDidTimeout, name: kApplicationDidTimeoutNotification, object: nil)
+        
+        if self.iCloudAccountIsSignedIn() && NSUserDefaults.standardUserDefaults().boolForKey(kSettingsICloud) {
+            PKServerManager.sharedManager.sync()
+        }
         
         print("APPLICATION DELEGATE - didFinishLaunchingWithOptions")
         
