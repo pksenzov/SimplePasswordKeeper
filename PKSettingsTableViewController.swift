@@ -107,7 +107,7 @@ class PKSettingsTableViewController: UITableViewController {
         } else if !PKAppDelegate.iCloudAccountIsSignedIn() {
             self.iCloudSwitch.on = false
             self.defaults.setBool(false, forKey: kSettingsICloud)
-            PKCloudKitManager.sharedManager.deleteSubscription()
+            PKCloudKitManager.sharedManager.deleteSubscriptions()
         }
         
         self.lockOnExitSwitch.on    = self.defaults.boolForKey(kSettingsLockOnExit)
@@ -129,7 +129,7 @@ class PKSettingsTableViewController: UITableViewController {
     @IBAction func iCloudValueChanged(sender: UISwitch)     {
         if !sender.on {
             self.defaults.setBool(false, forKey: kSettingsICloud)
-            PKCloudKitManager.sharedManager.deleteSubscription()
+            PKCloudKitManager.sharedManager.deleteSubscriptions()
         } else if PKAppDelegate.iCloudAccountIsSignedIn() {
             PKServerManager.sharedManager.sync()
             self.defaults.setBool(true, forKey: kSettingsICloud)
