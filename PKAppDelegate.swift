@@ -29,7 +29,7 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
     
     // MARK: - iCloud
     
-    func iCloudAccountIsSignedIn() -> Bool {
+    static func iCloudAccountIsSignedIn() -> Bool {
         let token = NSFileManager.defaultManager().ubiquityIdentityToken
         guard token != nil else { return false }
         
@@ -51,16 +51,24 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
     func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
         NSUserDefaults.standardUserDefaults().registerDefaults([kSettingsLockOnExit                 : true,
                                                                 kSettingsSpotlight                  : true,
-                                                                kSettingsICloud                     : self.iCloudAccountIsSignedIn(),
+                                                                kSettingsICloud                     : PKAppDelegate.iCloudAccountIsSignedIn(),
+                                                                kSettingsSubscriptionFolderID       : "",
+                                                                kSettingsSubscriptionRecordID       : "",
                                                                 kSettingsAutoLock                   : 15])
         
         NSNotificationCenter.defaultCenter().addObserver(self, selector: .applicationDidTimeout, name: kApplicationDidTimeoutNotification, object: nil)
         
-        if self.iCloudAccountIsSignedIn() && NSUserDefaults.standardUserDefaults().boolForKey(kSettingsICloud) {
+        if PKAppDelegate.iCloudAccountIsSignedIn() && NSUserDefaults.standardUserDefaults().boolForKey(kSettingsICloud) {
             PKServerManager.sharedManager.sync()
         }
         
-        print("APPLICATION DELEGATE - didFinishLaunchingWithOptions")
+        let notificationSettings = UIUserNotificationSettings(forTypes: .None, categories: nil)
+        application.registerUserNotificationSettings(notificationSettings)
+        application.registerForRemoteNotifications()
+        
+//        UIUserNotificationSettings *notificationSettings = [UIUserNotificationSettings settingsForTypes:UIUserNotificationTypeAlert categories:nil];
+//        [application registerUserNotificationSettings:notificationSettings];
+//        [application registerForRemoteNotifications];
         
         return true
     }
@@ -161,6 +169,10 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationWillEnterForeground(application: UIApplication) {
+        if PKAppDelegate.iCloudAccountIsSignedIn() && NSUserDefaults.standardUserDefaults().boolForKey(kSettingsICloud) {
+            PKServerManager.sharedManager.sync()
+        }
+        
         print("APPLICATION DELEGATE - applicationWillEnterForeground")
         // Called as part of the transition from the background to the inactive state; here you can undo many of the changes made on entering the background.
     }
@@ -244,6 +256,18 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
         }
         
         return true
+    }
+    
+    func application(application: UIApplication, didReceiveRemoteNotification userInfo: [NSObject: AnyObject]) {
+        if let userInfo = userInfo as? [String: NSObject] {
+            let cloudKitNotification = CKNotification(fromRemoteNotificationDictionary: userInfo)
+            
+            if (cloudKitNotification.notificationType == .Query) {
+                let recordID = (cloudKitNotification as! CKQueryNotification).recordID
+                //update local db
+                //refresh UI if needed
+            }
+        }
     }
 }
 

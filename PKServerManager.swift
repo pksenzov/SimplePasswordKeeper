@@ -50,6 +50,6 @@ class PKServerManager: NSObject {
     }
     
     func sync() {
-        
+        PKCloudKitManager.sharedManager.checkAndAddSubscription()
     }
 }

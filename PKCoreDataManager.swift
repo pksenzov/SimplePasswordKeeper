@@ -84,7 +84,9 @@ class PKCoreDataManager: NSObject {
                 abort()
             }
             
-            PKCloudKitManager.sharedManager.saveContext()
+            if PKAppDelegate.iCloudAccountIsSignedIn() && NSUserDefaults.standardUserDefaults().boolForKey(kSettingsICloud) {
+                PKCloudKitManager.sharedManager.saveContext()
+            }
         }
     }
 }

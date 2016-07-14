@@ -100,7 +100,16 @@ class PKSettingsTableViewController: UITableViewController {
     // MARK: - Load
     
     func loadSettings() {
-        self.iCloudSwitch.on        = self.defaults.boolForKey(kSettingsICloud)
+        if PKAppDelegate.iCloudAccountIsSignedIn() && self.defaults.boolForKey(kSettingsICloud) {
+            self.iCloudSwitch.on = true
+        } else if !self.defaults.boolForKey(kSettingsICloud) {
+            self.iCloudSwitch.on = false
+        } else if !PKAppDelegate.iCloudAccountIsSignedIn() {
+            self.iCloudSwitch.on = false
+            self.defaults.setBool(false, forKey: kSettingsICloud)
+            PKCloudKitManager.sharedManager.deleteSubscription()
+        }
+        
         self.lockOnExitSwitch.on    = self.defaults.boolForKey(kSettingsLockOnExit)
         self.spotlightSwitch.on     = self.defaults.boolForKey(kSettingsSpotlight)
         self.autoLockTime           = self.defaults.integerForKey(kSettingsAutoLock)
@@ -118,7 +127,16 @@ class PKSettingsTableViewController: UITableViewController {
     // MARK: - Actions
     
     @IBAction func iCloudValueChanged(sender: UISwitch)     {
-        self.defaults.setBool(sender.on, forKey: kSettingsICloud)
+        if !sender.on {
+            self.defaults.setBool(false, forKey: kSettingsICloud)
+            PKCloudKitManager.sharedManager.deleteSubscription()
+        } else if PKAppDelegate.iCloudAccountIsSignedIn() {
+            PKServerManager.sharedManager.sync()
+            self.defaults.setBool(true, forKey: kSettingsICloud)
+        } else if !PKAppDelegate.iCloudAccountIsSignedIn() {
+            //show alert
+        }
+        
     }
     
     @IBAction func lockOnExitValueChanged(sender: UISwitch) { self.defaults.setBool(sender.on, forKey: kSettingsLockOnExit) }

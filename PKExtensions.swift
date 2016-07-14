@@ -20,6 +20,8 @@ let kSettingsLockOnExit                 = "lockonexit"
 let kSettingsSpotlight                  = "spotlight"
 let kSettingsAutoLock                   = "autolock"
 let kSettingsICloud                     = "icloud"
+let kSettingsSubscriptionFolderID       = "subscriptionfolderid"
+let kSettingsSubscriptionRecordID       = "subscriptionrecordid"
 
 let firstFolderName = "Records"
 
