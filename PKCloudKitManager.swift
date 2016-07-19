@@ -18,18 +18,40 @@ class PKCloudKitManager: NSObject {
     // MARK: - Cloud Kit Saving support
     
     func deleteSubscriptions() {
-        let folderID = self.defaults.stringForKey(kSettingsSubscriptionFolderID)
-        let recordID = self.defaults.stringForKey(kSettingsSubscriptionRecordID)
-        
-        self.privateDatabase.deleteSubscriptionWithID(folderID!) { (_, error) in
+        self.privateDatabase.fetchAllSubscriptionsWithCompletionHandler() { (subs, error) in
+            if subs == nil || subs?.count == 0 { return }
+            
             if error != nil {
+                print(error?.localizedDescription)
                 abort()
             }
+            
+            subs!.forEach() {
+                self.privateDatabase.deleteSubscriptionWithID($0.subscriptionID) { (_, error) in
+                    if error != nil {
+                        abort()
+                    }
+                }
+            }
         }
+    }
+    
+    func addSubscriptions() {
+        let predicate = NSPredicate(format: "TRUEPREDICATE")
+        let folderSubscription = CKSubscription(recordType: "Folder", predicate: predicate, options: [.FiresOnRecordCreation, .FiresOnRecordDeletion, .FiresOnRecordUpdate])
+        let recordSubscription = CKSubscription(recordType: "Record", predicate: predicate, options: [.FiresOnRecordCreation, .FiresOnRecordDeletion, .FiresOnRecordUpdate])
         
-        self.privateDatabase.deleteSubscriptionWithID(recordID!) { (_, error) in
+        self.privateDatabase.saveSubscription(folderSubscription) { (sub, error) in
             if error != nil {
+                print(error?.localizedDescription)
                 abort()
+            }
+            
+            self.privateDatabase.saveSubscription(recordSubscription) { (sub, error) in
+                if error != nil {
+                    print(error?.localizedDescription)
+                    abort()
+                }
             }
         }
     }
@@ -38,39 +60,22 @@ class PKCloudKitManager: NSObject {
         let predicate = NSPredicate(format: "TRUEPREDICATE")
         let subscription = CKSubscription(recordType: recordType, predicate: predicate, options: [.FiresOnRecordCreation, .FiresOnRecordDeletion, .FiresOnRecordUpdate])
         
-//        let notificationInfo = CKNotificationInfo()
-//        subscription.notificationInfo = notificationInfo
-        
         self.privateDatabase.saveSubscription(subscription) { (sub, error) in
             if error != nil {
                 print(error?.localizedDescription)
                 abort()
             }
-            
-            let key = (recordType == "Folder") ? kSettingsSubscriptionFolderID : kSettingsSubscriptionRecordID
-            self.defaults.setObject(sub?.subscriptionID, forKey: key)
         }
     }
     
     func checkAndAddSubscriptions() {
-        let folderID = self.defaults.stringForKey(kSettingsSubscriptionFolderID)
-        let recordID = self.defaults.stringForKey(kSettingsSubscriptionRecordID)
-        
-        self.privateDatabase.fetchSubscriptionWithID(folderID!) { (sub, error) in
-            if sub == nil {
-                self.addSubscriptionWithType("Folder")
+        self.privateDatabase.fetchAllSubscriptionsWithCompletionHandler() { (subs, error) in
+            if subs == nil || subs?.count == 0 {
+                self.addSubscriptions()
                 return
-            }
-            
-            if error != nil {
-                print(error?.localizedDescription)
-                abort()
-            }
-        }
-        
-        self.privateDatabase.fetchSubscriptionWithID(recordID!) { (sub, error) in
-            if sub == nil {
-                self.addSubscriptionWithType("Record")
+            } else if subs?.count == 1 {
+                let recordType = (subs!.first!.recordType == "Folder") ? "Record" : "Folder"
+                self.addSubscriptionWithType(recordType)
                 return
             }
             

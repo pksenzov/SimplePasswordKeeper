@@ -406,6 +406,8 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     func insertFolder(name name: String) {
         let newFolder: PKFolder = self.managedObjectContext.insertObject()
         newFolder.name = name
+        newFolder.date = NSDate()
+        newFolder.uuid = NSUUID().UUIDString
         
         PKCoreDataManager.sharedManager.saveContext()
         
@@ -422,6 +424,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
             guard folders.count == 1 else { return }
             
             folders.first?.name = newName
+            folders.first?.date = NSDate()
         } catch {
             print("Unresolved error \(error), \(error)")
             return
