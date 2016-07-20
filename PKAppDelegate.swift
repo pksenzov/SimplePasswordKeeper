@@ -51,6 +51,7 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
     func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
         NSUserDefaults.standardUserDefaults().registerDefaults([kSettingsLockOnExit                 : true,
                                                                 kSettingsSpotlight                  : true,
+                                                                kSettingsSubscriptions              : false,
                                                                 kSettingsICloud                     : PKAppDelegate.iCloudAccountIsSignedIn(),
                                                                 kSettingsAutoLock                   : 15])
         
@@ -257,6 +258,8 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
     }
     
     func application(application: UIApplication, didReceiveRemoteNotification userInfo: [NSObject: AnyObject]) {
+        guard PKAppDelegate.iCloudAccountIsSignedIn() && NSUserDefaults.standardUserDefaults().boolForKey(kSettingsICloud) else { return }
+        
         if let userInfo = userInfo as? [String: NSObject] {
             let cloudKitNotification = CKNotification(fromRemoteNotificationDictionary: userInfo)
             

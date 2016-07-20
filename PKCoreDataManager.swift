@@ -74,6 +74,49 @@ class PKCoreDataManager: NSObject {
     
     func saveContext () {
         if self.managedObjectContext.hasChanges {
+            if PKAppDelegate.iCloudAccountIsSignedIn() && NSUserDefaults.standardUserDefaults().boolForKey(kSettingsICloud) {
+                var deleted = [Any]()
+                var updated = [Any]()
+                var inserted = [Any]()
+                
+                self.managedObjectContext.deletedObjects.forEach() {
+                    switch $0 {
+                    case is PKFolder:
+                        deleted.append(PKFolderS(folder: $0 as! PKFolder))
+                    case is PKRecord:
+                        deleted.append(PKRecordS(record: $0 as! PKRecord))
+                    default:
+                        break
+                    }
+                }
+                
+                self.managedObjectContext.updatedObjects.forEach() {
+                    switch $0 {
+                    case is PKFolder:
+                        updated.append(PKFolderS(folder: $0 as! PKFolder))
+                    case is PKRecord:
+                        updated.append(PKRecordS(record: $0 as! PKRecord))
+                    default:
+                        break
+                    }
+                }
+                
+                self.managedObjectContext.insertedObjects.forEach() {
+                    switch $0 {
+                    case is PKFolder:
+                        inserted.append(PKFolderS(folder: $0 as! PKFolder))
+                    case is PKRecord:
+                        inserted.append(PKRecordS(record: $0 as! PKRecord))
+                    default:
+                        break
+                    }
+                }
+                
+                PKCloudKitManager.sharedManager.saveContext(deleted, updated: updated, inserted: inserted)
+            } else {
+                //move deleted
+            }
+            
             do {
                 try self.managedObjectContext.save()
             } catch {
@@ -82,10 +125,6 @@ class PKCoreDataManager: NSObject {
                 let nserror = error as NSError
                 NSLog("Unresolved error \(nserror), \(nserror.userInfo)")
                 abort()
-            }
-            
-            if PKAppDelegate.iCloudAccountIsSignedIn() && NSUserDefaults.standardUserDefaults().boolForKey(kSettingsICloud) {
-                PKCloudKitManager.sharedManager.saveContext()
             }
         }
     }

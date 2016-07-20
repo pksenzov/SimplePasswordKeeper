@@ -8,6 +8,7 @@
 
 import UIKit
 import CloudKit
+import CoreData
 
 class PKCloudKitManager: NSObject {
     static let sharedManager = PKCloudKitManager()
@@ -17,24 +18,24 @@ class PKCloudKitManager: NSObject {
     
     // MARK: - Cloud Kit Saving support
     
-    func deleteSubscriptions() {
-        self.privateDatabase.fetchAllSubscriptionsWithCompletionHandler() { (subs, error) in
-            if subs == nil || subs?.count == 0 { return }
-            
-            if error != nil {
-                print(error?.localizedDescription)
-                abort()
-            }
-            
-            subs!.forEach() {
-                self.privateDatabase.deleteSubscriptionWithID($0.subscriptionID) { (_, error) in
-                    if error != nil {
-                        abort()
-                    }
-                }
-            }
-        }
-    }
+//    func deleteSubscriptions() {
+//        self.privateDatabase.fetchAllSubscriptionsWithCompletionHandler() { (subs, error) in
+//            if subs == nil || subs?.count == 0 { return }
+//            
+//            if error != nil {
+//                print(error?.localizedDescription)
+//                abort()
+//            }
+//            
+//            subs!.forEach() {
+//                self.privateDatabase.deleteSubscriptionWithID($0.subscriptionID) { (_, error) in
+//                    if error != nil {
+//                        abort()
+//                    }
+//                }
+//            }
+//        }
+//    }
     
     func addSubscriptions() {
         let predicate = NSPredicate(format: "TRUEPREDICATE")
@@ -52,6 +53,8 @@ class PKCloudKitManager: NSObject {
                     print(error?.localizedDescription)
                     abort()
                 }
+                
+                self.defaults.setBool(true, forKey: kSettingsSubscriptions)
             }
         }
     }
@@ -65,10 +68,14 @@ class PKCloudKitManager: NSObject {
                 print(error?.localizedDescription)
                 abort()
             }
+            
+            self.defaults.setBool(true, forKey: kSettingsSubscriptions)
         }
     }
     
     func checkAndAddSubscriptions() {
+        guard !self.defaults.boolForKey(kSettingsSubscriptions) else { return }
+        
         self.privateDatabase.fetchAllSubscriptionsWithCompletionHandler() { (subs, error) in
             if subs == nil || subs?.count == 0 {
                 self.addSubscriptions()
@@ -86,7 +93,9 @@ class PKCloudKitManager: NSObject {
         }
     }
     
-    func saveContext() {
-        
+    func saveContext(deleted: [Any], updated: [Any], inserted: [Any]) {
+        deleted.forEach() {
+            
+        }
     }
 }
