@@ -321,7 +321,10 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         record.detailedDescription = description
         record.date = date
         record.folder = self.folder
-        if self.record == nil { record.creationDate = NSDate() }
+        if self.record == nil {
+            record.creationDate = NSDate()
+            record.uuid = NSUUID().UUIDString
+        }
         
         PKCoreDataManager.sharedManager.saveContext()
         

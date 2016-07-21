@@ -73,14 +73,18 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
         if let name = name {
             folder = self.managedObjectContext.insertObject()
             folder.name = name
+            folder.date = NSDate()
+            folder.uuid = NSUUID().UUIDString
             
             PKCoreDataManager.sharedManager.saveContext()
         } else {
             folder = self.destinationFolder
+            folder.date = NSDate()
         }
         
         self.records.forEach() {
             $0.folder = folder
+            $0.date = NSDate()
         }
         
         PKCoreDataManager.sharedManager.saveContext()

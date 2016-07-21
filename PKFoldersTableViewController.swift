@@ -358,6 +358,8 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
                     let record = record as! PKRecord
                     
                     record.folder = mainFolder
+                    record.date = NSDate()
+                    mainFolder.date = NSDate()
                 }
             }
             

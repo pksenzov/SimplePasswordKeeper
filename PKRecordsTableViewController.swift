@@ -113,6 +113,8 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
                     context.deleteObject($0 as! PKRecord)
                 }
                 
+                self.folder.date = NSDate()
+                
                 PKCoreDataManager.sharedManager.saveContext()
                 
                 self.cancelAction()
@@ -129,6 +131,8 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
                 let record = self.fetchedResultsController.objectAtIndexPath($0) as! PKRecord
                 context.deleteObject(record)
             }
+            
+            self.folder.date = NSDate()
             
             PKCoreDataManager.sharedManager.saveContext()
             
@@ -193,6 +197,7 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
             let context = self.fetchedResultsController.managedObjectContext
             
             context.deleteObject(record)
+            self.folder.date = NSDate()
             
             PKCoreDataManager.sharedManager.saveContext()
         }

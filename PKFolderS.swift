@@ -12,12 +12,15 @@ struct PKFolderS {
     let uuid: String
     let date: NSDate
     let name: String
-    //let records: NSSet
+    var recordsUUID = Set<String>()
     
     init(folder: PKFolder) {
         uuid = folder.uuid!
         date = folder.date!
         name = folder.name!
-        //records = folder.records!
+        
+        folder.records?.forEach() {
+            recordsUUID.insert(($0 as! PKRecord).uuid!)
+        }
     }
 }

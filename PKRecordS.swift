@@ -16,7 +16,7 @@ struct PKRecordS {
     let login: String?
     let password: NSObject?
     let title: String
-    //let folder: PKFolder
+    let folderUUID: String
     
     init(record: PKRecord) {
         uuid = record.uuid!
@@ -26,6 +26,19 @@ struct PKRecordS {
         login = record.login
         password = record.password
         title = record.title!
-        //folder = record.folder!
+        folderUUID = record.folder!.uuid!
     }
 }
+
+//// MARK: - Hashable
+//
+//extension PKRecordS: Hashable {
+//    var hashValue: Int { return 0 }
+//}
+//
+//// MARK: - Equatable
+//
+//func ==(lhs: PKRecordS, rhs: PKRecordS) -> Bool {
+//    return lhs.uuid == rhs.uuid
+//}
+
