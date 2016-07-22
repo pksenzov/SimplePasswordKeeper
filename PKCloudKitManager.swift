@@ -16,7 +16,7 @@ class PKCloudKitManager: NSObject {
     let privateDatabase = CKContainer.defaultContainer().privateCloudDatabase
     let defaults = NSUserDefaults.standardUserDefaults()
     
-    // MARK: - Cloud Kit Saving support
+    // MARK: - Subscriptions
     
 //    func deleteSubscriptions() {
 //        self.privateDatabase.fetchAllSubscriptionsWithCompletionHandler() { (subs, error) in
@@ -93,24 +93,9 @@ class PKCloudKitManager: NSObject {
         }
     }
     
+    // MARK: - Context
+    
     func saveContext(deleted: [Any], updated: [Any], inserted: [Any]) {
-        deleted.forEach() {
-            var uuid = ($0 as? PKFolderS)?.uuid
-            uuid = ($0 as? PKRecordS)?.uuid
-            
-            let id = CKRecordID(recordName: uuid!)
-            
-            self.privateDatabase.deleteRecordWithID(id) {
-                if $1 != nil {
-                    abort()
-                }
-            }
-        }
-
-//        updated.forEach() {
-//            
-//        }
-        
         inserted.forEach() {
             switch $0 {
             case is PKFolderS:
@@ -129,32 +114,130 @@ class PKCloudKitManager: NSObject {
                 let recordID = CKRecordID(recordName: ($0 as! PKRecordS).uuid)
                 let record = CKRecord(recordType: "Record", recordID: recordID)
                 record.setObject(($0 as! PKRecordS).date, forKey: "date")
-                record.setObject(($0 as! PKRecordS).creationDate, forKey: "creationDate")
+                record.setObject(($0 as! PKRecordS).creationDate, forKey: "createdDT")
                 record.setObject(($0 as! PKRecordS).detailedDescription, forKey: "detailedDescription")
                 record.setObject(($0 as! PKRecordS).login, forKey: "login")
-                record.setObject((($0 as! PKRecordS).password as! String), forKey: "password")
+                record.setObject((($0 as! PKRecordS).password as? String), forKey: "password")
                 record.setObject(($0 as! PKRecordS).title, forKey: "title")
                 
                 let folderID = CKRecordID(recordName: ($0 as! PKRecordS).folderUUID)
-                let folderReference = CKReference(recordID: folderID, action: .None)
+                let folderReference = CKReference(recordID: folderID, action: .DeleteSelf)
                 record.setObject(folderReference, forKey: "folder")
                 
                 self.privateDatabase.saveRecord(record) {
                     if $1 != nil {
                         abort()
+                    }
+                }
+            default:
+                break
+            }
+        }
+        
+        updated.forEach() {
+            switch $0 {
+            case is PKFolderS:
+                let folderS = $0 as! PKFolderS
+                let folderID = CKRecordID(recordName: folderS.uuid)
+                
+                self.privateDatabase.fetchRecordWithID(folderID) { (folder, error) in
+                    if error != nil {
+                        abort()
                     } else {
-                        self.privateDatabase.fetchRecordWithID(folderID) {
+                        guard folder != nil else { abort() }
+                        
+                        folder!.setObject(folderS.date, forKey: "date")
+                        folder!.setObject(folderS.name, forKey: "name")
+                        
+                        var records = [CKReference]()
+                        
+                        folderS.recordsUUID.forEach() {
+                            let recordID = CKRecordID(recordName: $0)
+                            let recordReference = CKReference(recordID: recordID, action: .None)
+                            records.append(recordReference)
+                        }
+                        
+                        folder!.setObject(records, forKey: "records")
+                        
+                        self.privateDatabase.saveRecord(folder!) {
                             if $1 != nil {
                                 abort()
+                            }
+                        }
+                    }
+                }
+            case is PKRecordS:
+                let recordS = $0 as! PKRecordS
+                let recordID = CKRecordID(recordName: recordS.uuid)
+                
+                self.privateDatabase.fetchRecordWithID(recordID) { (record, error) in
+                    if error != nil {
+                        abort()
+                    } else {
+                        guard record != nil else { abort() }
+                        
+                        record!.setObject(recordS.date, forKey: "date")
+                        record!.setObject(recordS.creationDate, forKey: "createdDT")
+                        record!.setObject(recordS.detailedDescription, forKey: "detailedDescription")
+                        record!.setObject(recordS.login, forKey: "login")
+                        record!.setObject((recordS.password as? String), forKey: "password")
+                        record!.setObject(recordS.title, forKey: "title")
+                        
+                        let folderID = CKRecordID(recordName: recordS.folderUUID)
+                        let folderReference = CKReference(recordID: folderID, action: .DeleteSelf)
+                        record!.setObject(folderReference, forKey: "folder")
+                        
+                        self.privateDatabase.saveRecord(record!) {
+                            if $1 != nil {
+                                abort()
+                            }
+                        }
+                    }
+                }
+            default:
+                break
+            }
+        }
+        
+        deleted.forEach() {
+            var uuid: String!
+            
+            switch $0 {
+            case is PKFolderS:
+                uuid = ($0 as! PKFolderS).uuid
+                let id = CKRecordID(recordName: uuid)
+                
+                self.privateDatabase.deleteRecordWithID(id) {
+                    if $1 != nil {
+                        abort()
+                    }
+                }
+            case is PKRecordS:
+                let recordS = $0 as! PKRecordS
+                uuid = recordS.uuid
+                let id = CKRecordID(recordName: uuid)
+                
+                let folderID = CKRecordID(recordName: recordS.folderUUID)
+                
+                self.privateDatabase.fetchRecordWithID(folderID) { (folder, error) in
+                    if error != nil {
+                        abort()
+                    } else {
+                        guard folder != nil else { abort() }
+                        
+                        var records = folder!.objectForKey("records") as! [CKReference]
+                        records = records.filter() {
+                            $0.recordID.recordName !=  recordS.uuid
+                        }
+                        
+                        folder!.setObject(records, forKey: "records")
+                        
+                        self.privateDatabase.saveRecord(folder!) {
+                            if $1 != nil {
+                                print($1?.localizedDescription)
+                                abort()
                             } else {
-                                guard $0 != nil else { abort() }
-                                
-                                var records = $0!.objectForKey("records") as! [CKReference]
-                                let recordReference = CKReference(recordID: recordID, action: .DeleteSelf)
-                                records.append(recordReference)
-                                $0!.setObject(records, forKey: "records")
-                                
-                                self.privateDatabase.saveRecord($0!) {
+                                self.privateDatabase.deleteRecordWithID(id) {
                                     if $1 != nil {
                                         abort()
                                     }
