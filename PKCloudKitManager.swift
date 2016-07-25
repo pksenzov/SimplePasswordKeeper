@@ -96,7 +96,11 @@ class PKCloudKitManager: NSObject {
     // MARK: - Context
     
     func saveContext(deleted: [Any], updated: [Any], inserted: [Any]) {
+        let iCloudGroup = dispatch_group_create()
+        
         inserted.forEach() {
+            dispatch_group_enter(iCloudGroup)
+            
             switch $0 {
             case is PKFolderS:
                 let folderID = CKRecordID(recordName: ($0 as! PKFolderS).uuid)
@@ -109,6 +113,8 @@ class PKCloudKitManager: NSObject {
                     if $1 != nil {
                         abort()
                     }
+                    
+                    dispatch_group_leave(iCloudGroup)
                 })
             case is PKRecordS:
                 let recordID = CKRecordID(recordName: ($0 as! PKRecordS).uuid)
@@ -117,7 +123,7 @@ class PKCloudKitManager: NSObject {
                 record.setObject(($0 as! PKRecordS).creationDate, forKey: "createdDT")
                 record.setObject(($0 as! PKRecordS).detailedDescription, forKey: "detailedDescription")
                 record.setObject(($0 as! PKRecordS).login, forKey: "login")
-                record.setObject((($0 as! PKRecordS).password as? String), forKey: "password")
+                record.setObject(PKPwdTransformer().transformValue(($0 as! PKRecordS).password), forKey: "password")
                 record.setObject(($0 as! PKRecordS).title, forKey: "title")
                 
                 let folderID = CKRecordID(recordName: ($0 as! PKRecordS).folderUUID)
@@ -126,15 +132,22 @@ class PKCloudKitManager: NSObject {
                 
                 self.privateDatabase.saveRecord(record) {
                     if $1 != nil {
+                        print($1!.localizedDescription)
                         abort()
                     }
+                    
+                    dispatch_group_leave(iCloudGroup)
                 }
             default:
                 break
             }
         }
         
+        dispatch_group_wait(iCloudGroup, DISPATCH_TIME_FOREVER)
+        
         updated.forEach() {
+            dispatch_group_enter(iCloudGroup)
+            
             switch $0 {
             case is PKFolderS:
                 let folderS = $0 as! PKFolderS
@@ -161,8 +174,11 @@ class PKCloudKitManager: NSObject {
                         
                         self.privateDatabase.saveRecord(folder!) {
                             if $1 != nil {
+                                print($1?.localizedDescription)
                                 abort()
                             }
+                            
+                            dispatch_group_leave(iCloudGroup)
                         }
                     }
                 }
@@ -172,6 +188,7 @@ class PKCloudKitManager: NSObject {
                 
                 self.privateDatabase.fetchRecordWithID(recordID) { (record, error) in
                     if error != nil {
+                        print(error?.localizedDescription)
                         abort()
                     } else {
                         guard record != nil else { abort() }
@@ -180,7 +197,7 @@ class PKCloudKitManager: NSObject {
                         record!.setObject(recordS.creationDate, forKey: "createdDT")
                         record!.setObject(recordS.detailedDescription, forKey: "detailedDescription")
                         record!.setObject(recordS.login, forKey: "login")
-                        record!.setObject((recordS.password as? String), forKey: "password")
+                        record!.setObject(PKPwdTransformer().transformValue(recordS.password), forKey: "password")
                         record!.setObject(recordS.title, forKey: "title")
                         
                         let folderID = CKRecordID(recordName: recordS.folderUUID)
@@ -191,6 +208,8 @@ class PKCloudKitManager: NSObject {
                             if $1 != nil {
                                 abort()
                             }
+                            
+                            dispatch_group_leave(iCloudGroup)
                         }
                     }
                 }
@@ -199,7 +218,12 @@ class PKCloudKitManager: NSObject {
             }
         }
         
+        dispatch_group_wait(iCloudGroup, DISPATCH_TIME_FOREVER)
+        let theSameFolderGroup = dispatch_group_create()
+        
         deleted.forEach() {
+            dispatch_group_enter(iCloudGroup)
+            
             var uuid: String!
             
             switch $0 {
@@ -211,8 +235,13 @@ class PKCloudKitManager: NSObject {
                     if $1 != nil {
                         abort()
                     }
+                    
+                    dispatch_group_leave(iCloudGroup)
                 }
             case is PKRecordS:
+                dispatch_group_wait(theSameFolderGroup, DISPATCH_TIME_FOREVER)
+                dispatch_group_enter(theSameFolderGroup)
+                
                 let recordS = $0 as! PKRecordS
                 uuid = recordS.uuid
                 let id = CKRecordID(recordName: uuid)
@@ -241,6 +270,9 @@ class PKCloudKitManager: NSObject {
                                     if $1 != nil {
                                         abort()
                                     }
+                                    
+                                    dispatch_group_leave(theSameFolderGroup)
+                                    dispatch_group_leave(iCloudGroup)
                                 }
                             }
                         }
@@ -250,5 +282,7 @@ class PKCloudKitManager: NSObject {
                 break
             }
         }
+        
+        dispatch_group_wait(iCloudGroup, DISPATCH_TIME_FOREVER)
     }
 }

@@ -71,7 +71,7 @@ private class PKPasswordTransformer: NSValueTransformer {
     func strike() -> String {
         var value = ""
         
-        for (i, char) in luckystrike.characters.enumerate() {
+        for (i, char) in self.luckystrike.characters.enumerate() {
             if i % 21 == 0 {
                 value += String(char)
             }

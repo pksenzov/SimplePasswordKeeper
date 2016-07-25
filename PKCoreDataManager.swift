@@ -15,6 +15,8 @@ protocol ManagedObjectType {
 
 class PKCoreDataManager: NSObject {
     static let sharedManager = PKCoreDataManager()
+    
+    let cloudGroup = dispatch_group_create()
 
     // MARK: - Core Data stack
     
@@ -112,9 +114,39 @@ class PKCoreDataManager: NSObject {
                     }
                 }
                 
-                PKCloudKitManager.sharedManager.saveContext(deleted, updated: updated, inserted: inserted)
+                dispatch_async(dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)) {
+                    dispatch_group_wait(self.cloudGroup, DISPATCH_TIME_FOREVER)
+                    dispatch_group_enter(self.cloudGroup)
+                    PKCloudKitManager.sharedManager.saveContext(deleted, updated: updated, inserted: inserted)
+                    dispatch_group_leave(self.cloudGroup)
+                }
             } else {
-                //move deleted
+                self.managedObjectContext.deletedObjects.forEach() {
+                    print($0.description + "!!!")
+                    switch $0 {
+                    case is PKFolder:
+                        let folder = ($0 as! PKFolder)
+                        folder.records?.forEach() { record in
+                            let record = record as! PKRecord
+                            
+                            let deletedObject: PKDeletedObject = self.managedObjectContext.insertObject()
+                            deletedObject.date = NSDate()
+                            deletedObject.uuid = record.uuid
+                        }
+                        
+                        let deletedObject: PKDeletedObject = self.managedObjectContext.insertObject()
+                        deletedObject.date = NSDate()
+                        deletedObject.uuid = folder.uuid
+                    case is PKRecord:
+                        let deletedObject: PKDeletedObject = self.managedObjectContext.insertObject()
+                        deletedObject.date = NSDate()
+                        deletedObject.uuid = ($0 as! PKRecord).uuid
+                    case is PKDeletedObject:
+                        break
+                    default:
+                        break
+                    }
+                }
             }
             
             do {
