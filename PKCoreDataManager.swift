@@ -122,7 +122,6 @@ class PKCoreDataManager: NSObject {
                 }
             } else {
                 self.managedObjectContext.deletedObjects.forEach() {
-                    print($0.description + "!!!")
                     switch $0 {
                     case is PKFolder:
                         let folder = ($0 as! PKFolder)

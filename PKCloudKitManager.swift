@@ -42,6 +42,14 @@ class PKCloudKitManager: NSObject {
         let folderSubscription = CKSubscription(recordType: "Folder", predicate: predicate, options: [.FiresOnRecordCreation, .FiresOnRecordDeletion, .FiresOnRecordUpdate])
         let recordSubscription = CKSubscription(recordType: "Record", predicate: predicate, options: [.FiresOnRecordCreation, .FiresOnRecordDeletion, .FiresOnRecordUpdate])
         
+        let folderNotificationInfo = CKNotificationInfo()
+        let recordNotificationInfo = CKNotificationInfo()
+        folderNotificationInfo.desiredKeys = ["name", "date"]//"records"
+        recordNotificationInfo.desiredKeys = ["title", "login", "date", "detailedDescription", "folder"]//"password", "createdDT"
+        
+        folderSubscription.notificationInfo = folderNotificationInfo
+        recordSubscription.notificationInfo = recordNotificationInfo
+        
         self.privateDatabase.saveSubscription(folderSubscription) { (sub, error) in
             if error != nil {
                 print(error?.localizedDescription)
@@ -62,6 +70,16 @@ class PKCloudKitManager: NSObject {
     func addSubscriptionWithType(recordType: String) {
         let predicate = NSPredicate(format: "TRUEPREDICATE")
         let subscription = CKSubscription(recordType: recordType, predicate: predicate, options: [.FiresOnRecordCreation, .FiresOnRecordDeletion, .FiresOnRecordUpdate])
+        
+        if recordType == "Folder" {
+            let folderNotificationInfo = CKNotificationInfo()
+            folderNotificationInfo.desiredKeys = ["name", "date"]//"records"
+            subscription.notificationInfo = folderNotificationInfo
+        } else {
+            let recordNotificationInfo = CKNotificationInfo()
+            recordNotificationInfo.desiredKeys = ["title", "login", "date", "detailedDescription", "folder"]//"password", "createdDT"
+            subscription.notificationInfo = recordNotificationInfo
+        }
         
         self.privateDatabase.saveSubscription(subscription) { (sub, error) in
             if error != nil {
@@ -103,11 +121,7 @@ class PKCloudKitManager: NSObject {
             
             switch $0 {
             case is PKFolderS:
-                let folderID = CKRecordID(recordName: ($0 as! PKFolderS).uuid)
-                let folder = CKRecord(recordType: "Folder", recordID: folderID)
-                folder.setObject(($0 as! PKFolderS).date, forKey: "date")
-                folder.setObject(($0 as! PKFolderS).name, forKey: "name")
-                //reference to records must be empty
+                let folder = self.saveFolder($0 as! PKFolderS, folder: nil)
                 
                 self.privateDatabase.saveRecord(folder, completionHandler: {
                     if $1 != nil {
@@ -117,18 +131,7 @@ class PKCloudKitManager: NSObject {
                     dispatch_group_leave(iCloudGroup)
                 })
             case is PKRecordS:
-                let recordID = CKRecordID(recordName: ($0 as! PKRecordS).uuid)
-                let record = CKRecord(recordType: "Record", recordID: recordID)
-                record.setObject(($0 as! PKRecordS).date, forKey: "date")
-                record.setObject(($0 as! PKRecordS).creationDate, forKey: "createdDT")
-                record.setObject(($0 as! PKRecordS).detailedDescription, forKey: "detailedDescription")
-                record.setObject(($0 as! PKRecordS).login, forKey: "login")
-                record.setObject(PKPwdTransformer().transformValue(($0 as! PKRecordS).password), forKey: "password")
-                record.setObject(($0 as! PKRecordS).title, forKey: "title")
-                
-                let folderID = CKRecordID(recordName: ($0 as! PKRecordS).folderUUID)
-                let folderReference = CKReference(recordID: folderID, action: .DeleteSelf)
-                record.setObject(folderReference, forKey: "folder")
+                let record = self.saveRecord($0 as! PKRecordS, record: nil)
                 
                 self.privateDatabase.saveRecord(record) {
                     if $1 != nil {
@@ -153,28 +156,16 @@ class PKCloudKitManager: NSObject {
                 let folderS = $0 as! PKFolderS
                 let folderID = CKRecordID(recordName: folderS.uuid)
                 
-                self.privateDatabase.fetchRecordWithID(folderID) { (folder, error) in
-                    if error != nil {
+                self.privateDatabase.fetchRecordWithID(folderID) {
+                    if $1 != nil {
                         abort()
                     } else {
-                        guard folder != nil else { abort() }
+                        guard $0 != nil else { abort() }
                         
-                        folder!.setObject(folderS.date, forKey: "date")
-                        folder!.setObject(folderS.name, forKey: "name")
+                        let folder = self.saveFolder(folderS, folder: $0!)
                         
-                        var records = [CKReference]()
-                        
-                        folderS.recordsUUID.forEach() {
-                            let recordID = CKRecordID(recordName: $0)
-                            let recordReference = CKReference(recordID: recordID, action: .None)
-                            records.append(recordReference)
-                        }
-                        
-                        folder!.setObject(records, forKey: "records")
-                        
-                        self.privateDatabase.saveRecord(folder!) {
+                        self.privateDatabase.saveRecord(folder) {
                             if $1 != nil {
-                                print($1?.localizedDescription)
                                 abort()
                             }
                             
@@ -186,25 +177,15 @@ class PKCloudKitManager: NSObject {
                 let recordS = $0 as! PKRecordS
                 let recordID = CKRecordID(recordName: recordS.uuid)
                 
-                self.privateDatabase.fetchRecordWithID(recordID) { (record, error) in
-                    if error != nil {
-                        print(error?.localizedDescription)
+                self.privateDatabase.fetchRecordWithID(recordID) {
+                    if $1 != nil {
                         abort()
                     } else {
-                        guard record != nil else { abort() }
+                        guard $0 != nil else { abort() }
                         
-                        record!.setObject(recordS.date, forKey: "date")
-                        record!.setObject(recordS.creationDate, forKey: "createdDT")
-                        record!.setObject(recordS.detailedDescription, forKey: "detailedDescription")
-                        record!.setObject(recordS.login, forKey: "login")
-                        record!.setObject(PKPwdTransformer().transformValue(recordS.password), forKey: "password")
-                        record!.setObject(recordS.title, forKey: "title")
+                        let record = self.saveRecord(recordS, record: $0!)
                         
-                        let folderID = CKRecordID(recordName: recordS.folderUUID)
-                        let folderReference = CKReference(recordID: folderID, action: .DeleteSelf)
-                        record!.setObject(folderReference, forKey: "folder")
-                        
-                        self.privateDatabase.saveRecord(record!) {
+                        self.privateDatabase.saveRecord(record) {
                             if $1 != nil {
                                 abort()
                             }
@@ -284,5 +265,51 @@ class PKCloudKitManager: NSObject {
         }
         
         dispatch_group_wait(iCloudGroup, DISPATCH_TIME_FOREVER)
+    }
+    
+    func saveFolder(folderS: PKFolderS, folder: CKRecord?) -> CKRecord {
+        var folder = folder
+        
+        if folder == nil {
+            let folderID = CKRecordID(recordName: folderS.uuid)
+            folder = CKRecord(recordType: "Folder", recordID: folderID)
+        }
+        
+        folder!.setObject(folderS.date, forKey: "date")
+        folder!.setObject(folderS.name, forKey: "name")
+        
+        var records = [CKReference]()
+        
+        folderS.recordsUUID.forEach() {
+            let recordID = CKRecordID(recordName: $0)
+            let recordReference = CKReference(recordID: recordID, action: .None)
+            records.append(recordReference)
+        }
+        
+        folder!.setObject(records, forKey: "records")
+        
+        return folder!
+    }
+    
+    func saveRecord(recordS: PKRecordS, record: CKRecord?) -> CKRecord {
+        var record = record
+        
+        if record == nil {
+            let recordID = CKRecordID(recordName: recordS.uuid)
+            record = CKRecord(recordType: "Record", recordID: recordID)
+        }
+        
+        record!.setObject(recordS.date, forKey: "date")
+        record!.setObject(recordS.creationDate, forKey: "createdDT")
+        record!.setObject(recordS.detailedDescription, forKey: "detailedDescription")
+        record!.setObject(recordS.login, forKey: "login")
+        record!.setObject(PKPwdTransformer().transformValue(recordS.password), forKey: "password")
+        record!.setObject(recordS.title, forKey: "title")
+        
+        let folderID = CKRecordID(recordName: recordS.folderUUID)
+        let folderReference = CKReference(recordID: folderID, action: .DeleteSelf)
+        record!.setObject(folderReference, forKey: "folder")
+        
+        return record!
     }
 }
