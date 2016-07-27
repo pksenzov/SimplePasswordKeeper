@@ -279,6 +279,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     }
     
     override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        // FIXME: - double load when isLocked is off. Screen is locked after close app from tray and open, however is locked = false
         if isLocked { return 0 }
         
         let number = super.tableView(tableView, numberOfRowsInSection: section)
@@ -446,7 +447,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         self.addBarButton = self.toolbarButtons.last
         
         let folders = self.fetchedResultsController.fetchedObjects as! [PKFolder]
-        folders.forEach() { self.names.insert($0.name!) }
+        folders.forEach() { self.names.insert($0.name!) } // DOESNT ENTRY EVER
     }
     
     override func viewWillAppear(animated: Bool) {

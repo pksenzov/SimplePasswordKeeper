@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CloudKit
 
 struct PKFolderS {
     let uuid: String
@@ -22,5 +23,14 @@ struct PKFolderS {
         folder.records?.forEach() {
             recordsUUID.insert(($0 as! PKRecord).uuid!)
         }
+    }
+    
+    init(folder: CKRecord) {
+        uuid = folder.recordID.recordName
+        date = folder.objectForKey("date") as! NSDate
+        name = folder.objectForKey("name") as! String
+        
+        let references = folder.objectForKey("records") as! [CKReference]
+        recordsUUID = Set(references.map() {$0.recordID.recordName})
     }
 }

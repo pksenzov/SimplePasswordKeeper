@@ -267,136 +267,140 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
                 let ckQueryNotification = cloudKitNotification as! CKQueryNotification
                 let recordID = ckQueryNotification.recordID
                 
-                switch ckQueryNotification.queryNotificationReason {
-                case .RecordCreated:
-                    print(ckQueryNotification.recordFields)
-                    if ckQueryNotification.recordFields!["name"] != nil {
-                        let newFolder: PKFolder = self.managedObjectContext.insertObject()
-                        newFolder.name = (ckQueryNotification.recordFields!["name"] as! String)
-                        newFolder.date = NSDate.init(timeIntervalSince1970: (ckQueryNotification.recordFields!["date"] as! NSNumber).doubleValue)
-                        print(newFolder.date?.description)
-                        newFolder.uuid = recordID!.recordName
-                        //no records in new folder
-                    } else {
-                        let newRecord: PKRecord = self.managedObjectContext.insertObject()
-                        newRecord.title = (ckQueryNotification.recordFields!["title"] as! String)
-                        newRecord.login = (ckQueryNotification.recordFields!["login"] as! String)
-                        newRecord.password = (ckQueryNotification.recordFields!["password"] as! NSData)
-                        newRecord.detailedDescription = (ckQueryNotification.recordFields!["detailedDescription"] as! String)
-                        newRecord.creationDate = (ckQueryNotification.recordFields!["createdDT"] as! NSDate)
-                        newRecord.date = (ckQueryNotification.recordFields!["date"] as! NSDate)
-                        newRecord.uuid = recordID!.recordName
-                        
-                        let folderUUID = (ckQueryNotification.recordFields!["folder"] as! CKReference).recordID.recordName
-                        let predicate = NSPredicate(format: "uuid == %@", folderUUID)
-                        let fetchRequest = NSFetchRequest(entityName: "Folder")
-                        fetchRequest.predicate = predicate
-                        
-                        var folder: PKFolder!
-                        do {
-                            let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
-                            folder = folders.first!
-                        } catch {
-                            // что-то делаем в зависимости от ошибки
-                        }
-                        
-                        newRecord.folder = folder
-                    }
-                case .RecordUpdated:
-                    if ckQueryNotification.recordFields!["name"] != nil {
-                        let predicate = NSPredicate(format: "uuid == %@", recordID!.recordName)
-                        let fetchRequest = NSFetchRequest(entityName: "Folder")
-                        fetchRequest.predicate = predicate
-                        
-                        var folder: PKFolder!
-                        do {
-                            let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
-                            folder = folders.first!
-                        } catch {
-                            // что-то делаем в зависимости от ошибки
-                        }
-                        
-                        folder.name = (ckQueryNotification.recordFields!["name"] as! String)
-                        folder.date = (ckQueryNotification.recordFields!["date"] as! NSDate)
-                        
-                        let references = ckQueryNotification.recordFields!["records"] as! [CKReference]
-                        let UUIDs = references.map() { $0.recordID.recordName }
-                        let recordsPredicate = NSPredicate(format: "uuid in %@", UUIDs)
-                        let recordsRequest = NSFetchRequest(entityName: "Record")
-                        recordsRequest.predicate = recordsPredicate
-                        
-                        do {
-                            let records = try self.managedObjectContext.executeFetchRequest(recordsRequest) as! [PKRecord]
-                            folder.records = Set(records)
-                        } catch {
-                            // что-то делаем в зависимости от ошибки
-                        }
-                    } else {
-                        let predicate = NSPredicate(format: "uuid == %@", recordID!.recordName)
-                        let fetchRequest = NSFetchRequest(entityName: "Record")
-                        fetchRequest.predicate = predicate
-                        
-                        var record: PKRecord!
-                        do {
-                            let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
-                            record = records.first!
-                        } catch {
-                            // что-то делаем в зависимости от ошибки
-                        }
-                        
-                        record.title = (ckQueryNotification.recordFields!["title"] as! String)
-                        record.login = (ckQueryNotification.recordFields!["login"] as! String)
-                        record.password = (ckQueryNotification.recordFields!["password"] as! NSData)
-                        record.detailedDescription = (ckQueryNotification.recordFields!["detailedDescription"] as! String)
-                        record.creationDate = (ckQueryNotification.recordFields!["createdDT"] as! NSDate)
-                        record.date = (ckQueryNotification.recordFields!["date"] as! NSDate)
-                        
-                        let uuid = (ckQueryNotification.recordFields!["folder"] as! CKReference).recordID.recordName
-                        let foldersPredicate = NSPredicate(format: "uuid == %@", uuid)
-                        let foldersRequest = NSFetchRequest(entityName: "Folder")
-                        foldersRequest.predicate = foldersPredicate
-                        
-                        do {
-                            let folders = try self.managedObjectContext.executeFetchRequest(foldersRequest) as! [PKFolder]
-                            record.folder = folders.first!
-                        } catch {
-                            // что-то делаем в зависимости от ошибки
-                        }
-                    }
-                case .RecordDeleted:
-                    if ckQueryNotification.recordFields!["name"] != nil {
-                        let predicate = NSPredicate(format: "uuid == %@", recordID!.recordName)
-                        let fetchRequest = NSFetchRequest(entityName: "Folder")
-                        fetchRequest.predicate = predicate
-                        
-                        var folder: PKFolder!
-                        do {
-                            let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
-                            folder = folders.first!
-                        } catch {
-                            // что-то делаем в зависимости от ошибки
-                        }
-                        
-                        self.managedObjectContext.deleteObject(folder)
-                           
-                    } else {
-                        let predicate = NSPredicate(format: "uuid == %@", recordID!.recordName)
-                        let fetchRequest = NSFetchRequest(entityName: "Record")
-                        fetchRequest.predicate = predicate
-                        
-                        var record: PKRecord!
-                        do {
-                            let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
-                            record = records.first!
-                        } catch {
-                            // что-то делаем в зависимости от ошибки
-                        }
-                        
-                        self.managedObjectContext.deleteObject(record)
-                    }
+                dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0)) {
+                    PKCloudKitManager.sharedManager.updateCoreData(recordID!, reason: ckQueryNotification.queryNotificationReason)
                 }
                 
-                PKCoreDataManager.sharedManager.saveContext()
+//                switch ckQueryNotification.queryNotificationReason {
+//                case .RecordCreated:
+//                    print(ckQueryNotification.recordFields)
+//                    if ckQueryNotification.recordFields!["name"] != nil {
+//                        let newFolder: PKFolder = self.managedObjectContext.insertObject()
+//                        newFolder.name = (ckQueryNotification.recordFields!["name"] as! String)
+//                        newFolder.date = NSDate.init(timeIntervalSince1970: (ckQueryNotification.recordFields!["date"] as! NSNumber).doubleValue)
+//                        print(newFolder.date?.description)
+//                        newFolder.uuid = recordID!.recordName
+//                        //no records in new folder
+//                    } else {
+//                        let newRecord: PKRecord = self.managedObjectContext.insertObject()
+//                        newRecord.title = (ckQueryNotification.recordFields!["title"] as! String)
+//                        newRecord.login = (ckQueryNotification.recordFields!["login"] as! String)
+//                        newRecord.password = (ckQueryNotification.recordFields!["password"] as! NSData)
+//                        newRecord.detailedDescription = (ckQueryNotification.recordFields!["detailedDescription"] as! String)
+//                        newRecord.creationDate = (ckQueryNotification.recordFields!["createdDT"] as! NSDate)
+//                        newRecord.date = (ckQueryNotification.recordFields!["date"] as! NSDate)
+//                        newRecord.uuid = recordID!.recordName
+//                        
+//                        let folderUUID = (ckQueryNotification.recordFields!["folder"] as! CKReference).recordID.recordName
+//                        let predicate = NSPredicate(format: "uuid == %@", folderUUID)
+//                        let fetchRequest = NSFetchRequest(entityName: "Folder")
+//                        fetchRequest.predicate = predicate
+//                        
+//                        var folder: PKFolder!
+//                        do {
+//                            let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+//                            folder = folders.first!
+//                        } catch {
+//                            // что-то делаем в зависимости от ошибки
+//                        }
+//                        
+//                        newRecord.folder = folder
+//                    }
+//                case .RecordUpdated:
+//                    if ckQueryNotification.recordFields!["name"] != nil {
+//                        let predicate = NSPredicate(format: "uuid == %@", recordID!.recordName)
+//                        let fetchRequest = NSFetchRequest(entityName: "Folder")
+//                        fetchRequest.predicate = predicate
+//                        
+//                        var folder: PKFolder!
+//                        do {
+//                            let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+//                            folder = folders.first!
+//                        } catch {
+//                            // что-то делаем в зависимости от ошибки
+//                        }
+//                        
+//                        folder.name = (ckQueryNotification.recordFields!["name"] as! String)
+//                        folder.date = (ckQueryNotification.recordFields!["date"] as! NSDate)
+//                        
+//                        let references = ckQueryNotification.recordFields!["records"] as! [CKReference]
+//                        let UUIDs = references.map() { $0.recordID.recordName }
+//                        let recordsPredicate = NSPredicate(format: "uuid in %@", UUIDs)
+//                        let recordsRequest = NSFetchRequest(entityName: "Record")
+//                        recordsRequest.predicate = recordsPredicate
+//                        
+//                        do {
+//                            let records = try self.managedObjectContext.executeFetchRequest(recordsRequest) as! [PKRecord]
+//                            folder.records = Set(records)
+//                        } catch {
+//                            // что-то делаем в зависимости от ошибки
+//                        }
+//                    } else {
+//                        let predicate = NSPredicate(format: "uuid == %@", recordID!.recordName)
+//                        let fetchRequest = NSFetchRequest(entityName: "Record")
+//                        fetchRequest.predicate = predicate
+//                        
+//                        var record: PKRecord!
+//                        do {
+//                            let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
+//                            record = records.first!
+//                        } catch {
+//                            // что-то делаем в зависимости от ошибки
+//                        }
+//                        
+//                        record.title = (ckQueryNotification.recordFields!["title"] as! String)
+//                        record.login = (ckQueryNotification.recordFields!["login"] as! String)
+//                        record.password = (ckQueryNotification.recordFields!["password"] as! NSData)
+//                        record.detailedDescription = (ckQueryNotification.recordFields!["detailedDescription"] as! String)
+//                        record.creationDate = (ckQueryNotification.recordFields!["createdDT"] as! NSDate)
+//                        record.date = (ckQueryNotification.recordFields!["date"] as! NSDate)
+//                        
+//                        let uuid = (ckQueryNotification.recordFields!["folder"] as! CKReference).recordID.recordName
+//                        let foldersPredicate = NSPredicate(format: "uuid == %@", uuid)
+//                        let foldersRequest = NSFetchRequest(entityName: "Folder")
+//                        foldersRequest.predicate = foldersPredicate
+//                        
+//                        do {
+//                            let folders = try self.managedObjectContext.executeFetchRequest(foldersRequest) as! [PKFolder]
+//                            record.folder = folders.first!
+//                        } catch {
+//                            // что-то делаем в зависимости от ошибки
+//                        }
+//                    }
+//                case .RecordDeleted:
+//                    if ckQueryNotification.recordFields!["name"] != nil {
+//                        let predicate = NSPredicate(format: "uuid == %@", recordID!.recordName)
+//                        let fetchRequest = NSFetchRequest(entityName: "Folder")
+//                        fetchRequest.predicate = predicate
+//                        
+//                        var folder: PKFolder!
+//                        do {
+//                            let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+//                            folder = folders.first!
+//                        } catch {
+//                            // что-то делаем в зависимости от ошибки
+//                        }
+//                        
+//                        self.managedObjectContext.deleteObject(folder)
+//                           
+//                    } else {
+//                        let predicate = NSPredicate(format: "uuid == %@", recordID!.recordName)
+//                        let fetchRequest = NSFetchRequest(entityName: "Record")
+//                        fetchRequest.predicate = predicate
+//                        
+//                        var record: PKRecord!
+//                        do {
+//                            let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
+//                            record = records.first!
+//                        } catch {
+//                            // что-то делаем в зависимости от ошибки
+//                        }
+//                        
+//                        self.managedObjectContext.deleteObject(record)
+//                    }
+//                }
+//                
+//                PKCoreDataManager.sharedManager.saveContext()
                 
                 //update local db
                 //refresh UI if needed

@@ -16,6 +16,54 @@ class PKCloudKitManager: NSObject {
     let privateDatabase = CKContainer.defaultContainer().privateCloudDatabase
     let defaults = NSUserDefaults.standardUserDefaults()
     
+    private var _notificationGroup = dispatch_group_create()
+    
+    var notificationGroup: dispatch_group_t! {
+        var notificationGroupCopy: dispatch_group_t!
+        
+        dispatch_sync(concurrentNotificationGroupQueue) {
+            notificationGroupCopy = self._notificationGroup
+        }
+        
+        return notificationGroupCopy
+    }
+    
+    private let concurrentNotificationGroupQueue = dispatch_queue_create("com.pavelksenzov.records.notificationGroupQueue", DISPATCH_QUEUE_CONCURRENT)
+    
+    // MARK: - Update CoreData
+    
+    func updateCoreData(recordID: CKRecordID, reason: CKQueryNotificationReason) {
+        dispatch_group_wait(self.notificationGroup, DISPATCH_TIME_FOREVER)
+        dispatch_group_enter(self.notificationGroup)
+        
+        self.privateDatabase.fetchRecordWithID(recordID) { (object, error) in
+            if error != nil {
+                print(error!.localizedDescription)
+                abort()
+            }
+            
+            guard object != nil else { return }
+            let type = object!.recordType
+            
+            switch (reason, type) {
+            case (.RecordCreated, "Folder"):
+                PKCoreDataManager.sharedManager.update("Created", type: type, object: PKFolderS(folder: object!))
+            case (.RecordCreated, "Record"):
+                PKCoreDataManager.sharedManager.update("Created", type: type, object: PKRecordS(record: object!))
+            case (.RecordUpdated, "Folder"):
+                PKCoreDataManager.sharedManager.update("Updated", type: type, object: PKFolderS(folder: object!))
+            case (.RecordUpdated, "Record"):
+                PKCoreDataManager.sharedManager.update("Updated", type: type, object: PKRecordS(record: object!))
+            case (.RecordDeleted, "Folder"):
+                PKCoreDataManager.sharedManager.update("Deleted", type: type, object: PKFolderS(folder: object!))
+            case (.RecordDeleted, "Record"):
+                PKCoreDataManager.sharedManager.update("Deleted", type: type, object: PKRecordS(record: object!))
+            default:
+                break
+            }
+        }
+    }
+    
     // MARK: - Subscriptions
     
 //    func deleteSubscriptions() {
@@ -42,13 +90,13 @@ class PKCloudKitManager: NSObject {
         let folderSubscription = CKSubscription(recordType: "Folder", predicate: predicate, options: [.FiresOnRecordCreation, .FiresOnRecordDeletion, .FiresOnRecordUpdate])
         let recordSubscription = CKSubscription(recordType: "Record", predicate: predicate, options: [.FiresOnRecordCreation, .FiresOnRecordDeletion, .FiresOnRecordUpdate])
         
-        let folderNotificationInfo = CKNotificationInfo()
-        let recordNotificationInfo = CKNotificationInfo()
-        folderNotificationInfo.desiredKeys = ["name", "date"]//"records"
-        recordNotificationInfo.desiredKeys = ["title", "login", "date", "detailedDescription", "folder"]//"password", "createdDT"
-        
-        folderSubscription.notificationInfo = folderNotificationInfo
-        recordSubscription.notificationInfo = recordNotificationInfo
+//        let folderNotificationInfo = CKNotificationInfo()
+//        let recordNotificationInfo = CKNotificationInfo()
+//        folderNotificationInfo.desiredKeys = ["name", "date"]//"records"
+//        recordNotificationInfo.desiredKeys = ["title", "login", "date", "detailedDescription", "folder"]//"password", "createdDT"
+//        
+//        folderSubscription.notificationInfo = folderNotificationInfo
+//        recordSubscription.notificationInfo = recordNotificationInfo
         
         self.privateDatabase.saveSubscription(folderSubscription) { (sub, error) in
             if error != nil {
@@ -71,15 +119,15 @@ class PKCloudKitManager: NSObject {
         let predicate = NSPredicate(format: "TRUEPREDICATE")
         let subscription = CKSubscription(recordType: recordType, predicate: predicate, options: [.FiresOnRecordCreation, .FiresOnRecordDeletion, .FiresOnRecordUpdate])
         
-        if recordType == "Folder" {
-            let folderNotificationInfo = CKNotificationInfo()
-            folderNotificationInfo.desiredKeys = ["name", "date"]//"records"
-            subscription.notificationInfo = folderNotificationInfo
-        } else {
-            let recordNotificationInfo = CKNotificationInfo()
-            recordNotificationInfo.desiredKeys = ["title", "login", "date", "detailedDescription", "folder"]//"password", "createdDT"
-            subscription.notificationInfo = recordNotificationInfo
-        }
+//        if recordType == "Folder" {
+//            let folderNotificationInfo = CKNotificationInfo()
+//            folderNotificationInfo.desiredKeys = ["name", "date"]//"records"
+//            subscription.notificationInfo = folderNotificationInfo
+//        } else {
+//            let recordNotificationInfo = CKNotificationInfo()
+//            recordNotificationInfo.desiredKeys = ["title", "login", "date", "detailedDescription", "folder"]//"password", "createdDT"
+//            subscription.notificationInfo = recordNotificationInfo
+//        }
         
         self.privateDatabase.saveSubscription(subscription) { (sub, error) in
             if error != nil {

@@ -17,7 +17,145 @@ class PKCoreDataManager: NSObject {
     static let sharedManager = PKCoreDataManager()
     
     let cloudGroup = dispatch_group_create()
-
+    
+    // MARK: - CloudKit update
+    
+    func update(reason: String, type: String, object: Any) {
+        switch (reason, type) {
+        case ("Created", "Folder"):
+            let folderS = object as! PKFolderS
+            let newFolder: PKFolder = self.managedObjectContext.insertObject()
+            newFolder.name = folderS.name
+            newFolder.date = folderS.date
+            newFolder.uuid = folderS.uuid
+            //no records in new folder
+        case ("Created", "Record"):
+            let recordS = object as! PKRecordS
+            let newRecord: PKRecord = self.managedObjectContext.insertObject()
+            newRecord.title = recordS.title
+            newRecord.login = recordS.login
+            newRecord.password = recordS.password
+            newRecord.detailedDescription = recordS.detailedDescription
+            newRecord.creationDate = recordS.creationDate
+            newRecord.date = recordS.date
+            newRecord.uuid = recordS.uuid
+            
+            let predicate = NSPredicate(format: "uuid == %@", recordS.folderUUID)
+            let fetchRequest = NSFetchRequest(entityName: "Folder")
+            fetchRequest.predicate = predicate
+            
+            var folder: PKFolder!
+            do {
+                let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+                folder = folders.first!
+            } catch {
+                // что-то делаем в зависимости от ошибки
+            }
+            
+            newRecord.folder = folder
+        case ("Updated", "Folder"):
+            let folderS = object as! PKFolderS
+            
+            let predicate = NSPredicate(format: "uuid == %@", folderS.uuid)
+            let fetchRequest = NSFetchRequest(entityName: "Folder")
+            fetchRequest.predicate = predicate
+            
+            var folder: PKFolder!
+            do {
+                let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+                folder = folders.first!
+            } catch {
+                // что-то делаем в зависимости от ошибки
+            }
+            
+            folder.name = folderS.name
+            folder.date = folderS.date
+            
+            let recordsUUID = folderS.recordsUUID
+            let recordsPredicate = NSPredicate(format: "uuid in %@", recordsUUID)
+            let recordsRequest = NSFetchRequest(entityName: "Record")
+            recordsRequest.predicate = recordsPredicate
+            
+            do {
+                let records = try self.managedObjectContext.executeFetchRequest(recordsRequest) as! [PKRecord]
+                folder.records = Set(records)
+            } catch {
+                // что-то делаем в зависимости от ошибки
+            }
+        case ("Updated", "Record"):
+            let recordS = object as! PKRecordS
+            
+            let predicate = NSPredicate(format: "uuid == %@", recordS.uuid)
+            let fetchRequest = NSFetchRequest(entityName: "Record")
+            fetchRequest.predicate = predicate
+            
+            var record: PKRecord!
+            do {
+                let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
+                record = records.first!
+            } catch {
+                // что-то делаем в зависимости от ошибки
+            }
+            
+            record.title = recordS.title
+            record.login = recordS.login
+            record.password = recordS.password
+            record.detailedDescription = recordS.detailedDescription
+            record.creationDate = recordS.creationDate
+            record.date = recordS.date
+            
+            let foldersPredicate = NSPredicate(format: "uuid == %@", recordS.folderUUID)
+            let foldersRequest = NSFetchRequest(entityName: "Folder")
+            foldersRequest.predicate = foldersPredicate
+            
+            do {
+                let folders = try self.managedObjectContext.executeFetchRequest(foldersRequest) as! [PKFolder]
+                record.folder = folders.first!
+            } catch {
+                // что-то делаем в зависимости от ошибки
+            }
+        case ("Deleted", "Folder"):
+            let folderS = object as! PKFolderS
+            
+            let predicate = NSPredicate(format: "uuid == %@", folderS.uuid)
+            let fetchRequest = NSFetchRequest(entityName: "Folder")
+            fetchRequest.predicate = predicate
+            
+            var folder: PKFolder!
+            do {
+                let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+                folder = folders.first!
+            } catch {
+                // что-то делаем в зависимости от ошибки
+            }
+            
+            self.managedObjectContext.deleteObject(folder)
+        case ("Deleted", "Record"):
+            let recordS = object as! PKRecordS
+            
+            let predicate = NSPredicate(format: "uuid == %@", recordS.uuid)
+            let fetchRequest = NSFetchRequest(entityName: "Record")
+            fetchRequest.predicate = predicate
+            
+            var record: PKRecord!
+            do {
+                let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
+                record = records.first!
+            } catch {
+                // что-то делаем в зависимости от ошибки
+            }
+            
+            self.managedObjectContext.deleteObject(record)
+        default:
+            break
+        }
+        
+        if self.managedObjectContext.hasChanges {
+            self.save()
+            dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
+        }
+    }
+    
     // MARK: - Core Data stack
     
     lazy var applicationDocumentsDirectory: NSURL = {
@@ -148,15 +286,19 @@ class PKCoreDataManager: NSObject {
                 }
             }
             
-            do {
-                try self.managedObjectContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nserror = error as NSError
-                NSLog("Unresolved error \(nserror), \(nserror.userInfo)")
-                abort()
-            }
+            self.save()
+        }
+    }
+    
+    func save() {
+        do {
+            try self.managedObjectContext.save()
+        } catch {
+            // Replace this implementation with code to handle the error appropriately.
+            // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
+            let nserror = error as NSError
+            NSLog("Unresolved error \(nserror), \(nserror.userInfo)")
+            abort()
         }
     }
 }
