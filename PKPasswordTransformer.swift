@@ -111,6 +111,10 @@ private class PKPasswordTransformer: NSValueTransformer {
     }
     
     override func transformedValue(value: AnyObject?) -> AnyObject? {
+        if let value = value as? NSData {
+            return value
+        }
+        
         guard let value = value as? String else {
             return nil
         }

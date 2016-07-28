@@ -102,6 +102,10 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
             self.savedIsPasswordOnFocus = nil
             self.savedIsDetailsOnFocus  = nil
         } else if let record = self.record {
+            if record.password != nil && !(record.password is String)  {
+                self.managedObjectContext.refreshObject(record, mergeChanges: false)
+            }
+            
             self.titleTextField.text    = record.title
             self.loginTextField.text    = record.login
             self.passwordTextField.text = record.password as? String

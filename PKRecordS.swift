@@ -42,15 +42,3 @@ struct PKRecordS {
     }
 }
 
-//// MARK: - Hashable
-//
-//extension PKRecordS: Hashable {
-//    var hashValue: Int { return 0 }
-//}
-//
-//// MARK: - Equatable
-//
-//func ==(lhs: PKRecordS, rhs: PKRecordS) -> Bool {
-//    return lhs.uuid == rhs.uuid
-//}
-

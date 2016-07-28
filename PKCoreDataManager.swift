@@ -31,6 +31,7 @@ class PKCoreDataManager: NSObject {
             //no records in new folder
         case ("Created", "Record"):
             let recordS = object as! PKRecordS
+            print("!!!!!!!!!!" + recordS.title)
             let newRecord: PKRecord = self.managedObjectContext.insertObject()
             newRecord.title = recordS.title
             newRecord.login = recordS.login
@@ -53,6 +54,8 @@ class PKCoreDataManager: NSObject {
             }
             
             newRecord.folder = folder
+            
+            if newRecord.folder == nil { abort() }
         case ("Updated", "Folder"):
             let folderS = object as! PKFolderS
             
@@ -114,10 +117,12 @@ class PKCoreDataManager: NSObject {
             } catch {
                 // что-то делаем в зависимости от ошибки
             }
-        case ("Deleted", "Folder"):
-            let folderS = object as! PKFolderS
             
-            let predicate = NSPredicate(format: "uuid == %@", folderS.uuid)
+            if record.folder == nil { abort() }
+        case ("Deleted", "Folder"):
+            let uuid = object as! String
+            
+            let predicate = NSPredicate(format: "uuid == %@", uuid)
             let fetchRequest = NSFetchRequest(entityName: "Folder")
             fetchRequest.predicate = predicate
             
@@ -131,15 +136,19 @@ class PKCoreDataManager: NSObject {
             
             self.managedObjectContext.deleteObject(folder)
         case ("Deleted", "Record"):
-            let recordS = object as! PKRecordS
+            let uuid = object as! String
             
-            let predicate = NSPredicate(format: "uuid == %@", recordS.uuid)
+            let predicate = NSPredicate(format: "uuid == %@", uuid)
             let fetchRequest = NSFetchRequest(entityName: "Record")
             fetchRequest.predicate = predicate
             
             var record: PKRecord!
             do {
                 let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
+                if records.isEmpty {
+                    dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
+                    return
+                }
                 record = records.first!
             } catch {
                 // что-то делаем в зависимости от ошибки
@@ -151,8 +160,22 @@ class PKCoreDataManager: NSObject {
         }
         
         if self.managedObjectContext.hasChanges {
+            self.managedObjectContext.insertedObjects.forEach() { self.refreshObjectIfNeeded($0) }
+            self.managedObjectContext.updatedObjects.forEach()  { self.refreshObjectIfNeeded($0) }
+            self.managedObjectContext.deletedObjects.forEach()  {
+                self.refreshObjectIfNeeded($0)
+                PKServerManager.sharedManager.popIfNeeded($0)
+            }
             self.save()
             dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
+        }
+    }
+    
+    func refreshObjectIfNeeded(object: NSManagedObject) {
+        if let record = object as? PKRecord {
+            if record.folder == nil {
+                self.managedObjectContext.refreshObject(record, mergeChanges: false)
+            }
         }
     }
     
@@ -176,6 +199,8 @@ class PKCoreDataManager: NSObject {
         let coordinator = NSPersistentStoreCoordinator(managedObjectModel: self.managedObjectModel)
         let url = self.applicationDocumentsDirectory.URLByAppendingPathComponent("Records.sqlite")
         let failureReason = "There was an error creating or loading the application's saved data."
+        
+        //NEEDED ?
         let options = [
             NSMigratePersistentStoresAutomaticallyOption: true,
             NSInferMappingModelAutomaticallyOption: true,
@@ -300,5 +325,8 @@ class PKCoreDataManager: NSObject {
             NSLog("Unresolved error \(nserror), \(nserror.userInfo)")
             abort()
         }
+        
+        let application =  UIApplication.sharedApplication()
+        if  application.isIgnoringInteractionEvents() { application.endIgnoringInteractionEvents() }
     }
 }

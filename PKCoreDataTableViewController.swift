@@ -102,7 +102,8 @@ class PKCoreDataTableViewController: UITableViewController, NSFetchedResultsCont
         case .Update:
             self.configureCell(tableView.cellForRowAtIndexPath(indexPath!)!, atIndexPath: indexPath!)
         case .Move:
-            self.isSelected = tableView.cellForRowAtIndexPath(indexPath!)!.selected
+            print("!!!!!!!!!!!!!!!!!!!!!!!" + String(tableView.cellForRowAtIndexPath(indexPath!)))
+            self.isSelected = tableView.cellForRowAtIndexPath(indexPath!)?.selected ?? false
             self.newIndexPath = newIndexPath
             
             tableView.deleteRowsAtIndexPaths([indexPath!], withRowAnimation: .Fade)

@@ -32,9 +32,18 @@ class PKCloudKitManager: NSObject {
     
     // MARK: - Update CoreData
     
-    func updateCoreData(recordID: CKRecordID, reason: CKQueryNotificationReason) {
+    func updateCoreData(recordID: CKRecordID, reason: CKQueryNotificationReason, isFolder: Bool) {
         dispatch_group_wait(self.notificationGroup, DISPATCH_TIME_FOREVER)
         dispatch_group_enter(self.notificationGroup)
+        
+        if reason == .RecordDeleted {
+            if isFolder {
+                PKCoreDataManager.sharedManager.update("Deleted", type: "Folder", object: recordID.recordName)
+            } else {
+                PKCoreDataManager.sharedManager.update("Deleted", type: "Record", object: recordID.recordName)
+            }
+            return
+        }
         
         self.privateDatabase.fetchRecordWithID(recordID) { (object, error) in
             if error != nil {
@@ -90,13 +99,9 @@ class PKCloudKitManager: NSObject {
         let folderSubscription = CKSubscription(recordType: "Folder", predicate: predicate, options: [.FiresOnRecordCreation, .FiresOnRecordDeletion, .FiresOnRecordUpdate])
         let recordSubscription = CKSubscription(recordType: "Record", predicate: predicate, options: [.FiresOnRecordCreation, .FiresOnRecordDeletion, .FiresOnRecordUpdate])
         
-//        let folderNotificationInfo = CKNotificationInfo()
-//        let recordNotificationInfo = CKNotificationInfo()
-//        folderNotificationInfo.desiredKeys = ["name", "date"]//"records"
-//        recordNotificationInfo.desiredKeys = ["title", "login", "date", "detailedDescription", "folder"]//"password", "createdDT"
-//        
-//        folderSubscription.notificationInfo = folderNotificationInfo
-//        recordSubscription.notificationInfo = recordNotificationInfo
+        let folderNotificationInfo = CKNotificationInfo()
+        folderNotificationInfo.desiredKeys = ["name"]
+        folderSubscription.notificationInfo = folderNotificationInfo
         
         self.privateDatabase.saveSubscription(folderSubscription) { (sub, error) in
             if error != nil {
@@ -119,15 +124,11 @@ class PKCloudKitManager: NSObject {
         let predicate = NSPredicate(format: "TRUEPREDICATE")
         let subscription = CKSubscription(recordType: recordType, predicate: predicate, options: [.FiresOnRecordCreation, .FiresOnRecordDeletion, .FiresOnRecordUpdate])
         
-//        if recordType == "Folder" {
-//            let folderNotificationInfo = CKNotificationInfo()
-//            folderNotificationInfo.desiredKeys = ["name", "date"]//"records"
-//            subscription.notificationInfo = folderNotificationInfo
-//        } else {
-//            let recordNotificationInfo = CKNotificationInfo()
-//            recordNotificationInfo.desiredKeys = ["title", "login", "date", "detailedDescription", "folder"]//"password", "createdDT"
-//            subscription.notificationInfo = recordNotificationInfo
-//        }
+        if recordType == "Folder" {
+            let folderNotificationInfo = CKNotificationInfo()
+            folderNotificationInfo.desiredKeys = ["name"]
+            subscription.notificationInfo = folderNotificationInfo
+        }
         
         self.privateDatabase.saveSubscription(subscription) { (sub, error) in
             if error != nil {
