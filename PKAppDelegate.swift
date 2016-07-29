@@ -65,10 +65,6 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
         application.registerUserNotificationSettings(notificationSettings)
         application.registerForRemoteNotifications()
         
-//        UIUserNotificationSettings *notificationSettings = [UIUserNotificationSettings settingsForTypes:UIUserNotificationTypeAlert categories:nil];
-//        [application registerUserNotificationSettings:notificationSettings];
-//        [application registerForRemoteNotifications];
-        
         return true
     }
 
@@ -267,7 +263,7 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
                 let ckQueryNotification = cloudKitNotification as! CKQueryNotification
                 let recordID = ckQueryNotification.recordID
                 
-                dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0)) { //UTILS ?
+                dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0)) {
                     let isFolder = ckQueryNotification.recordFields != nil
                     PKCloudKitManager.sharedManager.updateCoreData(recordID!, reason: ckQueryNotification.queryNotificationReason, isFolder: isFolder)
                 }

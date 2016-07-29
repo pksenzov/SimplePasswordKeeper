@@ -102,13 +102,19 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
             self.savedIsPasswordOnFocus = nil
             self.savedIsDetailsOnFocus  = nil
         } else if let record = self.record {
-            if record.password != nil && !(record.password is String)  {
+            var forcePassword: String?
+            
+            if record.password != nil && !(record.password is String) {
                 self.managedObjectContext.refreshObject(record, mergeChanges: false)
+                
+                if !(record.password is String) {
+                    forcePassword = PKPwdTransformer().reversTransformValue(record.password) //HACK =((
+                }
             }
             
             self.titleTextField.text    = record.title
             self.loginTextField.text    = record.login
-            self.passwordTextField.text = record.password as? String
+            self.passwordTextField.text = forcePassword ?? (record.password as? String)
             
             if record.detailedDescription != "" {
                 self.descriptionTextView.text = record.detailedDescription

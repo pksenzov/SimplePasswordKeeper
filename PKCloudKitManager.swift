@@ -16,25 +16,102 @@ class PKCloudKitManager: NSObject {
     let privateDatabase = CKContainer.defaultContainer().privateCloudDatabase
     let defaults = NSUserDefaults.standardUserDefaults()
     
-    private var _notificationGroup = dispatch_group_create()
+//    private var _notificationGroup = dispatch_group_create()
+//    
+//    var notificationGroup: dispatch_group_t! {
+//        var notificationGroupCopy: dispatch_group_t!
+//        
+//        dispatch_sync(concurrentNotificationGroupQueue) {
+//            notificationGroupCopy = self._notificationGroup
+//        }
+//        
+//        return notificationGroupCopy
+//    }
+//    
+//    private let concurrentNotificationGroupQueue = dispatch_queue_create("com.pavelksenzov.records.notificationGroupQueue", DISPATCH_QUEUE_CONCURRENT)
     
-    var notificationGroup: dispatch_group_t! {
-        var notificationGroupCopy: dispatch_group_t!
+    // MARK: - Sync
+    
+    func getFolders() -> [CKRecord] {
+        let iCloudFoldersGroup = dispatch_group_create()
+        dispatch_group_enter(iCloudFoldersGroup)
         
-        dispatch_sync(concurrentNotificationGroupQueue) {
-            notificationGroupCopy = self._notificationGroup
+        var folders: [CKRecord]!
+        
+        let predicate = NSPredicate(format: "TRUEPREDICATE")
+        let query = CKQuery(recordType: "Folder", predicate: predicate)
+        self.privateDatabase.performQuery(query, inZoneWithID: nil) {
+            if $1 != nil {
+                abort()
+            }
+            
+            guard $0 != nil else { abort() }
+            
+            folders = $0!
+            
+            dispatch_group_leave(iCloudFoldersGroup)
         }
         
-        return notificationGroupCopy
+        dispatch_group_wait(iCloudFoldersGroup, DISPATCH_TIME_FOREVER)
+        
+        return folders
     }
     
-    private let concurrentNotificationGroupQueue = dispatch_queue_create("com.pavelksenzov.records.notificationGroupQueue", DISPATCH_QUEUE_CONCURRENT)
+    func getRecords() -> [CKRecord] {
+        let iCloudRecordsGroup = dispatch_group_create()
+        dispatch_group_enter(iCloudRecordsGroup)
+        
+        var records: [CKRecord]!
+        
+        let predicate = NSPredicate(format: "TRUEPREDICATE")
+        let query = CKQuery(recordType: "Record", predicate: predicate)
+        self.privateDatabase.performQuery(query, inZoneWithID: nil) {
+            if $1 != nil {
+                abort()
+            }
+            
+            guard $0 != nil else { abort() }
+            
+            records = $0!
+            
+            dispatch_group_leave(iCloudRecordsGroup)
+        }
+        
+        dispatch_group_wait(iCloudRecordsGroup, DISPATCH_TIME_FOREVER)
+        
+        return records
+    }
+    
+    func getDeletedObjects() -> [CKRecord] {
+        let iCloudDeletedObjectsGroup = dispatch_group_create()
+        dispatch_group_enter(iCloudDeletedObjectsGroup)
+        
+        var deletedObjects: [CKRecord]!
+        
+        let predicate = NSPredicate(format: "TRUEPREDICATE")
+        let query = CKQuery(recordType: "DeletedObject", predicate: predicate)
+        self.privateDatabase.performQuery(query, inZoneWithID: nil) {
+            if $1 != nil {
+                abort()
+            }
+            
+            guard $0 != nil else { abort() }
+            
+            deletedObjects = $0!
+            
+            dispatch_group_leave(iCloudDeletedObjectsGroup)
+        }
+        
+        dispatch_group_wait(iCloudDeletedObjectsGroup, DISPATCH_TIME_FOREVER)
+        
+        return deletedObjects
+    }
     
     // MARK: - Update CoreData
     
     func updateCoreData(recordID: CKRecordID, reason: CKQueryNotificationReason, isFolder: Bool) {
-        dispatch_group_wait(self.notificationGroup, DISPATCH_TIME_FOREVER)
-        dispatch_group_enter(self.notificationGroup)
+        //dispatch_group_wait(self.notificationGroup, DISPATCH_TIME_FOREVER)
+        //dispatch_group_enter(self.notificationGroup)
         
         if reason == .RecordDeleted {
             if isFolder {
@@ -157,6 +234,8 @@ class PKCloudKitManager: NSObject {
                 print(error?.localizedDescription)
                 abort()
             }
+            
+            self.defaults.setBool(true, forKey: kSettingsSubscriptions)
         }
     }
     
@@ -258,7 +337,8 @@ class PKCloudKitManager: NSObject {
             
             switch $0 {
             case is PKFolderS:
-                uuid = ($0 as! PKFolderS).uuid
+                let folderS = ($0 as! PKFolderS)
+                uuid = folderS.uuid
                 let id = CKRecordID(recordName: uuid)
                 
                 self.privateDatabase.deleteRecordWithID(id) {
@@ -266,7 +346,17 @@ class PKCloudKitManager: NSObject {
                         abort()
                     }
                     
-                    dispatch_group_leave(iCloudGroup)
+                    let deletedObject = CKRecord(recordType: "DeletedObject")
+                    deletedObject.setObject(folderS.uuid, forKey: "uuid")
+                    deletedObject.setObject(NSDate(), forKey: "date")
+                    
+                    self.privateDatabase.saveRecord(deletedObject) {
+                        if $1 != nil {
+                            abort()
+                        }
+                        
+                        dispatch_group_leave(iCloudGroup)
+                    }
                 }
             case is PKRecordS:
                 dispatch_group_wait(theSameFolderGroup, DISPATCH_TIME_FOREVER)
@@ -278,7 +368,7 @@ class PKCloudKitManager: NSObject {
                 
                 let folderID = CKRecordID(recordName: recordS.folderUUID)
                 
-                self.privateDatabase.fetchRecordWithID(folderID) { (folder, error) in
+                self.privateDatabase.fetchRecordWithID(folderID) { (folder, error) in //1
                     if error != nil {
                         abort()
                     } else {
@@ -286,23 +376,33 @@ class PKCloudKitManager: NSObject {
                         
                         var records = folder!.objectForKey("records") as! [CKReference]
                         records = records.filter() {
-                            $0.recordID.recordName !=  recordS.uuid
+                            $0.recordID.recordName != recordS.uuid
                         }
                         
                         folder!.setObject(records, forKey: "records")
                         
-                        self.privateDatabase.saveRecord(folder!) {
+                        self.privateDatabase.saveRecord(folder!) { //2
                             if $1 != nil {
                                 print($1?.localizedDescription)
                                 abort()
                             } else {
-                                self.privateDatabase.deleteRecordWithID(id) {
+                                self.privateDatabase.deleteRecordWithID(id) { //3
                                     if $1 != nil {
                                         abort()
                                     }
                                     
-                                    dispatch_group_leave(theSameFolderGroup)
-                                    dispatch_group_leave(iCloudGroup)
+                                    let deletedObject = CKRecord(recordType: "DeletedObject")
+                                    deletedObject.setObject(recordS.uuid, forKey: "uuid")
+                                    deletedObject.setObject(NSDate(), forKey: "date")
+                                    
+                                    self.privateDatabase.saveRecord(deletedObject) { //4
+                                        if $1 != nil {
+                                            abort()
+                                        }
+                                        
+                                        dispatch_group_leave(theSameFolderGroup)
+                                        dispatch_group_leave(iCloudGroup)
+                                    }
                                 }
                             }
                         }

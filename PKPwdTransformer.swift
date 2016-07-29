@@ -9,6 +9,24 @@
 import CryptoSwift
 
 private extension String {
+    func aesDecrypt(key: String, iv: String) throws -> String {
+        let data = NSData(base64EncodedString: self, options: NSDataBase64DecodingOptions(rawValue: 0))
+        //let dec = try AES(key: key, iv: iv, blockMode:.CBC).decrypt(data!.arrayOfBytes(), padding: PKCS7())
+        
+        do {
+            let dec = try AES(key: key, iv: iv, blockMode: .CBC, padding: PKCS7()).decrypt(data!.arrayOfBytes())
+            let decData = NSData(bytes: dec, length: Int(dec.count))
+            let result = NSString(data: decData, encoding: NSUTF8StringEncoding)
+            return String(result!)
+        } catch AES.Error.BlockSizeExceeded {
+            // block size exceeded
+        } catch {
+            // some error
+        }
+        
+        return ""
+    }
+    
     func aesEncrypt(key: String, iv: String) throws -> NSData {
         let data = self.dataUsingEncoding(NSUTF8StringEncoding)
         //let enc = try AES(key: key, iv: iv, blockMode:.CBC).encrypt(data!.arrayOfBytes(), padding: PKCS7())
@@ -27,6 +45,20 @@ private extension String {
         }
         
         return NSData()
+    }
+    
+    mutating func truncate(count: Int) -> String? {
+        guard count > 0 && count < self.characters.count else { return nil }
+        
+        var newString = self
+        let start = self.startIndex
+        let end = self.startIndex.advancedBy(count)
+        let range = start..<end
+        
+        newString = self.substringToIndex(end)
+        self.removeRange(range)
+        
+        return newString
     }
 }
 
@@ -75,6 +107,17 @@ class PKPwdTransformer {
         }
         
         return try! value.aesEncrypt(strike(), iv: getInitVector())
+    }
+    
+    func reversTransformValue(value: AnyObject?) -> String? {
+        guard let encData = value as? NSData else {
+            return nil
+        }
+        
+        var str = NSString(data: encData, encoding: NSUTF8StringEncoding) as! String
+        let iv = str.truncate(16)
+        
+        return try! str.aesDecrypt(strike(), iv: iv!)
     }
     
 }

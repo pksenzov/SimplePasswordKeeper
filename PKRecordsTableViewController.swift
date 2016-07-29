@@ -326,7 +326,8 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
         if segue.identifier == "RecordsToEditingRecordSegue" {
             let indexPath = self.tableView.indexPathForCell(sender as! UITableViewCell)
             let record = self.fetchedResultsController.objectAtIndexPath(indexPath!) as! PKRecord
-            vc.record = record //FETCH ??
+            
+            vc.record = record
         }
     }
 

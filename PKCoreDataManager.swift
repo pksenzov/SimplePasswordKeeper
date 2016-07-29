@@ -18,6 +18,46 @@ class PKCoreDataManager: NSObject {
     
     let cloudGroup = dispatch_group_create()
     
+    // MARK: - Sync
+    
+    func removeDeletedObjects(deletedObjects: [PKDeletedObject]) {
+        deletedObjects.forEach() {
+            self.managedObjectContext.deleteObject($0)
+        }
+        
+        self.saveWithIgnoringUI()
+    }
+    
+    func getFolders() -> [PKFolder] {
+        let fetchRequest = NSFetchRequest(entityName: "Folder")
+        do {
+            let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+            return folders
+        } catch {
+            abort()
+        }
+    }
+    
+    func getRecords() -> [PKRecord] {
+        let fetchRequest = NSFetchRequest(entityName: "Record")
+        do {
+            let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
+            return records
+        } catch {
+            abort()
+        }
+    }
+    
+    func getDeletedObjects() -> [PKDeletedObject] {
+        let fetchRequest = NSFetchRequest(entityName: "DeletedObject")
+        do {
+            let deletedObjects = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKDeletedObject]
+            return deletedObjects
+        } catch {
+            abort()
+        }
+    }
+    
     // MARK: - CloudKit update
     
     func update(reason: String, type: String, object: Any) {
@@ -31,7 +71,6 @@ class PKCoreDataManager: NSObject {
             //no records in new folder
         case ("Created", "Record"):
             let recordS = object as! PKRecordS
-            print("!!!!!!!!!!" + recordS.title)
             let newRecord: PKRecord = self.managedObjectContext.insertObject()
             newRecord.title = recordS.title
             newRecord.login = recordS.login
@@ -48,6 +87,10 @@ class PKCoreDataManager: NSObject {
             var folder: PKFolder!
             do {
                 let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+                if folders.isEmpty {
+                    //dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
+                    return
+                }
                 folder = folders.first!
             } catch {
                 // что-то делаем в зависимости от ошибки
@@ -66,6 +109,10 @@ class PKCoreDataManager: NSObject {
             var folder: PKFolder!
             do {
                 let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+                if folders.isEmpty {
+                    //dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
+                    return
+                }
                 folder = folders.first!
             } catch {
                 // что-то делаем в зависимости от ошибки
@@ -81,6 +128,10 @@ class PKCoreDataManager: NSObject {
             
             do {
                 let records = try self.managedObjectContext.executeFetchRequest(recordsRequest) as! [PKRecord]
+                if records.isEmpty {
+                    //dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
+                    return
+                }
                 folder.records = Set(records)
             } catch {
                 // что-то делаем в зависимости от ошибки
@@ -95,6 +146,10 @@ class PKCoreDataManager: NSObject {
             var record: PKRecord!
             do {
                 let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
+                if records.isEmpty {
+                    //dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
+                    return
+                }
                 record = records.first!
             } catch {
                 // что-то делаем в зависимости от ошибки
@@ -113,6 +168,10 @@ class PKCoreDataManager: NSObject {
             
             do {
                 let folders = try self.managedObjectContext.executeFetchRequest(foldersRequest) as! [PKFolder]
+                if folders.isEmpty {
+                    //dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
+                    return
+                }
                 record.folder = folders.first!
             } catch {
                 // что-то делаем в зависимости от ошибки
@@ -129,6 +188,10 @@ class PKCoreDataManager: NSObject {
             var folder: PKFolder!
             do {
                 let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+                if folders.isEmpty {
+                    //dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
+                    return
+                }
                 folder = folders.first!
             } catch {
                 // что-то делаем в зависимости от ошибки
@@ -146,7 +209,7 @@ class PKCoreDataManager: NSObject {
             do {
                 let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
                 if records.isEmpty {
-                    dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
+                    //dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
                     return
                 }
                 record = records.first!
@@ -166,8 +229,9 @@ class PKCoreDataManager: NSObject {
                 self.refreshObjectIfNeeded($0)
                 PKServerManager.sharedManager.popIfNeeded($0)
             }
+            
             self.save()
-            dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
+            //dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
         }
     }
     
@@ -201,14 +265,14 @@ class PKCoreDataManager: NSObject {
         let failureReason = "There was an error creating or loading the application's saved data."
         
         //NEEDED ?
-        let options = [
-            NSMigratePersistentStoresAutomaticallyOption: true,
-            NSInferMappingModelAutomaticallyOption: true,
-            NSSQLitePragmasOption: ["journal_mode": "DELETE"]
-        ]
+//        let options = [
+//            NSMigratePersistentStoresAutomaticallyOption: true,
+//            NSInferMappingModelAutomaticallyOption: true,
+//            NSSQLitePragmasOption: ["journal_mode": "DELETE"]
+//        ]
         
         do {
-            try coordinator.addPersistentStoreWithType(NSSQLiteStoreType, configuration: nil, URL: url, options: options)
+            try coordinator.addPersistentStoreWithType(NSSQLiteStoreType, configuration: nil, URL: url, options: nil)
         } catch {
             // Report any error we got.
             var dict = [String: AnyObject]()
@@ -328,5 +392,17 @@ class PKCoreDataManager: NSObject {
         
         let application =  UIApplication.sharedApplication()
         if  application.isIgnoringInteractionEvents() { application.endIgnoringInteractionEvents() }
+    }
+    
+    func saveWithIgnoringUI() {
+        do {
+            try self.managedObjectContext.save()
+        } catch {
+            // Replace this implementation with code to handle the error appropriately.
+            // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
+            let nserror = error as NSError
+            NSLog("Unresolved error \(nserror), \(nserror.userInfo)")
+            abort()
+        }
     }
 }

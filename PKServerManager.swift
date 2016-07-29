@@ -58,6 +58,38 @@ class PKServerManager: NSObject {
     func sync() {
         PKCloudKitManager.sharedManager.checkAndAddSubscriptions()
         
+        let application = UIApplication.sharedApplication()
+        application.beginIgnoringInteractionEvents()
+        //show UI loading icon if needed
+        
+        let coreDataFolders = PKCoreDataManager.sharedManager.getFolders()
+        let coreDataRecords = PKCoreDataManager.sharedManager.getRecords()
+        let coreDataDeletedObjects = PKCoreDataManager.sharedManager.getDeletedObjects()
+        
+        let coreDataFolderUUIDS = Set(coreDataFolders.map() { $0.uuid! })
+        let coreDataRecordUUIDS = Set(coreDataRecords.map() { $0.uuid! })
+        let coreDataDeletedObjectUUIDS = Set(coreDataDeletedObjects.map() { $0.uuid! })
+        
+        let cloudKitFolders = PKCloudKitManager.sharedManager.getFolders()
+        let cloudKitRecords = PKCloudKitManager.sharedManager.getRecords()
+        let cloudKitDeletedObjects = PKCloudKitManager.sharedManager.getDeletedObjects()
+        
+        let cloudKitFolderUUIDS = Set(cloudKitFolders.map() { $0.recordID.recordName })
+        let cloudKitRecordUUIDS = Set(cloudKitRecords.map() { $0.recordID.recordName })
+        let cloudKitDeletedObjectUUIDS = Set(cloudKitDeletedObjects.map() { $0.objectForKey("uuid") as! String })
+        
+        let deletedObjectUUIDS = coreDataDeletedObjectUUIDS.intersect(cloudKitDeletedObjectUUIDS)
+        let toDelete = [PKDeletedObject]()
+        deletedObjectUUIDS.forEach() { uuid in
+            let deletedObject = coreDataDeletedObjects.filter() { $0.uuid == uuid }
+        }
+        
+        PKCoreDataManager.sharedManager.removeDeletedObjects()//[PKDeletedObject]
+        PKCloudKitManager.sharedManager.removeDeletedObjects(deletedObjectUUIDS)
+        
+        
+        
+        application.endIgnoringInteractionEvents()
     }
     
     // MARK: - Notification Update UI
