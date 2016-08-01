@@ -61,10 +61,10 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
             PKServerManager.sharedManager.sync()
         }
         
-        let notificationSettings = UIUserNotificationSettings(forTypes: .None, categories: nil)
-        application.registerUserNotificationSettings(notificationSettings)
+//        let notificationSettings = UIUserNotificationSettings(forTypes: .None, categories: nil)
+//        application.registerUserNotificationSettings(notificationSettings)
         application.registerForRemoteNotifications()
-        
+
         return true
     }
 
@@ -253,22 +253,49 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
         return true
     }
     
-    func application(application: UIApplication, didReceiveRemoteNotification userInfo: [NSObject: AnyObject]) {
-        guard PKAppDelegate.iCloudAccountIsSignedIn() && NSUserDefaults.standardUserDefaults().boolForKey(kSettingsICloud) else { return }
+    // MARK: - Remote Notifications
+    
+    func application(application: UIApplication,
+                     didReceiveRemoteNotification userInfo: [NSObject : AnyObject],
+                                                  fetchCompletionHandler completionHandler: (UIBackgroundFetchResult) -> Void) {
         
-        if let userInfo = userInfo as? [String: NSObject] {
-            let cloudKitNotification = CKNotification(fromRemoteNotificationDictionary: userInfo)
+        let userInfo = userInfo as! [String: NSObject]
+        let cloudKitNotification = CKNotification(fromRemoteNotificationDictionary: userInfo)
+        
+        if (cloudKitNotification.notificationType == .Query) {
+            //PKCloudKitManager.sharedManager.fetchSharedChanges { completionHandler(UIBackgroundFetchResult.NewData) }
             
-            if (cloudKitNotification.notificationType == .Query) {
-                let ckQueryNotification = cloudKitNotification as! CKQueryNotification
-                let recordID = ckQueryNotification.recordID
-                
-                dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0)) {
-                    let isFolder = ckQueryNotification.recordFields != nil
-                    PKCloudKitManager.sharedManager.updateCoreData(recordID!, reason: ckQueryNotification.queryNotificationReason, isFolder: isFolder)
-                }
+            let ckQueryNotification = cloudKitNotification as! CKQueryNotification
+            let recordID = ckQueryNotification.recordID
+            
+            dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0)) {
+                let isFolder = ckQueryNotification.recordFields != nil
+                PKCloudKitManager.sharedManager.updateCoreData(recordID!, reason: ckQueryNotification.queryNotificationReason, isFolder: isFolder)
             }
         }
     }
+    
+//    func application(application: UIApplication, didReceiveRemoteNotification userInfo: [NSObject: AnyObject]) {
+//        guard PKAppDelegate.iCloudAccountIsSignedIn() && NSUserDefaults.standardUserDefaults().boolForKey(kSettingsICloud) else { return }
+//        
+//        if let userInfo = userInfo as? [String: NSObject] {
+//            let cloudKitNotification = CKNotification(fromRemoteNotificationDictionary: userInfo)
+//            
+//            if (cloudKitNotification.notificationType == .Query) {
+//                let ckQueryNotification = cloudKitNotification as! CKQueryNotification
+//                let recordID = ckQueryNotification.recordID
+//                
+//                dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0)) {
+//                    let isFolder = ckQueryNotification.recordFields != nil
+//                    PKCloudKitManager.sharedManager.updateCoreData(recordID!, reason: ckQueryNotification.queryNotificationReason, isFolder: isFolder)
+//                }
+//            }
+//        }
+//    }
+    
+//    func application(application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: NSError) {
+//        print(error.localizedDescription)
+//        abort()
+//    }
 }
 

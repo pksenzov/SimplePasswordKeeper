@@ -28,6 +28,32 @@ var isLocked                = NSUserDefaults.standardUserDefaults().boolForKey(k
 var isNeededAuthorization   = false
 var isSpotlightWaiting      = false
 
+// MARK: - Fatal Errors
+
+//enum CKFatalErrorCode: Int {
+//    case internalError
+//    case serverRejectedRequest
+//    case invalidArguments
+//    case permissionFailure
+//}
+
+// MARK: - Retry Cases
+
+//public enum CKRetryErrorCode: Int {
+//    case zoneBusy
+//    case serviceUnavailable
+//    case requestRateLimited
+//}
+
+// Using CKErrorRetryAfterKey
+//var error = ... // Error from the previous CKOperation
+//if let retryAfter = error.userInfo[CKErrorRetryAfterKey] as? Double {
+//    let delayTime = DispatchTime.now() + retryAfter
+//    DispatchQueue.main.after(when: delayTime) {
+//        // Initialize CKOperation for a retry
+//    }
+//}
+
 // MARK: - PKFoldersTableViewController, PKMoveRecordsViewController
 
 extension UIAlertController {

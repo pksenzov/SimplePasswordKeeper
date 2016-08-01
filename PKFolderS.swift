@@ -27,10 +27,10 @@ struct PKFolderS {
     
     init(folder: CKRecord) {
         uuid = folder.recordID.recordName
-        date = folder.objectForKey("date") as! NSDate
-        name = folder.objectForKey("name") as! String
+        date = folder["date"] as! NSDate
+        name = folder["name"] as! String
         
-        let references = folder.objectForKey("records") as! [CKReference]
+        let references = folder["records"] as! [CKReference]
         recordsUUID = Set(references.map() {$0.recordID.recordName})
     }
 }
