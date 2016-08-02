@@ -16,6 +16,13 @@ class PKCloudKitManager: NSObject {
     let privateDatabase = CKContainer.defaultContainer().privateCloudDatabase
     let defaults = NSUserDefaults.standardUserDefaults()
     
+    lazy var operationQueue: NSOperationQueue = {
+        let queue = NSOperationQueue()
+        queue.qualityOfService = .Background
+        
+        return queue
+    }()
+    
 //    private var _notificationGroup = dispatch_group_create()
 //    
 //    var notificationGroup: dispatch_group_t! {
@@ -303,178 +310,351 @@ class PKCloudKitManager: NSObject {
 //    }
     
     func saveContext(deleted: [Any], updated: [Any], inserted: [Any]) {
-        let iCloudGroup = dispatch_group_create()
+        var insertedFolderOperations  = [CKOperation]()
+        var insertedRecordOperations  = [CKOperation]()
+        var updatedFolderOperations   = [CKOperation]()
+        var updatedRecordOperations   = [CKOperation]()
+        var deletedFolderOperations   = [CKOperation]()
+        var deletedRecordOperations   = [CKOperation]()
         
         inserted.forEach() {
-            dispatch_group_enter(iCloudGroup)
-            
             switch $0 {
             case is PKFolderS:
                 let folder = self.saveFolder($0 as! PKFolderS, folder: nil)
+                let operation = CKModifyRecordsOperation(recordsToSave: [folder], recordIDsToDelete: nil)
+                operation.database = self.privateDatabase
                 
-                self.privateDatabase.saveRecord(folder, completionHandler: {
-                    if $1 != nil {
-                        abort()
-                    }
-                    
-                    dispatch_group_leave(iCloudGroup)
-                })
+                insertedFolderOperations.append(operation)
             case is PKRecordS:
                 let record = self.saveRecord($0 as! PKRecordS, record: nil)
+                let operation = CKModifyRecordsOperation(recordsToSave: [record], recordIDsToDelete: nil)
+                operation.database = self.privateDatabase
                 
-                self.privateDatabase.saveRecord(record) {
-                    if $1 != nil {
-                        print($1!.localizedDescription)
-                        abort()
-                    }
-                    
-                    dispatch_group_leave(iCloudGroup)
-                }
+                insertedRecordOperations.append(operation)
             default:
                 break
             }
         }
         
-        dispatch_group_wait(iCloudGroup, DISPATCH_TIME_FOREVER)
+        self.operationQueue.addOperations(insertedFolderOperations, waitUntilFinished: false)
+        self.operationQueue.addOperations(insertedRecordOperations, waitUntilFinished: false)
         
         updated.forEach() {
-            dispatch_group_enter(iCloudGroup)
-            
             switch $0 {
             case is PKFolderS:
                 let folderS = $0 as! PKFolderS
                 let folderID = CKRecordID(recordName: folderS.uuid)
+                let fetchOperation = CKFetchRecordsOperation(recordIDs: [folderID])
+                fetchOperation.database = self.privateDatabase
                 
-                self.privateDatabase.fetchRecordWithID(folderID) {
+                fetchOperation.fetchRecordsCompletionBlock = {
                     if $1 != nil {
                         abort()
                     } else {
                         guard $0 != nil else { abort() }
                         
-                        let folder = self.saveFolder(folderS, folder: $0!)
+                        let folder = self.saveFolder(folderS, folder: $0!.first!.1)
                         
-                        self.privateDatabase.saveRecord(folder) {
-                            if $1 != nil {
-                                abort()
-                            }
-                            
-                            dispatch_group_leave(iCloudGroup)
-                        }
+                        let saveOperation = CKModifyRecordsOperation(recordsToSave: [folder], recordIDsToDelete: nil)
+                        saveOperation.database = self.privateDatabase
+                        
+                        self.operationQueue.addOperation(saveOperation)
                     }
                 }
+                
+                updatedFolderOperations.append(fetchOperation)
             case is PKRecordS:
                 let recordS = $0 as! PKRecordS
                 let recordID = CKRecordID(recordName: recordS.uuid)
+                let fetchOperation = CKFetchRecordsOperation(recordIDs: [recordID])
+                fetchOperation.database = self.privateDatabase
                 
-                self.privateDatabase.fetchRecordWithID(recordID) {
+                fetchOperation.fetchRecordsCompletionBlock = {
                     if $1 != nil {
                         abort()
                     } else {
                         guard $0 != nil else { abort() }
                         
-                        let record = self.saveRecord(recordS, record: $0!)
+                        let record = self.saveRecord(recordS, record: $0!.first!.1)
                         
-                        self.privateDatabase.saveRecord(record) {
-                            if $1 != nil {
-                                abort()
-                            }
-                            
-                            dispatch_group_leave(iCloudGroup)
-                        }
+                        let saveOperation = CKModifyRecordsOperation(recordsToSave: [record], recordIDsToDelete: nil)
+                        saveOperation.database = self.privateDatabase
+                        
+                        self.operationQueue.addOperation(saveOperation)
                     }
                 }
+                
+                updatedRecordOperations.append(fetchOperation)
             default:
                 break
             }
         }
         
-        dispatch_group_wait(iCloudGroup, DISPATCH_TIME_FOREVER)
-        let theSameFolderGroup = dispatch_group_create()
+        self.operationQueue.addOperations(updatedFolderOperations, waitUntilFinished: false)
+        self.operationQueue.addOperations(updatedRecordOperations, waitUntilFinished: false)
         
         deleted.forEach() {
-            dispatch_group_enter(iCloudGroup)
-            
-            var uuid: String!
-            
             switch $0 {
             case is PKFolderS:
                 let folderS = ($0 as! PKFolderS)
-                uuid = folderS.uuid
-                let id = CKRecordID(recordName: uuid)
+                let id = CKRecordID(recordName: folderS.uuid)
+                let operation = CKModifyRecordsOperation(recordsToSave: nil, recordIDsToDelete: [id])
+                operation.database = self.privateDatabase
                 
-                self.privateDatabase.deleteRecordWithID(id) {
-                    if $1 != nil {
+                operation.modifyRecordsCompletionBlock = {
+                    if $2 != nil {
                         abort()
-                    }
-                    
-                    let deletedObject = CKRecord(recordType: "DeletedObject")
-                    deletedObject["uuid"] = folderS.uuid
-                    deletedObject["date"] = NSDate()
-                    
-                    self.privateDatabase.saveRecord(deletedObject) {
-                        if $1 != nil {
-                            abort()
-                        }
+                    } else {
+                        let deletedObject = CKRecord(recordType: "DeletedObject")
+                        deletedObject["uuid"] = folderS.uuid
+                        deletedObject["date"] = NSDate()
                         
-                        dispatch_group_leave(iCloudGroup)
+                        let saveOperation = CKModifyRecordsOperation(recordsToSave: [deletedObject], recordIDsToDelete: nil)
+                        saveOperation.database = self.privateDatabase
+                        
+                        self.operationQueue.addOperation(saveOperation)
                     }
                 }
-            case is PKRecordS:
-                dispatch_group_wait(theSameFolderGroup, DISPATCH_TIME_FOREVER)
-                dispatch_group_enter(theSameFolderGroup)
                 
+                deletedFolderOperations.append(operation)
+            case is PKRecordS:
                 let recordS = $0 as! PKRecordS
-                uuid = recordS.uuid
-                let id = CKRecordID(recordName: uuid)
+                let id = CKRecordID(recordName: recordS.uuid)
                 
                 let folderID = CKRecordID(recordName: recordS.folderUUID)
                 
-                self.privateDatabase.fetchRecordWithID(folderID) { (folder, error) in //1
-                    if error != nil {
+                let folderOperation = CKFetchRecordsOperation(recordIDs: [folderID])
+                folderOperation.database = self.privateDatabase
+                
+                folderOperation.fetchRecordsCompletionBlock = {
+                    if $1 != nil {
                         abort()
                     } else {
-                        guard folder != nil else { abort() }
+                        guard $0 != nil else { abort() }
                         
-                        var records = folder!.objectForKey("records") as! [CKReference]
+                        let folder = $0!.first!.1
+                        
+                        var records = folder["records"] as! [CKReference]
                         records = records.filter() {
                             $0.recordID.recordName != recordS.uuid
                         }
                         
-                        folder!.setObject(records, forKey: "records")
+                        folder.setObject(records, forKey: "records")
                         
-                        self.privateDatabase.saveRecord(folder!) { //2
-                            if $1 != nil {
-                                print($1?.localizedDescription)
+                        let saveFolderOperation = CKModifyRecordsOperation(recordsToSave: [folder], recordIDsToDelete: nil)
+                        saveFolderOperation.database = self.privateDatabase
+                        
+                        saveFolderOperation.modifyRecordsCompletionBlock = {
+                            if $2 != nil {
                                 abort()
                             } else {
-                                self.privateDatabase.deleteRecordWithID(id) { //3
-                                    if $1 != nil {
+                                let deleteOperation = CKModifyRecordsOperation(recordsToSave: nil, recordIDsToDelete: [id])
+                                deleteOperation.database = self.privateDatabase
+                                
+                                deleteOperation.modifyRecordsCompletionBlock = {
+                                    if $2 != nil {
                                         abort()
-                                    }
-                                    
-                                    let deletedObject = CKRecord(recordType: "DeletedObject")
-                                    deletedObject["uuid"] = recordS.uuid
-                                    deletedObject["date"] = NSDate()
-                                    
-                                    self.privateDatabase.saveRecord(deletedObject) { //4
-                                        if $1 != nil {
-                                            abort()
-                                        }
+                                    } else {
+                                        let deletedObject = CKRecord(recordType: "DeletedObject")
+                                        deletedObject["uuid"] = recordS.uuid
+                                        deletedObject["date"] = NSDate()
                                         
-                                        dispatch_group_leave(theSameFolderGroup)
-                                        dispatch_group_leave(iCloudGroup)
+                                        let saveOperation = CKModifyRecordsOperation(recordsToSave: [deletedObject], recordIDsToDelete: nil)
+                                        saveOperation.database = self.privateDatabase
+                                        
+                                        self.operationQueue.addOperation(saveOperation)
                                     }
                                 }
+                                
+                                self.operationQueue.addOperation(deleteOperation)
                             }
                         }
+                        
+                        self.operationQueue.addOperation(saveFolderOperation)
                     }
                 }
+                
+                deletedRecordOperations.append(folderOperation)
             default:
                 break
             }
         }
         
-        dispatch_group_wait(iCloudGroup, DISPATCH_TIME_FOREVER)
+        self.operationQueue.addOperations(deletedFolderOperations, waitUntilFinished: false)
+        self.operationQueue.addOperations(deletedRecordOperations, waitUntilFinished: false)
+        
+//        let iCloudGroup = dispatch_group_create()
+//        
+//        inserted.forEach() {
+//            dispatch_group_enter(iCloudGroup)
+//            
+//            switch $0 {
+//            case is PKFolderS:
+//                let folder = self.saveFolder($0 as! PKFolderS, folder: nil)
+//                
+//                self.privateDatabase.saveRecord(folder, completionHandler: {
+//                    if $1 != nil {
+//                        abort()
+//                    }
+//                    
+//                    dispatch_group_leave(iCloudGroup)
+//                })
+//            case is PKRecordS:
+//                let record = self.saveRecord($0 as! PKRecordS, record: nil)
+//                
+//                self.privateDatabase.saveRecord(record) {
+//                    if $1 != nil {
+//                        print($1!.localizedDescription)
+//                        abort()
+//                    }
+//                    
+//                    dispatch_group_leave(iCloudGroup)
+//                }
+//            default:
+//                break
+//            }
+//        }
+//        
+//        dispatch_group_wait(iCloudGroup, DISPATCH_TIME_FOREVER)
+//        
+//        updated.forEach() {
+//            dispatch_group_enter(iCloudGroup)
+//            
+//            switch $0 {
+//            case is PKFolderS:
+//                let folderS = $0 as! PKFolderS
+//                let folderID = CKRecordID(recordName: folderS.uuid)
+//                
+//                self.privateDatabase.fetchRecordWithID(folderID) {
+//                    if $1 != nil {
+//                        abort()
+//                    } else {
+//                        guard $0 != nil else { abort() }
+//                        
+//                        let folder = self.saveFolder(folderS, folder: $0!)
+//                        
+//                        self.privateDatabase.saveRecord(folder) {
+//                            if $1 != nil {
+//                                abort()
+//                            }
+//                            
+//                            dispatch_group_leave(iCloudGroup)
+//                        }
+//                    }
+//                }
+//            case is PKRecordS:
+//                let recordS = $0 as! PKRecordS
+//                let recordID = CKRecordID(recordName: recordS.uuid)
+//                
+//                self.privateDatabase.fetchRecordWithID(recordID) {
+//                    if $1 != nil {
+//                        abort()
+//                    } else {
+//                        guard $0 != nil else { abort() }
+//                        
+//                        let record = self.saveRecord(recordS, record: $0!)
+//                        
+//                        self.privateDatabase.saveRecord(record) {
+//                            if $1 != nil {
+//                                abort()
+//                            }
+//                            
+//                            dispatch_group_leave(iCloudGroup)
+//                        }
+//                    }
+//                }
+//            default:
+//                break
+//            }
+//        }
+//        
+//        dispatch_group_wait(iCloudGroup, DISPATCH_TIME_FOREVER)
+//        let theSameFolderGroup = dispatch_group_create()
+//        
+//        deleted.forEach() {
+//            dispatch_group_enter(iCloudGroup)
+//            
+//            var uuid: String!
+//            
+//            switch $0 {
+//            case is PKFolderS:
+//                let folderS = ($0 as! PKFolderS)
+//                uuid = folderS.uuid
+//                let id = CKRecordID(recordName: uuid)
+//                
+//                self.privateDatabase.deleteRecordWithID(id) {
+//                    if $1 != nil {
+//                        abort()
+//                    }
+//                    
+//                    let deletedObject = CKRecord(recordType: "DeletedObject")
+//                    deletedObject["uuid"] = folderS.uuid
+//                    deletedObject["date"] = NSDate()
+//                    
+//                    self.privateDatabase.saveRecord(deletedObject) {
+//                        if $1 != nil {
+//                            abort()
+//                        }
+//                        
+//                        dispatch_group_leave(iCloudGroup)
+//                    }
+//                }
+//            case is PKRecordS:
+//                dispatch_group_wait(theSameFolderGroup, DISPATCH_TIME_FOREVER)
+//                dispatch_group_enter(theSameFolderGroup)
+//                
+//                let recordS = $0 as! PKRecordS
+//                uuid = recordS.uuid
+//                let id = CKRecordID(recordName: uuid)
+//                
+//                let folderID = CKRecordID(recordName: recordS.folderUUID)
+//                
+//                self.privateDatabase.fetchRecordWithID(folderID) { (folder, error) in //1
+//                    if error != nil {
+//                        abort()
+//                    } else {
+//                        guard folder != nil else { abort() }
+//                        
+//                        var records = folder!.objectForKey("records") as! [CKReference]
+//                        records = records.filter() {
+//                            $0.recordID.recordName != recordS.uuid
+//                        }
+//                        
+//                        folder!.setObject(records, forKey: "records")
+//                        
+//                        self.privateDatabase.saveRecord(folder!) { //2
+//                            if $1 != nil {
+//                                print($1?.localizedDescription)
+//                                abort()
+//                            } else {
+//                                self.privateDatabase.deleteRecordWithID(id) { //3
+//                                    if $1 != nil {
+//                                        abort()
+//                                    }
+//                                    
+//                                    let deletedObject = CKRecord(recordType: "DeletedObject")
+//                                    deletedObject["uuid"] = recordS.uuid
+//                                    deletedObject["date"] = NSDate()
+//                                    
+//                                    self.privateDatabase.saveRecord(deletedObject) { //4
+//                                        if $1 != nil {
+//                                            abort()
+//                                        }
+//                                        
+//                                        dispatch_group_leave(theSameFolderGroup)
+//                                        dispatch_group_leave(iCloudGroup)
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            default:
+//                break
+//            }
+//        }
+//        
+//        dispatch_group_wait(iCloudGroup, DISPATCH_TIME_FOREVER)
     }
     
     func saveFolder(folderS: PKFolderS, folder: CKRecord?) -> CKRecord {

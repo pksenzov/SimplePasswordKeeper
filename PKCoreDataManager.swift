@@ -16,7 +16,7 @@ protocol ManagedObjectType {
 class PKCoreDataManager: NSObject {
     static let sharedManager = PKCoreDataManager()
     
-    let cloudGroup = dispatch_group_create()
+    //let cloudGroup = dispatch_group_create()
     
     // MARK: - Sync
     
@@ -309,44 +309,35 @@ class PKCoreDataManager: NSObject {
                 var inserted = [Any]()
                 
                 self.managedObjectContext.deletedObjects.forEach() {
-                    switch $0 {
-                    case is PKFolder:
-                        deleted.append(PKFolderS(folder: $0 as! PKFolder))
-                    case is PKRecord:
-                        deleted.append(PKRecordS(record: $0 as! PKRecord))
-                    default:
-                        break
+                    if $0 is PKFolder {
+                        deleted.insert(PKFolderS(folder: $0 as! PKFolder), atIndex: 0)
+                    } else {
+                        deleted.insert(PKRecordS(record: $0 as! PKRecord), atIndex: max(inserted.count - 1, 0))
                     }
                 }
                 
                 self.managedObjectContext.updatedObjects.forEach() {
-                    switch $0 {
-                    case is PKFolder:
-                        updated.append(PKFolderS(folder: $0 as! PKFolder))
-                    case is PKRecord:
-                        updated.append(PKRecordS(record: $0 as! PKRecord))
-                    default:
-                        break
+                    if $0 is PKFolder {
+                        updated.insert(PKFolderS(folder: $0 as! PKFolder), atIndex: 0)
+                    } else {
+                        updated.insert(PKRecordS(record: $0 as! PKRecord), atIndex: max(inserted.count - 1, 0))
                     }
                 }
                 
                 self.managedObjectContext.insertedObjects.forEach() {
-                    switch $0 {
-                    case is PKFolder:
-                        inserted.append(PKFolderS(folder: $0 as! PKFolder))
-                    case is PKRecord:
-                        inserted.append(PKRecordS(record: $0 as! PKRecord))
-                    default:
-                        break
+                    if $0 is PKFolder {
+                        inserted.insert(PKFolderS(folder: $0 as! PKFolder), atIndex: 0)
+                    } else {
+                        inserted.insert(PKRecordS(record: $0 as! PKRecord), atIndex: max(inserted.count - 1, 0))
                     }
                 }
                 
-                dispatch_async(dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)) {
-                    dispatch_group_wait(self.cloudGroup, DISPATCH_TIME_FOREVER)
-                    dispatch_group_enter(self.cloudGroup)
-                    PKCloudKitManager.sharedManager.saveContext(deleted, updated: updated, inserted: inserted)
-                    dispatch_group_leave(self.cloudGroup)
-                }
+//                dispatch_async(dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)) {
+//                    dispatch_group_wait(self.cloudGroup, DISPATCH_TIME_FOREVER)
+//                    dispatch_group_enter(self.cloudGroup)
+                PKCloudKitManager.sharedManager.saveContext(deleted, updated: updated, inserted: inserted)
+//                    dispatch_group_leave(self.cloudGroup)
+//                }
             } else {
                 self.managedObjectContext.deletedObjects.forEach() {
                     switch $0 {
