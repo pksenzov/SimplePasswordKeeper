@@ -315,7 +315,13 @@ class PKCloudKitManager: NSObject {
         var updatedFolderOperations   = [CKOperation]()
         var updatedRecordOperations   = [CKOperation]()
         var deletedFolderOperations   = [CKOperation]()
-        var deletedRecordOperations   = [CKOperation]()
+        
+        var deletedRecordsSet = Set<String>()
+        deleted.forEach() {
+            if let record = $0 as? PKRecordS {
+                deletedRecordsSet.insert(record.uuid)
+            }
+        }
         
         inserted.forEach() {
             switch $0 {
@@ -393,6 +399,10 @@ class PKCloudKitManager: NSObject {
         self.operationQueue.addOperations(updatedFolderOperations, waitUntilFinished: false)
         self.operationQueue.addOperations(updatedRecordOperations, waitUntilFinished: false)
         
+        var recordsIDToDelete   = [CKRecordID]()
+        var recordsUUIDToDelete = [String]()
+        var foldersIDToUpdate   = Set<CKRecordID>()
+        
         deleted.forEach() {
             switch $0 {
             case is PKFolderS:
@@ -421,67 +431,126 @@ class PKCloudKitManager: NSObject {
                 let recordS = $0 as! PKRecordS
                 let id = CKRecordID(recordName: recordS.uuid)
                 
+                recordsIDToDelete.append(id)
+                recordsUUIDToDelete.append(recordS.uuid)
+                
                 let folderID = CKRecordID(recordName: recordS.folderUUID)
                 
-                let folderOperation = CKFetchRecordsOperation(recordIDs: [folderID])
-                folderOperation.database = self.privateDatabase
-                
-                folderOperation.fetchRecordsCompletionBlock = {
-                    if $1 != nil {
-                        abort()
-                    } else {
-                        guard $0 != nil else { abort() }
-                        
-                        let folder = $0!.first!.1
-                        
-                        var records = folder["records"] as! [CKReference]
-                        records = records.filter() {
-                            $0.recordID.recordName != recordS.uuid
-                        }
-                        
-                        folder.setObject(records, forKey: "records")
-                        
-                        let saveFolderOperation = CKModifyRecordsOperation(recordsToSave: [folder], recordIDsToDelete: nil)
-                        saveFolderOperation.database = self.privateDatabase
-                        
-                        saveFolderOperation.modifyRecordsCompletionBlock = {
-                            if $2 != nil {
-                                abort()
-                            } else {
-                                let deleteOperation = CKModifyRecordsOperation(recordsToSave: nil, recordIDsToDelete: [id])
-                                deleteOperation.database = self.privateDatabase
-                                
-                                deleteOperation.modifyRecordsCompletionBlock = {
-                                    if $2 != nil {
-                                        abort()
-                                    } else {
-                                        let deletedObject = CKRecord(recordType: "DeletedObject")
-                                        deletedObject["uuid"] = recordS.uuid
-                                        deletedObject["date"] = NSDate()
-                                        
-                                        let saveOperation = CKModifyRecordsOperation(recordsToSave: [deletedObject], recordIDsToDelete: nil)
-                                        saveOperation.database = self.privateDatabase
-                                        
-                                        self.operationQueue.addOperation(saveOperation)
-                                    }
-                                }
-                                
-                                self.operationQueue.addOperation(deleteOperation)
-                            }
-                        }
-                        
-                        self.operationQueue.addOperation(saveFolderOperation)
-                    }
-                }
-                
-                deletedRecordOperations.append(folderOperation)
+                foldersIDToUpdate.insert(folderID)
+               
+//                self.operationQueue.addOperation(deleteOperation)
+//                
+//                let folderID = CKRecordID(recordName: recordS.folderUUID)
+//                
+//                let folderOperation = CKFetchRecordsOperation(recordIDs: [folderID])
+//                folderOperation.database = self.privateDatabase
+//                
+//                folderOperation.fetchRecordsCompletionBlock = {
+//                    if $1 != nil {
+//                        abort()
+//                    } else {
+//                        guard $0 != nil else { abort() }
+//                        
+//                        let folder = $0!.first!.1
+//                        
+//                        var records = folder["records"] as! [CKReference]
+//                        records = records.filter() {
+//                            !deletedRecordsSet.contains($0.recordID.recordName)
+//                        }
+//                        
+//                        folder.setObject(records, forKey: "records")
+//                        
+//                        let saveFolderOperation = CKModifyRecordsOperation(recordsToSave: [folder], recordIDsToDelete: nil)
+//                        saveFolderOperation.database = self.privateDatabase
+//                        
+//                        saveFolderOperation.modifyRecordsCompletionBlock = {
+//                            if $2 != nil {
+//                                switch $2!.code {
+////                                case 2:
+////                                    self.continueDeleting(id, uuid: recordS.uuid)
+//                                case 2, 23:
+//                                    let retryAfter = ($2!.userInfo[CKErrorRetryAfterKey] as? Double) ?? 1800
+//                                    let delayTime = DISPATCH_TIME_NOW + UInt64(retryAfter)
+//                                    
+//                                    dispatch_after(delayTime, dispatch_get_main_queue()) {
+//                                        self.privateDatabase.addOperation(saveFolderOperation)
+//                                    }
+//                                default:
+//                                    abort()
+//                                }
+//                            } else {
+//                                self.continueDeleting(id, uuid: recordS.uuid)
+//                            }
+//                        }
+//                        
+//                        self.operationQueue.addOperation(saveFolderOperation)
+//                    }
+//                }
+//                
+//                deletedRecordOperations.append(folderOperation)
             default:
                 break
             }
         }
         
+        //Delete Records
+        let deleteOperation = CKModifyRecordsOperation(recordsToSave: nil, recordIDsToDelete: recordsIDToDelete)
+        deleteOperation.database = self.privateDatabase
+        
         self.operationQueue.addOperations(deletedFolderOperations, waitUntilFinished: false)
-        self.operationQueue.addOperations(deletedRecordOperations, waitUntilFinished: false)
+        self.operationQueue.addOperation(deleteOperation)
+        
+        //Save Deleted Records
+        var deletedObjects = [CKRecord]()
+        recordsUUIDToDelete.forEach() {
+            let deletedObject = CKRecord(recordType: "DeletedObject")
+            deletedObject["uuid"] = $0
+            deletedObject["date"] = NSDate()
+            
+            deletedObjects.append(deletedObject)
+        }
+        
+        let saveOperation = CKModifyRecordsOperation(recordsToSave: deletedObjects, recordIDsToDelete: nil)
+        saveOperation.database = self.privateDatabase
+        
+        self.operationQueue.addOperation(saveOperation)
+        
+        //Update Folder
+        let foldersUpdateOperation = CKFetchRecordsOperation(recordIDs: Array(foldersIDToUpdate))
+        
+        foldersUpdateOperation.fetchRecordsCompletionBlock = {
+            if $1 != nil {
+                abort()
+            } else {
+                guard $0 != nil else { abort() }
+                
+                print($0!)
+                
+                var foldersToUpdate = [CKRecord]()
+                $0!.forEach() { dict in
+                    let folder = dict.1
+                    
+                    print(deletedRecordsSet.description)
+                    var records = folder["records"] as! [CKReference]
+                    records = records.filter() {
+                        !deletedRecordsSet.contains($0.recordID.recordName)
+                    }
+                    print(records.count)
+                    
+                    folder.setObject(records, forKey: "records")
+                    
+                    foldersToUpdate.append(folder)
+                }
+                
+                print(foldersToUpdate)
+                
+                let updateFoldersOperation = CKModifyRecordsOperation(recordsToSave: foldersToUpdate, recordIDsToDelete: nil)
+                
+                self.operationQueue.addOperation(updateFoldersOperation)
+            }
+        }
+        
+        self.operationQueue.addOperation(foldersUpdateOperation)
         
 //        let iCloudGroup = dispatch_group_create()
 //        
@@ -701,5 +770,27 @@ class PKCloudKitManager: NSObject {
         record!["folder"] = folderReference
         
         return record!
+    }
+    
+    func continueDeleting(id: CKRecordID, uuid: String) {
+        let deleteOperation = CKModifyRecordsOperation(recordsToSave: nil, recordIDsToDelete: [id])
+        deleteOperation.database = self.privateDatabase
+        
+        deleteOperation.modifyRecordsCompletionBlock = {
+            if $2 != nil {
+                abort()
+            } else {
+                let deletedObject = CKRecord(recordType: "DeletedObject")
+                deletedObject["uuid"] = uuid
+                deletedObject["date"] = NSDate()
+                
+                let saveOperation = CKModifyRecordsOperation(recordsToSave: [deletedObject], recordIDsToDelete: nil)
+                saveOperation.database = self.privateDatabase
+                
+                self.operationQueue.addOperation(saveOperation)
+            }
+        }
+        
+        self.operationQueue.addOperation(deleteOperation)
     }
 }
