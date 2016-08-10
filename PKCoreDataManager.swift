@@ -304,9 +304,9 @@ class PKCoreDataManager: NSObject {
     func saveContext () {
         if self.managedObjectContext.hasChanges {
             if PKAppDelegate.iCloudAccountIsSignedIn() && NSUserDefaults.standardUserDefaults().boolForKey(kSettingsICloud) {
-                var deleted = [Any]()
-                var updated = [Any]()
-                var inserted = [Any]()
+                var deleted     = [PKObjectS]()
+                var updated     = [PKObjectS]()
+                var inserted    = [PKObjectS]()
                 
                 self.managedObjectContext.deletedObjects.forEach() {
                     if $0 is PKFolder {

@@ -9,7 +9,7 @@
 import Foundation
 import CloudKit
 
-struct PKFolderS {
+struct PKFolderS: PKObjectS {
     let uuid: String
     let date: NSDate
     let name: String

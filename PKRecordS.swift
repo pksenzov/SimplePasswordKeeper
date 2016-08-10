@@ -9,7 +9,7 @@
 import Foundation
 import CloudKit
 
-struct PKRecordS {
+struct PKRecordS: PKObjectS {
     let uuid: String
     let creationDate: NSDate
     let date: NSDate
