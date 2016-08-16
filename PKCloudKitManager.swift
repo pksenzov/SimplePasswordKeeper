@@ -310,9 +310,6 @@ class PKCloudKitManager: NSObject {
 //    }
     
     func saveContext(deleted: [PKObjectS], updated: [PKObjectS], inserted: [PKObjectS]) {
-        var insertedFolderOperations  = [CKOperation]()
-        var insertedRecordOperations  = [CKOperation]()
-        
         var deletedRecordsSet = Set<String>()
         deleted.forEach() {
             if let record = $0 as? PKRecordS {
@@ -324,27 +321,29 @@ class PKCloudKitManager: NSObject {
         print(updated)
         print(deleted)
         
+        var newRecs = [CKRecord]()
+        
         inserted.forEach() {
             switch $0 {
             case is PKFolderS:
-                let folder = self.saveFolder($0 as! PKFolderS, folder: nil)
-                let operation = CKModifyRecordsOperation(recordsToSave: [folder], recordIDsToDelete: nil)
-                operation.database = self.privateDatabase
-                
-                insertedFolderOperations.append(operation)
+                let folder = self.saveFolder($0 as! PKFolderS)
+                newRecs.append(folder)
             case is PKRecordS:
-                let record = self.saveRecord($0 as! PKRecordS, record: nil)
-                let operation = CKModifyRecordsOperation(recordsToSave: [record], recordIDsToDelete: nil)
-                operation.database = self.privateDatabase
-                
-                insertedRecordOperations.append(operation)
+                let record = self.saveRecord($0 as! PKRecordS)
+                newRecs.append(record)
             default:
                 break
             }
         }
         
-        self.operationQueue.addOperations(insertedFolderOperations, waitUntilFinished: false)
-        self.operationQueue.addOperations(insertedRecordOperations, waitUntilFinished: false)
+        let newRecOperation = CKModifyRecordsOperation(recordsToSave: newRecs, recordIDsToDelete: nil)
+        newRecOperation.database = self.privateDatabase
+        
+        if self.operationQueue.operationCount != 0 {
+            newRecOperation.addDependency(self.operationQueue.operations.last!)
+        }
+        
+        self.operationQueue.addOperation(newRecOperation)
         
         var foldersDictToUpdate = [CKReference: PKObjectS]()
         var recordsDictToUpdate = [CKReference: PKObjectS]()
@@ -370,22 +369,28 @@ class PKCloudKitManager: NSObject {
         
         //Fetch Folders
         if foldersDictToUpdate.count != 0 {
-            print(Set(foldersDictToUpdate.keys))
-            
-            let predicate = NSPredicate(format: "recordID IN %@", Set(foldersDictToUpdate.keys))
+            let predicate = NSPredicate(format: "recordID IN %@", Array(foldersDictToUpdate.keys))
             let query = CKQuery(recordType: "Folder", predicate: predicate)
             
             let queryOperation = CKQueryOperation(query: query)
+            
+            if self.operationQueue.operationCount != 0 {
+                queryOperation.addDependency(self.operationQueue.operations.last!)
+            }
             
             self.executeQueryOperation(queryOperation, onOperationQueue: self.operationQueue, dict: foldersDictToUpdate)
         }
         
         //Fetch Records
         if recordsDictToUpdate.count != 0 {
-            let predicate = NSPredicate(format: "recordID IN %@", Set(recordsDictToUpdate.keys))
+            let predicate = NSPredicate(format: "recordID IN %@", Array(recordsDictToUpdate.keys))
             let query = CKQuery(recordType: "Record", predicate: predicate)
             
             let queryOperation = CKQueryOperation(query: query)
+            
+            if self.operationQueue.operationCount != 0 {
+                queryOperation.addDependency(self.operationQueue.operations.last!)
+            }
             
             self.executeQueryOperation(queryOperation, onOperationQueue: self.operationQueue, dict: recordsDictToUpdate)
         }
@@ -397,7 +402,7 @@ class PKCloudKitManager: NSObject {
         deleted.forEach() {
             switch $0 {
             case is PKFolderS:
-                let folderS = ($0 as! PKFolderS)
+                let folderS = $0 as! PKFolderS
                 let id = CKRecordID(recordName: folderS.uuid)
                 
                 recordsIDToDelete.append(id)
@@ -422,9 +427,13 @@ class PKCloudKitManager: NSObject {
             }
         }
         
-        //Delete Fodlers & Records
+        //Delete Folders & Records
         let deleteOperation = CKModifyRecordsOperation(recordsToSave: nil, recordIDsToDelete: recordsIDToDelete)
         deleteOperation.database = self.privateDatabase
+        
+        if self.operationQueue.operationCount != 0 {
+            deleteOperation.addDependency(self.operationQueue.operations.last!)
+        }
         
         self.operationQueue.addOperation(deleteOperation)
         
@@ -441,6 +450,10 @@ class PKCloudKitManager: NSObject {
         let saveOperation = CKModifyRecordsOperation(recordsToSave: deletedObjects, recordIDsToDelete: nil)
         saveOperation.database = self.privateDatabase
         
+        if self.operationQueue.operationCount != 0 {
+            saveOperation.addDependency(self.operationQueue.operations.last!)
+        }
+        
         self.operationQueue.addOperation(saveOperation)
         
         //Update Folder
@@ -450,193 +463,20 @@ class PKCloudKitManager: NSObject {
             
             let queryOperation = CKQueryOperation(query: query)
             
+            if self.operationQueue.operationCount != 0 {
+                queryOperation.addDependency(self.operationQueue.operations.last!)
+            }
+            
             self.executeQueryOperation(queryOperation, onOperationQueue: self.operationQueue, deletedRecordsSet: deletedRecordsSet)
         }
-        
-//        let iCloudGroup = dispatch_group_create()
-//        
-//        inserted.forEach() {
-//            dispatch_group_enter(iCloudGroup)
-//            
-//            switch $0 {
-//            case is PKFolderS:
-//                let folder = self.saveFolder($0 as! PKFolderS, folder: nil)
-//                
-//                self.privateDatabase.saveRecord(folder, completionHandler: {
-//                    if $1 != nil {
-//                        abort()
-//                    }
-//                    
-//                    dispatch_group_leave(iCloudGroup)
-//                })
-//            case is PKRecordS:
-//                let record = self.saveRecord($0 as! PKRecordS, record: nil)
-//                
-//                self.privateDatabase.saveRecord(record) {
-//                    if $1 != nil {
-//                        print($1!.localizedDescription)
-//                        abort()
-//                    }
-//                    
-//                    dispatch_group_leave(iCloudGroup)
-//                }
-//            default:
-//                break
-//            }
-//        }
-//        
-//        dispatch_group_wait(iCloudGroup, DISPATCH_TIME_FOREVER)
-//        
-//        updated.forEach() {
-//            dispatch_group_enter(iCloudGroup)
-//            
-//            switch $0 {
-//            case is PKFolderS:
-//                let folderS = $0 as! PKFolderS
-//                let folderID = CKRecordID(recordName: folderS.uuid)
-//                
-//                self.privateDatabase.fetchRecordWithID(folderID) {
-//                    if $1 != nil {
-//                        abort()
-//                    } else {
-//                        guard $0 != nil else { abort() }
-//                        
-//                        let folder = self.saveFolder(folderS, folder: $0!)
-//                        
-//                        self.privateDatabase.saveRecord(folder) {
-//                            if $1 != nil {
-//                                abort()
-//                            }
-//                            
-//                            dispatch_group_leave(iCloudGroup)
-//                        }
-//                    }
-//                }
-//            case is PKRecordS:
-//                let recordS = $0 as! PKRecordS
-//                let recordID = CKRecordID(recordName: recordS.uuid)
-//                
-//                self.privateDatabase.fetchRecordWithID(recordID) {
-//                    if $1 != nil {
-//                        abort()
-//                    } else {
-//                        guard $0 != nil else { abort() }
-//                        
-//                        let record = self.saveRecord(recordS, record: $0!)
-//                        
-//                        self.privateDatabase.saveRecord(record) {
-//                            if $1 != nil {
-//                                abort()
-//                            }
-//                            
-//                            dispatch_group_leave(iCloudGroup)
-//                        }
-//                    }
-//                }
-//            default:
-//                break
-//            }
-//        }
-//        
-//        dispatch_group_wait(iCloudGroup, DISPATCH_TIME_FOREVER)
-//        let theSameFolderGroup = dispatch_group_create()
-//        
-//        deleted.forEach() {
-//            dispatch_group_enter(iCloudGroup)
-//            
-//            var uuid: String!
-//            
-//            switch $0 {
-//            case is PKFolderS:
-//                let folderS = ($0 as! PKFolderS)
-//                uuid = folderS.uuid
-//                let id = CKRecordID(recordName: uuid)
-//                
-//                self.privateDatabase.deleteRecordWithID(id) {
-//                    if $1 != nil {
-//                        abort()
-//                    }
-//                    
-//                    let deletedObject = CKRecord(recordType: "DeletedObject")
-//                    deletedObject["uuid"] = folderS.uuid
-//                    deletedObject["date"] = NSDate()
-//                    
-//                    self.privateDatabase.saveRecord(deletedObject) {
-//                        if $1 != nil {
-//                            abort()
-//                        }
-//                        
-//                        dispatch_group_leave(iCloudGroup)
-//                    }
-//                }
-//            case is PKRecordS:
-//                dispatch_group_wait(theSameFolderGroup, DISPATCH_TIME_FOREVER)
-//                dispatch_group_enter(theSameFolderGroup)
-//                
-//                let recordS = $0 as! PKRecordS
-//                uuid = recordS.uuid
-//                let id = CKRecordID(recordName: uuid)
-//                
-//                let folderID = CKRecordID(recordName: recordS.folderUUID)
-//                
-//                self.privateDatabase.fetchRecordWithID(folderID) { (folder, error) in //1
-//                    if error != nil {
-//                        abort()
-//                    } else {
-//                        guard folder != nil else { abort() }
-//                        
-//                        var records = folder!.objectForKey("records") as! [CKReference]
-//                        records = records.filter() {
-//                            $0.recordID.recordName != recordS.uuid
-//                        }
-//                        
-//                        folder!.setObject(records, forKey: "records")
-//                        
-//                        self.privateDatabase.saveRecord(folder!) { //2
-//                            if $1 != nil {
-//                                print($1?.localizedDescription)
-//                                abort()
-//                            } else {
-//                                self.privateDatabase.deleteRecordWithID(id) { //3
-//                                    if $1 != nil {
-//                                        abort()
-//                                    }
-//                                    
-//                                    let deletedObject = CKRecord(recordType: "DeletedObject")
-//                                    deletedObject["uuid"] = recordS.uuid
-//                                    deletedObject["date"] = NSDate()
-//                                    
-//                                    self.privateDatabase.saveRecord(deletedObject) { //4
-//                                        if $1 != nil {
-//                                            abort()
-//                                        }
-//                                        
-//                                        dispatch_group_leave(theSameFolderGroup)
-//                                        dispatch_group_leave(iCloudGroup)
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            default:
-//                break
-//            }
-//        }
-//        
-//        dispatch_group_wait(iCloudGroup, DISPATCH_TIME_FOREVER)
     }
     
-    func saveFolder(folderS: PKFolderS, folder: CKRecord?) -> CKRecord {
-        var folder = folder
+    func saveFolder(folderS: PKFolderS) -> CKRecord {
+        let folderID = CKRecordID(recordName: folderS.uuid)
+        let folder = CKRecord(recordType: "Folder", recordID: folderID)
         
-        if folder == nil {
-            let folderID = CKRecordID(recordName: folderS.uuid)
-            folder = CKRecord(recordType: "Folder", recordID: folderID)
-        }
-        
-        folder!["date"] = folderS.date
-        folder!["name"] = folderS.name
+        folder["date"] = folderS.date
+        folder["name"] = folderS.name
         
         var records = [CKReference]()
         
@@ -646,31 +486,27 @@ class PKCloudKitManager: NSObject {
             records.append(recordReference)
         }
         
-        folder!["records"] = records
+        folder["records"] = records
         
-        return folder!
+        return folder
     }
     
-    func saveRecord(recordS: PKRecordS, record: CKRecord?) -> CKRecord {
-        var record = record
+    func saveRecord(recordS: PKRecordS) -> CKRecord {
+        let recordID = CKRecordID(recordName: recordS.uuid)
+        let record = CKRecord(recordType: "Record", recordID: recordID)
         
-        if record == nil {
-            let recordID = CKRecordID(recordName: recordS.uuid)
-            record = CKRecord(recordType: "Record", recordID: recordID)
-        }
-        
-        record!["date"] = recordS.date
-        record!["createdDT"] = recordS.creationDate
-        record!["detailedDescription"] = recordS.detailedDescription
-        record!["login"] = recordS.login
-        record!["password"] = PKPwdTransformer().transformValue(recordS.password)
-        record!["title"] = recordS.title
+        record["date"] = recordS.date
+        record["createdDT"] = recordS.creationDate
+        record["detailedDescription"] = recordS.detailedDescription
+        record["login"] = recordS.login
+        record["password"] = PKPwdTransformer().transformValue(recordS.password)
+        record["title"] = recordS.title
         
         let folderID = CKRecordID(recordName: recordS.folderUUID)
         let folderReference = CKReference(recordID: folderID, action: .DeleteSelf)
-        record!["folder"] = folderReference
+        record["folder"] = folderReference
         
-        return record!
+        return record
     }
     
     //Deleted
@@ -689,11 +525,16 @@ class PKCloudKitManager: NSObject {
                 abort()
             } else if let queryCursor = cursor {
                 let queryCursorOperation = CKQueryOperation(cursor: queryCursor)
+                
+                if self.operationQueue.operationCount != 0 {
+                    queryCursorOperation.addDependency(self.operationQueue.operations.last!)
+                }
+                
                 self.executeQueryOperation(queryCursorOperation, onOperationQueue: operationQueue, deletedRecordsSet: deletedRecordsSet)
             }
         }
         
-        self.operationQueue.waitUntilAllOperationsAreFinished()
+        //self.operationQueue.waitUntilAllOperationsAreFinished()
         self.operationQueue.addOperation(queryOperation)
     }
     
@@ -710,8 +551,14 @@ class PKCloudKitManager: NSObject {
         
         updateFoldersOperation.modifyRecordsCompletionBlock = {
             if $2 != nil {
+                print($2)
+                print($2?.code)
                 abort()
             }
+        }
+        
+        if self.operationQueue.operationCount != 0 {
+            updateFoldersOperation.addDependency(self.operationQueue.operations.last!)
         }
         
         self.operationQueue.addOperation(updateFoldersOperation)
@@ -739,11 +586,15 @@ class PKCloudKitManager: NSObject {
                 abort()
             } else if let queryCursor = cursor {
                 let queryCursorOperation = CKQueryOperation(cursor: queryCursor)
+                
+                if self.operationQueue.operationCount != 0 {
+                    queryCursorOperation.addDependency(self.operationQueue.operations.last!)
+                }
+                
                 self.executeQueryOperation(queryCursorOperation, onOperationQueue: operationQueue, dict: dict)
             }
         }
         
-        //self.operationQueue.waitUntilAllOperationsAreFinished()
         self.operationQueue.addOperation(queryOperation)
     }
     
@@ -766,8 +617,14 @@ class PKCloudKitManager: NSObject {
         
         updateFoldersOperation.modifyRecordsCompletionBlock = {
             if $2 != nil {
+                print($2)
+                print($2?.code)
                 abort()
             }
+        }
+        
+        if self.operationQueue.operationCount != 0 {
+            updateFoldersOperation.addDependency(self.operationQueue.operations.last!)
         }
         
         self.operationQueue.addOperation(updateFoldersOperation)
@@ -792,6 +649,10 @@ class PKCloudKitManager: NSObject {
             if $2 != nil {
                 abort()
             }
+        }
+        
+        if self.operationQueue.operationCount != 0 {
+            updateRecordsOperation.addDependency(self.operationQueue.operations.last!)
         }
         
         self.operationQueue.addOperation(updateRecordsOperation)
