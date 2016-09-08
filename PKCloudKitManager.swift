@@ -431,10 +431,6 @@ class PKCloudKitManager: NSObject {
         let deleteOperation = CKModifyRecordsOperation(recordsToSave: nil, recordIDsToDelete: recordsIDToDelete)
         deleteOperation.database = self.privateDatabase
         
-        if self.operationQueue.operationCount != 0 {
-            deleteOperation.addDependency(self.operationQueue.operations.last!)
-        }
-        
         self.operationQueue.addOperation(deleteOperation)
         
         //Save Deleted Folders & Records
@@ -450,10 +446,6 @@ class PKCloudKitManager: NSObject {
         let saveOperation = CKModifyRecordsOperation(recordsToSave: deletedObjects, recordIDsToDelete: nil)
         saveOperation.database = self.privateDatabase
         
-        if self.operationQueue.operationCount != 0 {
-            saveOperation.addDependency(self.operationQueue.operations.last!)
-        }
-        
         self.operationQueue.addOperation(saveOperation)
         
         //Update Folder
@@ -462,10 +454,6 @@ class PKCloudKitManager: NSObject {
             let query = CKQuery(recordType: "Folder", predicate: predicate)
             
             let queryOperation = CKQueryOperation(query: query)
-            
-            if self.operationQueue.operationCount != 0 {
-                queryOperation.addDependency(self.operationQueue.operations.last!)
-            }
             
             self.executeQueryOperation(queryOperation, onOperationQueue: self.operationQueue, deletedRecordsSet: deletedRecordsSet)
         }
@@ -503,7 +491,7 @@ class PKCloudKitManager: NSObject {
         record["title"] = recordS.title
         
         let folderID = CKRecordID(recordName: recordS.folderUUID)
-        let folderReference = CKReference(recordID: folderID, action: .DeleteSelf)
+        let folderReference = CKReference(recordID: folderID, action: .None)//.DeleteSelf
         record["folder"] = folderReference
         
         return record
@@ -525,10 +513,6 @@ class PKCloudKitManager: NSObject {
                 abort()
             } else if let queryCursor = cursor {
                 let queryCursorOperation = CKQueryOperation(cursor: queryCursor)
-                
-                if self.operationQueue.operationCount != 0 {
-                    queryCursorOperation.addDependency(self.operationQueue.operations.last!)
-                }
                 
                 self.executeQueryOperation(queryCursorOperation, onOperationQueue: operationQueue, deletedRecordsSet: deletedRecordsSet)
             }
@@ -557,10 +541,6 @@ class PKCloudKitManager: NSObject {
             }
         }
         
-        if self.operationQueue.operationCount != 0 {
-            updateFoldersOperation.addDependency(self.operationQueue.operations.last!)
-        }
-        
         self.operationQueue.addOperation(updateFoldersOperation)
     }
     
@@ -586,10 +566,6 @@ class PKCloudKitManager: NSObject {
                 abort()
             } else if let queryCursor = cursor {
                 let queryCursorOperation = CKQueryOperation(cursor: queryCursor)
-                
-                if self.operationQueue.operationCount != 0 {
-                    queryCursorOperation.addDependency(self.operationQueue.operations.last!)
-                }
                 
                 self.executeQueryOperation(queryCursorOperation, onOperationQueue: operationQueue, dict: dict)
             }
@@ -619,12 +595,13 @@ class PKCloudKitManager: NSObject {
             if $2 != nil {
                 print($2)
                 print($2?.code)
-                abort()
+                
+                if $2!.code == 2 {
+                    print($2!.userInfo[CKPartialErrorsByItemIDKey])
+                } else {
+                    abort()
+                }
             }
-        }
-        
-        if self.operationQueue.operationCount != 0 {
-            updateFoldersOperation.addDependency(self.operationQueue.operations.last!)
         }
         
         self.operationQueue.addOperation(updateFoldersOperation)
@@ -639,7 +616,7 @@ class PKCloudKitManager: NSObject {
         record["title"]                 = recordS.title
         
         let folderID = CKRecordID(recordName: recordS.folderUUID)
-        let folderReference = CKReference(recordID: folderID, action: .DeleteSelf)
+        let folderReference = CKReference(recordID: folderID, action: .None)//DeleteSelf
         record["folder"] = folderReference
         
         let updateRecordsOperation = CKModifyRecordsOperation(recordsToSave: [record], recordIDsToDelete: nil)
@@ -647,12 +624,22 @@ class PKCloudKitManager: NSObject {
         
         updateRecordsOperation.modifyRecordsCompletionBlock = {
             if $2 != nil {
-                abort()
+                print($2)
+                print($2?.code)
+                
+                if $2!.code == 2 {
+                    print($2!.userInfo[CKPartialErrorsByItemIDKey])
+                } else if $2!.code == 23 {
+                    if let retryAfterValue = $2!.userInfo[CKErrorRetryAfterKey] as? NSNumber {
+                        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(retryAfterValue.doubleValue * Double(NSEC_PER_SEC))), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
+                            self.updateRecord(record, fromRecordS: recordS)
+                        }
+                        return
+                    }
+                } else {
+                    abort()
+                }
             }
-        }
-        
-        if self.operationQueue.operationCount != 0 {
-            updateRecordsOperation.addDependency(self.operationQueue.operations.last!)
         }
         
         self.operationQueue.addOperation(updateRecordsOperation)
