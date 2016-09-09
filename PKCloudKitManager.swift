@@ -326,6 +326,7 @@ class PKCloudKitManager: NSObject {
         inserted.forEach() {
             switch $0 {
             case is PKFolderS:
+                print(($0 as! PKFolderS).uuid)
                 let folder = self.saveFolder($0 as! PKFolderS)
                 newRecs.append(folder)
             case is PKRecordS:
@@ -369,7 +370,8 @@ class PKCloudKitManager: NSObject {
         
         //Fetch Folders
         if foldersDictToUpdate.count != 0 {
-            let predicate = NSPredicate(format: "recordID IN %@", Array(foldersDictToUpdate.keys))
+            let foldersArrToUpdate = foldersDictToUpdate.map() { $0.0 }
+            let predicate = NSPredicate(format: "recordID IN %@", foldersArrToUpdate)//foldersArrToUpdate
             let query = CKQuery(recordType: "Folder", predicate: predicate)
             
             let queryOperation = CKQueryOperation(query: query)
@@ -383,7 +385,8 @@ class PKCloudKitManager: NSObject {
         
         //Fetch Records
         if recordsDictToUpdate.count != 0 {
-            let predicate = NSPredicate(format: "recordID IN %@", Array(recordsDictToUpdate.keys))
+            let recordsArrToUpdate = recordsDictToUpdate.map() { $0.0 }
+            let predicate = NSPredicate(format: "recordID IN %@", recordsArrToUpdate)
             let query = CKQuery(recordType: "Record", predicate: predicate)
             
             let queryOperation = CKQueryOperation(query: query)
@@ -553,6 +556,7 @@ class PKCloudKitManager: NSObject {
             let ref = CKReference(record: record, action: .None)
             
             if let dict = dict as? [CKReference: PKFolderS] {
+                print(dict[ref])
                 self.updateFolder(record, fromFolderS: dict[ref]!)
             } else if let dict = dict as? [CKReference: PKRecordS] {
                 self.updateRecord(record, fromRecordS: dict[ref]!)
