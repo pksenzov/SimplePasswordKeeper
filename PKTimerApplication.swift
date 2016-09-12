@@ -9,12 +9,16 @@
 import UIKit
 
 class PKTimerApplication: UIApplication {
-    var idleTimer: dispatch_cancelable_closure?
+    var idleTimer       : dispatch_cancelable_closure?
+    var idleClearTimer  : dispatch_cancelable_closure?
     
     override init() {
         super.init()
         self.resetIdleTimer()
+        self.resetClearIdleTimer()
     }
+    
+    // MARK: - AutoLock Timer
     
     override func sendEvent(event: UIEvent) {
         super.sendEvent(event)
@@ -40,4 +44,26 @@ class PKTimerApplication: UIApplication {
         NSNotificationCenter.defaultCenter().postNotificationName(kApplicationDidTimeoutNotification, object: nil)
         self.resetIdleTimer()
     }
+    
+    // MARK: - ClearClipboard Timer
+    
+    func resetClearIdleTimer() {
+        cancel_delay(self.idleClearTimer)
+        
+        let seconds = Double(NSUserDefaults.standardUserDefaults().integerForKey(kSettingsClearClipboard))
+        
+        guard seconds != 0 else { return }
+        
+        self.idleClearTimer = delay(seconds) { self.clearIdleTimerExceeded() }
+    }
+    
+    func clearIdleTimerExceeded() {
+        NSNotificationCenter.defaultCenter().postNotificationName(kApplicationDidTimeoutClearNotification, object: nil)
+        self.resetClearIdleTimer()
+    }
+    
+    func cancelClearTimer() {
+        cancel_delay(self.idleClearTimer)
+    }
+    
 }

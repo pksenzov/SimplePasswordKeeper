@@ -12,7 +12,8 @@ import CloudKit
 
 // MARK: - Constants & Variables
 
-let kApplicationDidTimeoutNotification = "ApplicationTimeout"
+let kApplicationDidTimeoutNotification      = "ApplicationTimeout"
+let kApplicationDidTimeoutClearNotification = "ApplicationTimeoutClear"
 
 let kContentType = "record"
 
@@ -21,12 +22,14 @@ let kSettingsSpotlight                  = "spotlight"
 let kSettingsAutoLock                   = "autolock"
 let kSettingsICloud                     = "icloud"
 let kSettingsSubscriptions              = "subscriptions"
+let kSettingsClearClipboard             = "clearclipboard"
 
 let firstFolderName = "Records"
 
-var isLocked                = NSUserDefaults.standardUserDefaults().boolForKey(kSettingsLockOnExit)
-var isNeededAuthorization   = false
-var isSpotlightWaiting      = false
+var isLocked                    = NSUserDefaults.standardUserDefaults().boolForKey(kSettingsLockOnExit)
+var isNeededAuthorization       = false
+var isSpotlightWaiting          = false
+var isNeededClearTimerRestart   = false
 
 // MARK: - Fatal Errors
 

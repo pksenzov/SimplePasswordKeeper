@@ -13,6 +13,7 @@ import CoreData
 class PKSettingsTableViewController: UITableViewController {
     let defaults = NSUserDefaults.standardUserDefaults()
     var autoLockTime: Int!
+    var clearClipboardTime: Int!
     
     var managedObjectContext: NSManagedObjectContext {
         if _managedObjectContext == nil {
@@ -28,6 +29,7 @@ class PKSettingsTableViewController: UITableViewController {
     @IBOutlet weak var spotlightSwitch: UISwitch!
     @IBOutlet weak var lockOnExitSwitch: UISwitch!
     @IBOutlet weak var autoLockLabel: UILabel!
+    @IBOutlet weak var clearClipboardLabel: UILabel!
     
     @IBOutlet weak var settingsLabel: UILabel! {
         didSet {
@@ -113,6 +115,7 @@ class PKSettingsTableViewController: UITableViewController {
         self.lockOnExitSwitch.on    = self.defaults.boolForKey(kSettingsLockOnExit)
         self.spotlightSwitch.on     = self.defaults.boolForKey(kSettingsSpotlight)
         self.autoLockTime           = self.defaults.integerForKey(kSettingsAutoLock)
+        self.clearClipboardTime     = self.defaults.integerForKey(kSettingsClearClipboard)
         
         switch self.autoLockTime {
         case 1:
@@ -121,6 +124,13 @@ class PKSettingsTableViewController: UITableViewController {
             self.autoLockLabel.text = "1 hour"
         default:
             self.autoLockLabel.text = "\(self.autoLockTime) minutes"
+        }
+        
+        switch self.clearClipboardTime {
+        case 0:
+            self.clearClipboardLabel.text = "Never"
+        default:
+            self.clearClipboardLabel.text = "\(self.clearClipboardTime) seconds"
         }
     }
     
@@ -173,6 +183,9 @@ class PKSettingsTableViewController: UITableViewController {
         if segue.identifier == "AutoLockSegue" {
             let vc = segue.destinationViewController as! PKAutoLockTableViewController
             vc.minutes = self.autoLockTime
+        } else if segue.identifier == "ClearClipboardSegue" {
+            let vc = segue.destinationViewController as! PKClearClipboardTableViewController
+            vc.seconds = self.clearClipboardTime
         }
     }
     
