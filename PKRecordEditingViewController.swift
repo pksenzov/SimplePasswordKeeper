@@ -282,6 +282,9 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardWillShowOrHide, name: UIKeyboardWillHideNotification, object: nil)
         
         self.fillInData()
+        
+        self.navigationController?.navigationBar.setBackgroundImage(UIImage(), forBarPosition: .Any, barMetrics: .Default)
+        self.navigationController?.navigationBar.shadowImage = UIImage()
     }
     
     override func viewWillDisappear(animated: Bool) {
@@ -289,6 +292,9 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         self.navigationController?.setToolbarHidden(false, animated: false)
         NSNotificationCenter.defaultCenter().removeObserver(self, name: UIKeyboardWillShowNotification, object: nil)
         NSNotificationCenter.defaultCenter().removeObserver(self, name: UIKeyboardWillHideNotification, object: nil)
+        
+        self.navigationController?.navigationBar.setBackgroundImage(nil, forBarPosition: .Any, barMetrics: .Default)
+        self.navigationController?.navigationBar.shadowImage = nil
     }
     
     // MARK: - Init & Deinit

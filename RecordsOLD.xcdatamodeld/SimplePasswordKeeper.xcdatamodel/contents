@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model userDefinedModelVersionIdentifier="" type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="10174" systemVersion="15G1004" minimumToolsVersion="Xcode 7.0">
+    <entity name="DeletedObject" representedClassName="PKDeletedObject" syncable="YES">
+        <attribute name="date" attributeType="Date" syncable="YES"/>
+        <attribute name="uuid" attributeType="String" syncable="YES"/>
+    </entity>
+    <entity name="Folder" representedClassName="PKFolder" syncable="YES">
+        <attribute name="date" attributeType="Date" syncable="YES"/>
+        <attribute name="name" attributeType="String" indexed="YES" syncable="YES"/>
+        <attribute name="uuid" attributeType="String" syncable="YES"/>
+        <relationship name="records" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Record" inverseName="folder" inverseEntity="Record" syncable="YES"/>
+    </entity>
+    <entity name="Record" representedClassName="PKRecord" syncable="YES">
+        <attribute name="creationDate" attributeType="Date" indexed="YES" syncable="YES"/>
+        <attribute name="date" attributeType="Date" indexed="YES" syncable="YES"/>
+        <attribute name="detailedDescription" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="login" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="password" optional="YES" attributeType="Transformable" valueTransformerName="PKPasswordTransformer" syncable="YES"/>
+        <attribute name="title" attributeType="String" syncable="YES"/>
+        <attribute name="uuid" attributeType="String" syncable="YES"/>
+        <relationship name="folder" maxCount="1" deletionRule="Nullify" destinationEntity="Folder" inverseName="records" inverseEntity="Folder" syncable="YES"/>
+        <compoundIndexes>
+            <compoundIndex>
+                <index value="title"/>
+                <index value="login"/>
+                <index value="detailedDescription"/>
+                <index value="date"/>
+                <index value="creationDate"/>
+            </compoundIndex>
+        </compoundIndexes>
+    </entity>
+    <elements>
+        <element name="DeletedObject" positionX="-10118" positionY="-9018" width="128" height="73"/>
+        <element name="Folder" positionX="-10305" positionY="-8937" width="128" height="103"/>
+        <element name="Record" positionX="-9947" positionY="-8932" width="128" height="163"/>
+    </elements>
+</model>

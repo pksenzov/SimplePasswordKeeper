@@ -14,6 +14,7 @@ import CloudKit
 private extension Selector {
     static let applicationDidTimeout        = #selector(PKAppDelegate.applicationDidTimeout)
     static let applicationDidTimeoutClear   = #selector(PKAppDelegate.applicationDidTimeoutClear)
+    static let pasteboardChanged            = #selector(PKAppDelegate.pasteboardChanged(_:))
 }
 
 class PKAppDelegate: UIResponder, UIApplicationDelegate {
@@ -27,6 +28,18 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
         return _managedObjectContext!
     }
     var _managedObjectContext: NSManagedObjectContext? = nil
+    
+    let app = UIApplication.sharedApplication() as? PKTimerApplication
+    
+    // MARK: - My Functions
+    
+    func cancelTimerIfBackgrounded() {
+        if UIApplication.sharedApplication().applicationState == .Background {
+            self.app?.cancelClearTimer()
+            
+            isNeededClearTimerRestart = true
+        }
+    }
     
     // MARK: - iCloud
     
@@ -49,13 +62,15 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
     
     func applicationDidTimeoutClear() {
         UIPasteboard.generalPasteboard().string = ""
+        self.cancelTimerIfBackgrounded()
+    }
+    
+    func pasteboardChanged(notification: NSNotification) {
+        let seconds = NSUserDefaults.standardUserDefaults().integerForKey(kSettingsClearClipboard)
+        guard seconds != 0 else { return }
         
-        if UIApplication.sharedApplication().applicationState == .Background {
-            let app = UIApplication.sharedApplication() as? PKTimerApplication
-            app?.cancelClearTimer()
-            
-            isNeededClearTimerRestart = true
-        }
+        self.app?.resetClearIdleTimer()
+        self.cancelTimerIfBackgrounded()
     }
     
     // MARK: - Application Lifecycle
@@ -70,6 +85,7 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
         
         NSNotificationCenter.defaultCenter().addObserver(self, selector: .applicationDidTimeout, name: kApplicationDidTimeoutNotification, object: nil)
         NSNotificationCenter.defaultCenter().addObserver(self, selector: .applicationDidTimeoutClear, name: kApplicationDidTimeoutClearNotification, object: nil)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: .pasteboardChanged, name: UIPasteboardChangedNotification, object: nil)
         
         if PKAppDelegate.iCloudAccountIsSignedIn() && NSUserDefaults.standardUserDefaults().boolForKey(kSettingsICloud) {
             PKServerManager.sharedManager.sync()
@@ -97,7 +113,7 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
             topVC = PKServerManager.getTopViewController()
         }
         
-        let seconds = Double(NSUserDefaults.standardUserDefaults().integerForKey(kSettingsClearClipboard))
+        let seconds = NSUserDefaults.standardUserDefaults().integerForKey(kSettingsClearClipboard)
         if seconds != 0 { UIPasteboard.generalPasteboard().string = "" }
         
         if isLocked && !(topVC is PKLoginViewController) {
@@ -197,9 +213,7 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
         
         if isNeededClearTimerRestart {
             isNeededClearTimerRestart = false
-            
-            let app = UIApplication.sharedApplication() as? PKTimerApplication
-            app?.resetClearIdleTimer()
+            self.app?.resetClearIdleTimer()
         }
         
         print("APPLICATION DELEGATE - applicationDidBecomeActive")

@@ -163,6 +163,8 @@ class PKSettingsTableViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         self.upperToolbar.clipsToBounds = true
+        self.tableView.delegate = self //fixing bug
+        
         // FIXME: - Add editButton everywhere needed
         // self.navigationItem.rightBarButtonItem = self.editButtonItem()
     }
@@ -186,6 +188,14 @@ class PKSettingsTableViewController: UITableViewController {
         } else if segue.identifier == "ClearClipboardSegue" {
             let vc = segue.destinationViewController as! PKClearClipboardTableViewController
             vc.seconds = self.clearClipboardTime
+        }
+    }
+    
+    override func tableView(tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        if section == 0 {
+            return 30.0 //?
+        } else {
+            return super.tableView(tableView, heightForHeaderInSection: section)
         }
     }
     

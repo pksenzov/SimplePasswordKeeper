@@ -51,7 +51,6 @@ class PKTimerApplication: UIApplication {
         cancel_delay(self.idleClearTimer)
         
         let seconds = Double(NSUserDefaults.standardUserDefaults().integerForKey(kSettingsClearClipboard))
-        
         guard seconds != 0 else { return }
         
         self.idleClearTimer = delay(seconds) { self.clearIdleTimerExceeded() }
@@ -59,11 +58,10 @@ class PKTimerApplication: UIApplication {
     
     func clearIdleTimerExceeded() {
         NSNotificationCenter.defaultCenter().postNotificationName(kApplicationDidTimeoutClearNotification, object: nil)
-        self.resetClearIdleTimer()
+        //self.resetClearIdleTimer()
     }
     
     func cancelClearTimer() {
         cancel_delay(self.idleClearTimer)
     }
-    
 }

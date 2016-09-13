@@ -452,8 +452,8 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
-        self.navigationController?.navigationBar.setBackgroundImage(UIImage(), forBarPosition: .Any, barMetrics: .Default)
-        self.navigationController?.navigationBar.shadowImage = UIImage()
+//        self.navigationController?.navigationBar.setBackgroundImage(UIImage(), forBarPosition: .Any, barMetrics: .Default)
+//        self.navigationController?.navigationBar.shadowImage = UIImage()
     }
     
     override func viewDidAppear(animated: Bool) {
