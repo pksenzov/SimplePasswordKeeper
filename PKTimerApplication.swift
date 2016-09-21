@@ -20,13 +20,13 @@ class PKTimerApplication: UIApplication {
     
     // MARK: - AutoLock Timer
     
-    override func sendEvent(event: UIEvent) {
+    override func sendEvent(_ event: UIEvent) {
         super.sendEvent(event)
         
-        if let allTouches = event.allTouches() {
+        if let allTouches = event.allTouches {
             if allTouches.count > 0 {
                 let phase = allTouches.first?.phase
-                if phase == .Began {
+                if phase == .began {
                     self.resetIdleTimer()
                 }
             }
@@ -36,12 +36,12 @@ class PKTimerApplication: UIApplication {
     func resetIdleTimer() {
         cancel_delay(self.idleTimer)
         
-        let seconds = Double(NSUserDefaults.standardUserDefaults().integerForKey(kSettingsAutoLock) * 60)
+        let seconds = Double(UserDefaults.standard.integer(forKey: kSettingsAutoLock) * 60)
         self.idleTimer = delay(seconds) { self.idleTimerExceeded() }
     }
     
     func idleTimerExceeded() {
-        NSNotificationCenter.defaultCenter().postNotificationName(kApplicationDidTimeoutNotification, object: nil)
+        NotificationCenter.default.post(name: Notification.Name(rawValue: kApplicationDidTimeoutNotification), object: nil)
         self.resetIdleTimer()
     }
     
@@ -50,14 +50,14 @@ class PKTimerApplication: UIApplication {
     func resetClearIdleTimer() {
         cancel_delay(self.idleClearTimer)
         
-        let seconds = Double(NSUserDefaults.standardUserDefaults().integerForKey(kSettingsClearClipboard))
+        let seconds = Double(UserDefaults.standard.integer(forKey: kSettingsClearClipboard))
         guard seconds != 0 else { return }
         
         self.idleClearTimer = delay(seconds) { self.clearIdleTimerExceeded() }
     }
     
     func clearIdleTimerExceeded() {
-        NSNotificationCenter.defaultCenter().postNotificationName(kApplicationDidTimeoutClearNotification, object: nil)
+        NotificationCenter.default.post(name: Notification.Name(rawValue: kApplicationDidTimeoutClearNotification), object: nil)
         //self.resetClearIdleTimer()
     }
     

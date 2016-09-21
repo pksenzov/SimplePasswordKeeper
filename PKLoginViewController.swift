@@ -24,13 +24,13 @@ class PKLoginViewController: UIViewController {
     
     // MARK: - Actions
     
-    @IBAction func enterAction(sender: UIButton) { self.authenticateUser() }
+    @IBAction func enterAction(_ sender: UIButton) { self.authenticateUser() }
     
     // MARK: - Notifications
     
     func applicationWillResignActive() {
         if self.presentedViewController != nil {
-            self.dismissViewControllerAnimated(false, completion: nil)
+            self.dismiss(animated: false, completion: nil)
         }
     }
     
@@ -43,16 +43,16 @@ class PKLoginViewController: UIViewController {
     
     // MARK: - Init & Deinit
     
-    deinit { NSNotificationCenter.defaultCenter().removeObserver(self) }
+    deinit { NotificationCenter.default.removeObserver(self) }
     
     // MARK: - My Functions
     
-    func showAlert(text text: (String, String, String), action: ((UIAlertAction) -> ())?) {
-        let alertController = UIAlertController(title: text.0, message: text.1, preferredStyle: .Alert)
-        let action = UIAlertAction(title: text.2, style: .Default, handler: action)
+    func showAlert(text: (String, String, String), action: ((UIAlertAction) -> ())?) {
+        let alertController = UIAlertController(title: text.0, message: text.1, preferredStyle: .alert)
+        let action = UIAlertAction(title: text.2, style: .default, handler: action)
         
         alertController.addAction(action)
-        self.presentViewController(alertController, animated: true, completion: nil)
+        self.present(alertController, animated: true, completion: nil)
     }
     
     func authenticateUser() {
@@ -60,33 +60,33 @@ class PKLoginViewController: UIViewController {
         var error: NSError?
         let reasonString = "Authentication is needed to protect your passwords."
         let settingsAction: ((UIAlertAction) -> ()) = { action in
-            let settingsURL = NSURL(string: UIApplicationOpenSettingsURLString)!
+            let settingsURL = URL(string: UIApplicationOpenSettingsURLString)!
             
-            dispatch_async(dispatch_get_main_queue(), { UIApplication.sharedApplication().openURL(settingsURL) })
+            DispatchQueue.main.async(execute: { UIApplication.shared.openURL(settingsURL) })
         }
         
         context.localizedFallbackTitle = ""
         
-        guard context.canEvaluatePolicy(.DeviceOwnerAuthenticationWithBiometrics, error: &error) else {
+        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
             switch error!.code {
-            case LAError.TouchIDNotEnrolled.rawValue:
+            case LAError.Code.touchIDNotEnrolled.rawValue:
                 self.showAlert(text: ("Touch ID is NOT enrolled", "Please, enroll your fingers!\nSettings -> Touch ID & Passcode", "Settings"), action: settingsAction)
                 self.isRepeatAlert = true
-            case LAError.TouchIDNotAvailable.rawValue:
+            case LAError.Code.touchIDNotAvailable.rawValue:
                 self.showAlert(text: ("Touch ID is NOT available on the device", "Sorry, you can NOT use this application.\nPlease, exit the application", "Okay"), action: nil)
-            case LAError.PasscodeNotSet.rawValue:
+            case LAError.Code.passcodeNotSet.rawValue:
                 self.showAlert(text: ("A passcode has not been set", "Please, set a passcode on your device!\nSettings -> Touch ID & Passcode", "Settings"), action: settingsAction)
                 self.isRepeatAlert = true
-            case LAError.InvalidContext.rawValue:
+            case LAError.Code.invalidContext.rawValue:
                 self.showAlert(text: ("Context has been previously invalidated", "Oops... something has gone wrong, please restart the application!", "Ok"), action: nil)
-            case LAError.TouchIDLockout.rawValue:
+            case LAError.Code.touchIDLockout.rawValue:
                 self.showAlert(text:  ("Authentication was not successful",
                     "There were too many failed Touch ID attempts and Touch ID is now locked. Please, enter your passcode in Settings for unlock Touch ID" +
                     "\nSettings -> Touch ID & Passcode",
                     "Settings"),
                                action: settingsAction)
                 self.isRepeatAlert = true
-            case LAError.AppCancel.rawValue:
+            case LAError.Code.appCancel.rawValue:
                 self.showAlert(text: ("Authentication was canceled by application", "Oops... something has gone wrong, please restart the application!", "Ok"), action: nil)
             default:
                 self.showAlert(text: ("Touch ID is NOT available on the device", "Sorry, you can NOT use this application.\nPlease, exit the application", "Okay"), action: nil)
@@ -95,10 +95,10 @@ class PKLoginViewController: UIViewController {
             return
         }
         
-        context.evaluatePolicy(.DeviceOwnerAuthenticationWithBiometrics, localizedReason: reasonString, reply: { (success, evalPolicyError) in
+        context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reasonString, reply: { (success, evalPolicyError) in
             
             if success {
-                NSOperationQueue.mainQueue().addOperationWithBlock() {
+                OperationQueue.main.addOperation() {
                     isLocked = false
                     
                     self.delegate?.loadData()
@@ -106,23 +106,23 @@ class PKLoginViewController: UIViewController {
                     if isSpotlightWaiting {
                         isSpotlightWaiting = false
                         
-                        let rootVC = UIApplication.sharedApplication().windows.first?.rootViewController
-                        rootVC?.dismissViewControllerAnimated(true, completion: nil)
+                        let rootVC = UIApplication.shared.windows.first?.rootViewController
+                        rootVC?.dismiss(animated: true, completion: nil)
                     } else {
                         if self.presentingViewController is PKBlankViewController {
                             let blankVC = self.presentingViewController
-                            blankVC?.presentingViewController?.dismissViewControllerAnimated(true, completion: nil)
+                            blankVC?.presentingViewController?.dismiss(animated: true, completion: nil)
                         } else {
-                            self.dismissViewControllerAnimated(true, completion: nil)
+                            self.dismiss(animated: true, completion: nil)
                         }
                     }
                 }
             } else {
-                switch evalPolicyError!.code {
-                case LAError.SystemCancel.rawValue, LAError.UserCancel.rawValue, LAError.AuthenticationFailed.rawValue:
+                switch (evalPolicyError! as NSError).code {
+                case LAError.Code.systemCancel.rawValue, LAError.Code.userCancel.rawValue, LAError.Code.authenticationFailed.rawValue:
                     return
-                case LAError.TouchIDLockout.rawValue:
-                    NSOperationQueue.mainQueue().addOperationWithBlock() {
+                case LAError.Code.touchIDLockout.rawValue:
+                    OperationQueue.main.addOperation() {
                         self.showAlert(text:  ("Authentication was not successful",
                             "There were too many failed Touch ID attempts and Touch ID is now locked. Please, enter your passcode in Settings for unlock Touch ID" +
                             "\nSettings -> Touch ID & Passcode",
@@ -130,16 +130,16 @@ class PKLoginViewController: UIViewController {
                             action: settingsAction)
                     }
                     self.isRepeatAlert = true
-                case LAError.AppCancel.rawValue:
-                    NSOperationQueue.mainQueue().addOperationWithBlock() {
+                case LAError.Code.appCancel.rawValue:
+                    OperationQueue.main.addOperation() {
                         self.showAlert(text: ("Authentication was canceled by application", "Oops... something has gone wrong, please restart the application!", "Ok"), action: nil)
                     }
-                case LAError.InvalidContext.rawValue:
-                    NSOperationQueue.mainQueue().addOperationWithBlock({
+                case LAError.Code.invalidContext.rawValue:
+                    OperationQueue.main.addOperation({
                         self.showAlert(text: ("Context has been previously invalidated", "Oops... something has gone wrong, please restart the application!", "Ok"), action: nil)
                     })
                 default:
-                    NSOperationQueue.mainQueue().addOperationWithBlock() {
+                    OperationQueue.main.addOperation() {
                         self.showAlert(text: ("Authentication failed", "Oops... something has gone wrong, please restart the application!", "Ok"), action: nil)
                     }
                 }
@@ -153,16 +153,16 @@ class PKLoginViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: .applicationDidBecomeActive, name: UIApplicationDidBecomeActiveNotification, object: nil)
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: .applicationWillResignActive, name: UIApplicationWillResignActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: .applicationDidBecomeActive, name: NSNotification.Name.UIApplicationDidBecomeActive, object: nil)
+        NotificationCenter.default.addObserver(self, selector: .applicationWillResignActive, name: NSNotification.Name.UIApplicationWillResignActive, object: nil)
     }
     
-    override func viewDidAppear(animated: Bool) {
+    override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
-        let state = UIApplication.sharedApplication().applicationState
+        let state = UIApplication.shared.applicationState
         
-        if (state == .Active) {
+        if (state == .active) {
             self.authenticateUser()
         } else {
             self.isRepeatAlert = true

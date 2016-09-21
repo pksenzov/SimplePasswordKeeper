@@ -10,6 +10,27 @@ import UIKit
 import ChameleonFramework
 import CoreData
 
+fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
+  switch (lhs, rhs) {
+  case let (l?, r?):
+    return l < r
+  case (nil, _?):
+    return true
+  default:
+    return false
+  }
+}
+
+fileprivate func > <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
+  switch (lhs, rhs) {
+  case let (l?, r?):
+    return l > r
+  default:
+    return rhs < lhs
+  }
+}
+
+
 private extension Selector {
     static let handleTextFieldTextDidChange = #selector(PKFoldersTableViewController.handleTextFieldTextDidChange)
 }
@@ -20,6 +41,7 @@ protocol PKMoveRecordsControllerDelegate {
 
 class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, NSFetchedResultsControllerDelegate {
     @IBOutlet weak var navigationBar: UINavigationBar!
+    @IBOutlet weak var tableView: UITableView!
     
     var inputTextField: UITextField?
     var saveAlertAction: UIAlertAction?
@@ -29,13 +51,13 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
     var selectedFolderName = String()
     var destinationFolder: PKFolder! = nil
     
-    var fetchedResultsController: NSFetchedResultsController {
+    var fetchedResultsController: NSFetchedResultsController<NSFetchRequestResult> {
         if _fetchedResultsController != nil {
             return _fetchedResultsController!
         }
         
-        let fetchRequest = NSFetchRequest()
-        let entity = NSEntityDescription.entityForName("Folder", inManagedObjectContext: self.managedObjectContext)
+        let fetchRequest: NSFetchRequest<NSFetchRequestResult> = NSFetchRequest()
+        let entity = NSEntityDescription.entity(forEntityName: "Folder", in: self.managedObjectContext)
         let sortDescriptor = NSSortDescriptor(key: "name", ascending: true)
         
         fetchRequest.entity = entity
@@ -54,7 +76,7 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
         
         return _fetchedResultsController!
     }
-    var _fetchedResultsController: NSFetchedResultsController? = nil
+    var _fetchedResultsController: NSFetchedResultsController<NSFetchRequestResult>? = nil
     
     var managedObjectContext: NSManagedObjectContext {
         if _managedObjectContext == nil {
@@ -67,59 +89,59 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
     
     // MARK: - My Functions
     
-    func updateNotes(name: String?) {
+    func updateNotes(_ name: String?) {
         var folder: PKFolder
         
         if let name = name {
             folder = self.managedObjectContext.insertObject()
             folder.name = name
-            folder.date = NSDate()
-            folder.uuid = NSUUID().UUIDString
+            folder.date = Date()
+            folder.uuid = UUID().uuidString
             
             PKCoreDataManager.sharedManager.saveContext()
         } else {
             folder = self.destinationFolder
-            folder.date = NSDate()
+            folder.date = Date()
         }
         
         self.records.forEach() {
             $0.folder = folder
-            $0.date = NSDate()
+            $0.date = Date()
         }
         
         PKCoreDataManager.sharedManager.saveContext()
         
         self.delegate?.disableEditMode()
-        self.dismissViewControllerAnimated(true, completion: nil)
+        self.dismiss(animated: true, completion: nil)
     }
     
     func showNameTakenAlert() {
-        let alertController = UIAlertController(title: "Name Taken", message: "Please choose a different name.", preferredStyle: .Alert)
-        let action = UIAlertAction(title: "OK", style: .Default, handler: nil)
+        let alertController = UIAlertController(title: "Name Taken", message: "Please choose a different name.", preferredStyle: .alert)
+        let action = UIAlertAction(title: "OK", style: .default, handler: nil)
         
         alertController.addAction(action)
-        self.presentViewController(alertController, animated: true, completion: nil)
+        self.present(alertController, animated: true, completion: nil)
     }
     
     // MARK: - Notifications
     
     func handleTextFieldTextDidChange() {
-        self.saveAlertAction!.enabled = self.inputTextField?.text?.characters.count > 0
+        self.saveAlertAction!.isEnabled = self.inputTextField?.text?.characters.count > 0
     }
     
     // MARK: - Actions
     
-    @IBAction func cancelAction(sender: UIBarButtonItem) {
-        self.dismissViewControllerAnimated(true, completion: nil)
+    @IBAction func cancelAction(_ sender: UIBarButtonItem) {
+        self.dismiss(animated: true, completion: nil)
     }
     
     // MARK: - Table View
     
-    func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
-        if indexPath.row == 0 {
-            let alertController = UIAlertController(title: "New Folder", message: "Enter a name for this folder.", preferredStyle: .Alert)
-            let cancelAction = UIAlertAction(title: "Cancel", style: .Cancel, handler: nil)
-            let saveAction = UIAlertAction(title: "Save", style: .Default) { _ in
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        if (indexPath as NSIndexPath).row == 0 {
+            let alertController = UIAlertController(title: "New Folder", message: "Enter a name for this folder.", preferredStyle: .alert)
+            let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
+            let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
                 let folderName = (self.inputTextField?.text)!
                 
                 guard !self.names.contains(folderName) else {
@@ -130,64 +152,64 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
                 self.updateNotes(folderName)
             }
             
-            saveAction.enabled = false
+            saveAction.isEnabled = false
             self.saveAlertAction = saveAction
             
             alertController.view.tag = 1003
             alertController.addAction(cancelAction)
             alertController.addAction(saveAction)
-            alertController.addTextFieldWithConfigurationHandler {
+            alertController.addTextField {
                 self.inputTextField = $0
                 $0.tag = 103
                 $0.placeholder = "Name"
-                $0.clearButtonMode = .WhileEditing
-                $0.keyboardAppearance = .Dark
-                $0.autocapitalizationType = .Words
+                $0.clearButtonMode = .whileEditing
+                $0.keyboardAppearance = .dark
+                $0.autocapitalizationType = .words
                 
-                NSNotificationCenter.defaultCenter().removeObserver(self)
-                NSNotificationCenter.defaultCenter().addObserver(self, selector: .handleTextFieldTextDidChange,
-                    name: UITextFieldTextDidChangeNotification,
+                NotificationCenter.default.removeObserver(self)
+                NotificationCenter.default.addObserver(self, selector: .handleTextFieldTextDidChange,
+                    name: NSNotification.Name.UITextFieldTextDidChange,
                     object: $0)
             }
             
-            self.presentViewController(alertController, animated: true, completion: nil)
+            self.present(alertController, animated: true, completion: nil)
         } else {
-            let newIndexPath = NSIndexPath(forRow: indexPath.row - 1, inSection: 0)
-            self.destinationFolder = self.fetchedResultsController.objectAtIndexPath(newIndexPath) as! PKFolder
+            let newIndexPath = IndexPath(row: (indexPath as NSIndexPath).row - 1, section: 0)
+            self.destinationFolder = self.fetchedResultsController.object(at: newIndexPath) as! PKFolder
             
             self.updateNotes(nil)
         }
         
-        tableView.deselectRowAtIndexPath(indexPath, animated: true)
+        tableView.deselectRow(at: indexPath, animated: true)
     }
     
-    func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         let sectionInfo = self.fetchedResultsController.sections![section]
         return sectionInfo.numberOfObjects + 1
     }
     
-    func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
-        let shortPath = (indexPath.section, indexPath.row)
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let shortPath = ((indexPath as NSIndexPath).section, (indexPath as NSIndexPath).row)
         
         switch shortPath {
         case (0, 0):
-            let cell = tableView.dequeueReusableCellWithIdentifier("NewFolderCell", forIndexPath: indexPath)
+            let cell = tableView.dequeueReusableCell(withIdentifier: "NewFolderCell", for: indexPath)
             cell.textLabel?.text = "New Folder"
-            cell.textLabel?.textColor = .flatSkyBlueColor()
-            cell.textLabel?.font = UIFont.boldSystemFontOfSize(17.0)
+            cell.textLabel?.textColor = .flatSkyBlue()
+            cell.textLabel?.font = UIFont.boldSystemFont(ofSize: 17.0)
             
             return cell
         default:
-            let newIndexPath = NSIndexPath(forRow: indexPath.row - 1, inSection: 0)
-            let folder = self.fetchedResultsController.objectAtIndexPath(newIndexPath) as! PKFolder
-            let cell = tableView.dequeueReusableCellWithIdentifier("FolderCell", forIndexPath: indexPath)
+            let newIndexPath = IndexPath(row: (indexPath as NSIndexPath).row - 1, section: 0)
+            let folder = self.fetchedResultsController.object(at: newIndexPath) as! PKFolder
+            let cell = tableView.dequeueReusableCell(withIdentifier: "FolderCell", for: indexPath)
             
             cell.textLabel?.text = folder.name
             cell.detailTextLabel?.text = "\(folder.records!.count)"
             
             if folder.name == self.selectedFolderName {
-                cell.userInteractionEnabled = false
-                cell.textLabel?.textColor = .grayColor()
+                cell.isUserInteractionEnabled = false
+                cell.textLabel?.textColor = .gray
             }
             
             return cell
@@ -196,12 +218,12 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
     
     // MARK: - Views
     
-    override func viewWillDisappear(animated: Bool) {
+    override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         //NSNotificationCenter.defaultCenter().removeObserver(self)
     }
     
-    override func viewWillAppear(animated: Bool) {
+    override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
 //        self.navigationBar.setBackgroundImage(UIImage(), forBarPosition: .Any, barMetrics: .Default)
@@ -212,6 +234,7 @@ class PKMoveRecordsViewController: UIViewController, UITableViewDataSource, UITa
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        self.tableView.tableFooterView = UIView()
         
         let folders = self.fetchedResultsController.fetchedObjects as! [PKFolder]
         guard folders.count != 0 else { return }

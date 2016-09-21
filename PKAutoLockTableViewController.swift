@@ -8,7 +8,7 @@
 
 import UIKit
 
-class PKAutoLockTableViewController: UITableViewController {
+class PKAutoLockTableViewController: UITableViewController, UIToolbarDelegate {
     var minutes: Int!
     let rowIndexes = [1:0, 2:1, 5:2, 10:3, 15:4, 30:5, 60:6]
     
@@ -16,13 +16,19 @@ class PKAutoLockTableViewController: UITableViewController {
     
     @IBOutlet weak var autoLockLabel: UILabel! {
         didSet {
-            autoLockLabel.font = UIFont.preferredFontForTextStyle(UIFontTextStyleHeadline)
+            autoLockLabel.font = UIFont.preferredFont(forTextStyle: UIFontTextStyle.headline)
         }
+    }
+    
+    // MARK: - UIToolbarDelegate
+    
+    func position(for bar: UIBarPositioning) -> UIBarPosition {
+        return .topAttached
     }
     
     // MARK: - Actions
     
-    @IBAction func cancelAction(sender: UIBarButtonItem) { self.dismissViewControllerAnimated(true, completion: nil) }
+    @IBAction func cancelAction(_ sender: UIBarButtonItem) { self.dismiss(animated: true, completion: nil) }
     
     // MARK: - Views
     
@@ -33,29 +39,31 @@ class PKAutoLockTableViewController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.upperToolbar.clipsToBounds = true
+        //self.upperToolbar.clipsToBounds = true
+        self.upperToolbar.delegate = self
+        tableView.tableFooterView = UIView()
     }
     
-    override func viewWillAppear(animated: Bool) {
+    override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        self.tableView.cellForRowAtIndexPath(NSIndexPath(forRow: self.rowIndexes[self.minutes]!, inSection: 0))?.accessoryType = .Checkmark
+        self.tableView.cellForRow(at: IndexPath(row: self.rowIndexes[self.minutes]!, section: 0))?.accessoryType = .checkmark
     }
 
     // MARK: - Table View 
     
-    override func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let minutes = self.rowIndexes.filter() {
-            $0.1 == indexPath.row
+            $0.1 == (indexPath as NSIndexPath).row
         }.first!.0
         
-        NSUserDefaults.standardUserDefaults().setInteger(minutes, forKey: kSettingsAutoLock)
+        UserDefaults.standard.set(minutes, forKey: kSettingsAutoLock)
         
-        let app = UIApplication.sharedApplication() as? PKTimerApplication
+        let app = UIApplication.shared as? PKTimerApplication
         app?.resetIdleTimer()
         
-        tableView.cellForRowAtIndexPath(NSIndexPath(forRow: self.rowIndexes[self.minutes]!, inSection: 0))?.accessoryType = .None
-        tableView.cellForRowAtIndexPath(indexPath)?.accessoryType = .Checkmark
+        tableView.cellForRow(at: IndexPath(row: self.rowIndexes[self.minutes]!, section: 0))?.accessoryType = .none
+        tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
         
-        self.dismissViewControllerAnimated(true, completion: nil)
+        self.dismiss(animated: true, completion: nil)
     }
 }

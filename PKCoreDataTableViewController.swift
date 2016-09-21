@@ -19,26 +19,27 @@ class PKCoreDataTableViewController: UITableViewController, NSFetchedResultsCont
     }
     var _managedObjectContext: NSManagedObjectContext? = nil
     
-    var fetchedResultsController: NSFetchedResultsController! {
+    var fetchedResultsController: NSFetchedResultsController<NSFetchRequestResult>! {
         return nil
     }
     
     var isSelected = false
-    var newIndexPath: NSIndexPath?
+    var newIndexPath: IndexPath?
     
     // MARK: - Views
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        tableView.tableFooterView = UIView()
     }
 
     // MARK: - Table View
     
-    override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
+    override func numberOfSections(in tableView: UITableView) -> Int {
         return self.fetchedResultsController.sections?.count ?? 0
     }
     
-    override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         let sectionInfo = self.fetchedResultsController.sections![section]
         return sectionInfo.numberOfObjects
     }
@@ -74,50 +75,50 @@ class PKCoreDataTableViewController: UITableViewController, NSFetchedResultsCont
 //        tableView.deselectRowAtIndexPath(indexPath, animated: true)
 //    }
     
-    func configureCell(cell: UITableViewCell, atIndexPath indexPath: NSIndexPath) {}
+    func configureCell(_ cell: UITableViewCell, atIndexPath indexPath: IndexPath) {}
     
     // MARK: - Fetched results controller
     
-    func controllerWillChangeContent(controller: NSFetchedResultsController) {
+    func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
         self.tableView.beginUpdates()
     }
     
-    func controller(controller: NSFetchedResultsController, didChangeSection sectionInfo: NSFetchedResultsSectionInfo, atIndex sectionIndex: Int, forChangeType type: NSFetchedResultsChangeType) {
+    func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange sectionInfo: NSFetchedResultsSectionInfo, atSectionIndex sectionIndex: Int, for type: NSFetchedResultsChangeType) {
         switch type {
-        case .Insert:
-            self.tableView.insertSections(NSIndexSet(index: sectionIndex), withRowAnimation: .Fade)
-        case .Delete:
-            self.tableView.deleteSections(NSIndexSet(index: sectionIndex), withRowAnimation: .Fade)
+        case .insert:
+            self.tableView.insertSections(IndexSet(integer: sectionIndex), with: .fade)
+        case .delete:
+            self.tableView.deleteSections(IndexSet(integer: sectionIndex), with: .fade)
         default:
             return
         }
     }
     
-    func controller(controller: NSFetchedResultsController, didChangeObject anObject: AnyObject, atIndexPath indexPath: NSIndexPath?, forChangeType type: NSFetchedResultsChangeType, newIndexPath: NSIndexPath?) {
+    func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
         switch type {
-        case .Insert:
-            tableView.insertRowsAtIndexPaths([newIndexPath!], withRowAnimation: .Fade)
-        case .Delete:
-            tableView.deleteRowsAtIndexPaths([indexPath!], withRowAnimation: .Fade)
-        case .Update:
-            let cell = tableView.cellForRowAtIndexPath(indexPath!)
+        case .insert:
+            tableView.insertRows(at: [newIndexPath!], with: .fade)
+        case .delete:
+            tableView.deleteRows(at: [indexPath!], with: .fade)
+        case .update:
+            let cell = tableView.cellForRow(at: indexPath!)
             guard cell != nil else { return }
             
             self.configureCell(cell!, atIndexPath: indexPath!)
-        case .Move:
-            self.isSelected = tableView.cellForRowAtIndexPath(indexPath!)?.selected ?? false
+        case .move:
+            self.isSelected = tableView.cellForRow(at: indexPath!)?.isSelected ?? false
             self.newIndexPath = newIndexPath
             
-            tableView.deleteRowsAtIndexPaths([indexPath!], withRowAnimation: .Fade)
-            tableView.insertRowsAtIndexPaths([newIndexPath!], withRowAnimation: .Fade)
+            tableView.deleteRows(at: [indexPath!], with: .fade)
+            tableView.insertRows(at: [newIndexPath!], with: .fade)
         }
     }
     
-    func controllerDidChangeContent(controller: NSFetchedResultsController) {
+    func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
         self.tableView.endUpdates()
         
         if self.isSelected {
-            tableView.selectRowAtIndexPath(self.newIndexPath, animated: false, scrollPosition: .None)
+            tableView.selectRow(at: self.newIndexPath, animated: false, scrollPosition: .none)
         }
     }
     

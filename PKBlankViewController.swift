@@ -17,17 +17,17 @@ class PKBlankViewController: UIViewController {
     // MARK: - Notifications
     
     func applicationDidBecomeActive() {
-        if self.presentedViewController == nil { self.dismissViewControllerAnimated(false, completion: nil) }
+        if self.presentedViewController == nil { self.dismiss(animated: false, completion: nil) }
     }
     
     // MARK: - Init & Deinit
     
-    deinit { NSNotificationCenter.defaultCenter().removeObserver(self) }
+    deinit { NotificationCenter.default.removeObserver(self) }
     
     // MARK: - Views
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: .applicationDidBecomeActive, name: UIApplicationDidBecomeActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: .applicationDidBecomeActive, name: NSNotification.Name.UIApplicationDidBecomeActive, object: nil)
     }
 }

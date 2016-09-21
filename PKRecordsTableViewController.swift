@@ -17,7 +17,7 @@ private extension Selector {
 }
 
 class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecordsControllerDelegate {
-    var currentDate: NSDate! = nil
+    var currentDate: Date! = nil
     var folder: PKFolder! = nil
     
     var addBarButton: UIBarButtonItem!
@@ -27,19 +27,19 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
     }()
     
     lazy var doneBarButton: UIBarButtonItem = {
-        return UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: .doneAction)
+        return UIBarButtonItem(barButtonSystemItem: .done, target: self, action: .doneAction)
     }()
     
     lazy var cancelBarButton: UIBarButtonItem = {
-        return UIBarButtonItem(barButtonSystemItem: .Cancel, target: self, action: .cancelAction)
+        return UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: .cancelAction)
     }()
     
     lazy var moveBarButton: UIBarButtonItem = {
-        return UIBarButtonItem(title: "Move All", style: .Plain, target: self, action: .moveAction)
+        return UIBarButtonItem(title: "Move All", style: .plain, target: self, action: .moveAction)
     }()
     
     lazy var deleteBarButton: UIBarButtonItem = {
-        return UIBarButtonItem(title: "Delete All", style: .Plain, target: self, action: .deleteAction)
+        return UIBarButtonItem(title: "Delete All", style: .plain, target: self, action: .deleteAction)
     }()
     
     lazy var editBarButton: UIBarButtonItem = {
@@ -52,17 +52,17 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
     
     @IBOutlet var recordsLabel: UILabel! {
         didSet {
-            recordsLabel.font = UIFont.preferredFontForTextStyle(UIFontTextStyleFootnote)
+            recordsLabel.font = UIFont.preferredFont(forTextStyle: UIFontTextStyle.footnote)
         }
     }
     
-    override var fetchedResultsController: NSFetchedResultsController {
+    override var fetchedResultsController: NSFetchedResultsController<NSFetchRequestResult> {
         if _fetchedResultsController != nil {
             return _fetchedResultsController!
         }
         
-        let fetchRequest = NSFetchRequest()
-        let entity = NSEntityDescription.entityForName("Record", inManagedObjectContext: self.managedObjectContext)
+        let fetchRequest: NSFetchRequest<NSFetchRequestResult> = NSFetchRequest()
+        let entity = NSEntityDescription.entity(forEntityName: "Record", in: self.managedObjectContext)
         let sortDescriptor = NSSortDescriptor(key: "date", ascending: false)
         let predicate = NSPredicate(format: "folder.name = %@", self.folder.name!)
         
@@ -88,7 +88,7 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
         
         return _fetchedResultsController!
     }
-    var _fetchedResultsController: NSFetchedResultsController? = nil
+    var _fetchedResultsController: NSFetchedResultsController<NSFetchRequestResult>? = nil
     
     // MARK: - PKMoveRecordsControllerDelegate
     
@@ -102,37 +102,37 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
         self.tableView.setEditing(false, animated: true)
     }
     
-    func deleteAction(barButtonItem: UIBarButtonItem) {
+    func deleteAction(_ barButtonItem: UIBarButtonItem) {
         let context = self.fetchedResultsController.managedObjectContext
         
         if barButtonItem.title == "Delete All" {
-            let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .ActionSheet)
+            let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
             
-            let deleteAction = UIAlertAction(title: "Delete All", style: .Destructive) { _ in
+            let deleteAction = UIAlertAction(title: "Delete All", style: .destructive) { _ in
                 self.fetchedResultsController.fetchedObjects?.forEach() {
-                    context.deleteObject($0 as! PKRecord)
+                    context.delete($0 as! PKRecord)
                 }
                 
-                self.folder.date = NSDate()
+                self.folder.date = Date()
                 
                 PKCoreDataManager.sharedManager.saveContext()
                 
                 self.cancelAction()
             }
             
-            let cancelAction = UIAlertAction(title: "Cancel", style: .Cancel, handler: nil)
+            let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
             
             alertController.addAction(deleteAction)
             alertController.addAction(cancelAction)
             
-            self.presentViewController(alertController, animated: true, completion: nil)
+            self.present(alertController, animated: true, completion: nil)
         } else {
             self.tableView.indexPathsForSelectedRows!.forEach {
-                let record = self.fetchedResultsController.objectAtIndexPath($0) as! PKRecord
-                context.deleteObject(record)
+                let record = self.fetchedResultsController.object(at: $0) as! PKRecord
+                context.delete(record)
             }
             
-            self.folder.date = NSDate()
+            self.folder.date = Date()
             
             PKCoreDataManager.sharedManager.saveContext()
             
@@ -140,8 +140,8 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
         }
     }
     
-    func moveAction(barButtonItem: UIBarButtonItem) {
-        let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewControllerWithIdentifier("PKMoveRecordsViewController") as! PKMoveRecordsViewController
+    func moveAction(_ barButtonItem: UIBarButtonItem) {
+        let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "PKMoveRecordsViewController") as! PKMoveRecordsViewController
         vc.delegate = self
         vc.selectedFolderName = self.folder.name!
         
@@ -151,14 +151,14 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
             var records = [PKRecord]()
             
             self.tableView.indexPathsForSelectedRows!.forEach {
-                let record = self.fetchedResultsController.objectAtIndexPath($0) as! PKRecord
+                let record = self.fetchedResultsController.object(at: $0) as! PKRecord
                 records.append(record)
             }
             
             vc.records = records
         }
         
-        self.navigationController?.presentViewController(vc, animated: true, completion: nil)
+        self.navigationController?.present(vc, animated: true, completion: nil)
     }
     
     func cancelAction() {
@@ -168,50 +168,50 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
         self.deleteBarButton.title = "Delete All"
     }
     
-    @IBAction func editAction(sender: UIBarButtonItem) {
+    @IBAction func editAction(_ sender: UIBarButtonItem) {
         self.changeToolbar(true)
     }
     
     // MARK: - Table View
     
-    override func tableView(tableView: UITableView, willBeginEditingRowAtIndexPath indexPath: NSIndexPath) {
-        self.navigationItem.setRightBarButtonItem(self.doneBarButton, animated: true)
+    override func tableView(_ tableView: UITableView, willBeginEditingRowAt indexPath: IndexPath) {
+        self.navigationItem.setRightBarButton(self.doneBarButton, animated: true)
     }
     
-    override func tableView(tableView: UITableView, didEndEditingRowAtIndexPath indexPath: NSIndexPath) {
-        self.navigationItem.setRightBarButtonItem(self.editBarButton, animated: true)
+    override func tableView(_ tableView: UITableView, didEndEditingRowAt indexPath: IndexPath?) {
+        self.navigationItem.setRightBarButton(self.editBarButton, animated: true)
     }
     
-    override func tableView(tableView: UITableView, editActionsForRowAtIndexPath indexPath: NSIndexPath) -> [UITableViewRowAction]? {
-        let move = UITableViewRowAction(style: .Normal, title: "Move") {_,_ in
-            let record = self.fetchedResultsController.objectAtIndexPath(indexPath) as! PKRecord
-            let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewControllerWithIdentifier("PKMoveRecordsViewController") as! PKMoveRecordsViewController
+    override func tableView(_ tableView: UITableView, editActionsForRowAt indexPath: IndexPath) -> [UITableViewRowAction]? {
+        let move = UITableViewRowAction(style: .normal, title: "Move") {_,_ in
+            let record = self.fetchedResultsController.object(at: indexPath) as! PKRecord
+            let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "PKMoveRecordsViewController") as! PKMoveRecordsViewController
             vc.selectedFolderName = self.folder.name!
             vc.records = [record]
             
-            self.navigationController?.presentViewController(vc, animated: true, completion: nil)
+            self.navigationController?.present(vc, animated: true, completion: nil)
         }
         
-        let delete = UITableViewRowAction(style: .Normal, title: "Delete") {_,_ in
-            let record = self.fetchedResultsController.objectAtIndexPath(indexPath) as! PKRecord
+        let delete = UITableViewRowAction(style: .normal, title: "Delete") {_,_ in
+            let record = self.fetchedResultsController.object(at: indexPath) as! PKRecord
             let context = self.fetchedResultsController.managedObjectContext
             
-            context.deleteObject(record)
-            self.folder.date = NSDate()
+            context.delete(record)
+            self.folder.date = Date()
             
             PKCoreDataManager.sharedManager.saveContext()
         }
         
-        delete.backgroundColor = .redColor()
+        delete.backgroundColor = .red
         
         return [delete, move]
     }
     
-    override func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {}
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {}
     
-    override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         let number = super.tableView(tableView, numberOfRowsInSection: section)
-        self.editBarButton.enabled = (number > 0)
+        self.editBarButton.isEnabled = (number > 0)
         
         switch number {
         case 0: self.recordsLabel.text = "No Records"
@@ -222,14 +222,14 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
         return number
     }
     
-    override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCellWithIdentifier("RecordCell", forIndexPath: indexPath)
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "RecordCell", for: indexPath)
         self.configureCell(cell, atIndexPath: indexPath)
         return cell
     }
     
-    override func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
-        if tableView.editing {
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        if tableView.isEditing {
             let selectedCount = tableView.indexPathsForSelectedRows!.count
             self.navigationItem.title = "\(selectedCount) Selected"
             
@@ -240,8 +240,8 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
         }
     }
     
-    override func tableView(tableView: UITableView, didDeselectRowAtIndexPath indexPath: NSIndexPath) {
-        if tableView.editing {
+    override func tableView(_ tableView: UITableView, didDeselectRowAt indexPath: IndexPath) {
+        if tableView.isEditing {
             if let selectedCount = tableView.indexPathsForSelectedRows?.count {
                 self.navigationItem.title = "\(selectedCount) Selected"
             } else {
@@ -254,47 +254,47 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
     
     // MARK: - My Functions
     
-    func changeToolbar(isEditing: Bool) {
+    func changeToolbar(_ isEditing: Bool) {
         self.tableView.setEditing(isEditing, animated: true)
-        self.navigationItem.setRightBarButtonItem(isEditing ? self.cancelBarButton : self.editBarButton, animated: true)
+        self.navigationItem.setRightBarButton(isEditing ? self.cancelBarButton : self.editBarButton, animated: true)
         self.navigationItem.setHidesBackButton(isEditing, animated: true)
         
         if isEditing {
-            self.toolbarButtons.insert(self.moveBarButton, atIndex: 0)
-            self.toolbarButtons.removeAtIndex(2)
+            self.toolbarButtons.insert(self.moveBarButton, at: 0)
+            self.toolbarButtons.remove(at: 2)
         } else {
             self.toolbarButtons.removeFirst()
-            self.toolbarButtons.insert(self.textBarButton, atIndex: 1)
+            self.toolbarButtons.insert(self.textBarButton, at: 1)
         }
         
         self.toolbarButtons[self.toolbarButtons.count - 1] = isEditing ? self.deleteBarButton : self.addBarButton
         self.setToolbarItems(self.toolbarButtons, animated: isEditing)
     }
     
-    func dateToString(date: NSDate) -> String {
-        let dateFormatter = NSDateFormatter()
-        let calendar = NSCalendar.currentCalendar()
-        let days = calendar.components(.Day, fromDate: date, toDate: self.currentDate, options: []).day
+    func dateToString(_ date: Date) -> String {
+        let dateFormatter = DateFormatter()
+        let calendar = Calendar.current
+        let days = calendar.dateComponents([.day], from: date, to: self.currentDate).day
         
         if calendar.isDateInToday(date) {
             dateFormatter.dateFormat = "HH:mm"
         } else if calendar.isDateInYesterday(date) {
             return "Yesterday"
-        } else if days < 6 {
+        } else if days! < 6 {
             dateFormatter.dateFormat = "EEEE"
-        } else if NSLocale.preferredLanguages()[0] == "en-US" {
+        } else if Locale.preferredLanguages[0] == "en-US" {
             dateFormatter.dateFormat = "MM/dd/yy HH:mm"
         } else {
             dateFormatter.dateFormat = "dd/MM/yy HH:mm"
         }
         
-        return dateFormatter.stringFromDate(date)
+        return dateFormatter.string(from: date)
     }
     
     // MARK: - CoreDataTableViewController
     
-    override func configureCell(cell: UITableViewCell, atIndexPath indexPath: NSIndexPath) {
-        let record = self.fetchedResultsController.objectAtIndexPath(indexPath) as! PKRecord
+    override func configureCell(_ cell: UITableViewCell, atIndexPath indexPath: IndexPath) {
+        let record = self.fetchedResultsController.object(at: indexPath) as! PKRecord
         cell.textLabel!.text = record.title
         cell.detailTextLabel!.text = dateToString(record.date!)
     }
@@ -304,28 +304,28 @@ class PKRecordsTableViewController: PKCoreDataTableViewController, PKMoveRecords
     override func viewDidLoad() {
         super.viewDidLoad()
         self.navigationItem.title = self.folder.name
-        self.toolbarItems?.insert(self.textBarButton, atIndex: 1)
+        self.toolbarItems?.insert(self.textBarButton, at: 1)
         self.addBarButton = self.toolbarButtons.last
     }
     
-    override func viewWillAppear(animated: Bool) {
+    override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        self.currentDate = NSDate()
+        self.currentDate = Date()
     }
     
     // MARK: - Navigation
     
-    override func shouldPerformSegueWithIdentifier(identifier: String, sender: AnyObject?) -> Bool {
-        return !self.tableView.editing
+    override func shouldPerformSegue(withIdentifier identifier: String, sender: Any?) -> Bool {
+        return !self.tableView.isEditing
     }
     
-    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
-        let vc = segue.destinationViewController as! PKRecordEditingViewController
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        let vc = segue.destination as! PKRecordEditingViewController
         vc.folder = self.folder
         
         if segue.identifier == "RecordsToEditingRecordSegue" {
-            let indexPath = self.tableView.indexPathForCell(sender as! UITableViewCell)
-            let record = self.fetchedResultsController.objectAtIndexPath(indexPath!) as! PKRecord
+            let indexPath = self.tableView.indexPath(for: sender as! UITableViewCell)
+            let record = self.fetchedResultsController.object(at: indexPath!) as! PKRecord
             
             vc.record = record
         }

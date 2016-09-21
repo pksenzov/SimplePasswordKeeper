@@ -11,8 +11,8 @@ import CloudKit
 
 struct PKRecordS: PKObjectS {
     let uuid: String
-    let creationDate: NSDate
-    let date: NSDate
+    let creationDate: Date
+    let date: Date
     let detailedDescription: String?
     let login: String?
     let password: NSObject?
@@ -32,11 +32,11 @@ struct PKRecordS: PKObjectS {
     
     init(record: CKRecord) {
         uuid                = record.recordID.recordName
-        creationDate        = record["creationDate"] as! NSDate
-        date                = record["date"] as! NSDate
+        creationDate        = record["creationDate"] as! Date
+        date                = record["date"] as! Date
         detailedDescription = record["detailedDescription"] as? String
         login               = record["login"] as? String
-        password            = record["password"] as? NSData
+        password            = record["password"] as? Data as NSObject?
         title               = record["title"] as! String
         folderUUID          = (record["folder"] as! CKReference).recordID.recordName
     }

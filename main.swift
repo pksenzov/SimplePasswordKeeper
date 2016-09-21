@@ -9,4 +9,7 @@
 import Foundation
 import UIKit
 
-UIApplicationMain(Process.argc, Process.unsafeArgv, NSStringFromClass(PKTimerApplication), NSStringFromClass(PKAppDelegate))
+UIApplicationMain(CommandLine.argc,
+                  UnsafeMutableRawPointer(CommandLine.unsafeArgv).bindMemory(to: UnsafeMutablePointer<Int8>.self, capacity: Int(CommandLine.argc)),
+                  NSStringFromClass(PKTimerApplication.self),
+                  NSStringFromClass(PKAppDelegate.self))

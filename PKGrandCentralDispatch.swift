@@ -8,25 +8,22 @@
 
 import Foundation
 
-typealias dispatch_cancelable_closure = (cancel: Bool) -> Void
+typealias dispatch_cancelable_closure = (_ cancel: Bool) -> Void
 
-func delay(time: NSTimeInterval, closure: () -> Void) -> dispatch_cancelable_closure? {
-    func dispatch_later(clsr: () -> Void) {
-        dispatch_after(
-            dispatch_time(
-                DISPATCH_TIME_NOW,
-                Int64(time * Double(NSEC_PER_SEC))
-            ),
-            dispatch_get_main_queue(), clsr)
+func delay(_ time: TimeInterval, closure: @escaping () -> Void) -> dispatch_cancelable_closure? {
+    func dispatch_later(_ clsr: @escaping () -> Void) {
+        DispatchQueue.main.asyncAfter(
+            deadline: DispatchTime.now() + Double(Int64(time * Double(NSEC_PER_SEC))) / Double(NSEC_PER_SEC), execute: clsr)
     }
     
-    var closure: dispatch_block_t? = closure
+    var closure: (()->())? = closure
     var cancelableClosure: dispatch_cancelable_closure?
     
     let delayedClosure: dispatch_cancelable_closure = { cancel in
         if closure != nil {
             if (cancel == false) {
-                dispatch_async(dispatch_get_main_queue(), closure!)
+                DispatchQueue.main.async(execute: closure!)
+                //DispatchQueue.main.async(execute: closure as! @convention(block) () -> Void)//
             }
         }
         
@@ -38,15 +35,15 @@ func delay(time: NSTimeInterval, closure: () -> Void) -> dispatch_cancelable_clo
     
     dispatch_later {
         if let delayedClosure = cancelableClosure {
-            delayedClosure(cancel: false)
+            delayedClosure(false)
         }
     }
     
     return cancelableClosure;
 }
 
-func cancel_delay(closure: dispatch_cancelable_closure?) {
+func cancel_delay(_ closure: dispatch_cancelable_closure?) {
     if closure != nil {
-        closure!(cancel: true)
+        closure!(true)
     }
 }

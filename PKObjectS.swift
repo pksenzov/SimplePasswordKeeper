@@ -10,5 +10,5 @@ import Foundation
 
 protocol PKObjectS {
     var uuid: String {get}
-    var date: NSDate {get}
+    var date: Date {get}
 }

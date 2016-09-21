@@ -15,8 +15,8 @@ import CoreData
 extension PKRecord {
     
     @NSManaged var uuid: String?
-    @NSManaged var creationDate: NSDate?
-    @NSManaged var date: NSDate?
+    @NSManaged var creationDate: Date?
+    @NSManaged var date: Date?
     @NSManaged var detailedDescription: String?
     @NSManaged var login: String?
     @NSManaged var password: NSObject?

@@ -8,6 +8,26 @@
 
 import UIKit
 import CoreData
+fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
+  switch (lhs, rhs) {
+  case let (l?, r?):
+    return l < r
+  case (nil, _?):
+    return true
+  default:
+    return false
+  }
+}
+
+fileprivate func > <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
+  switch (lhs, rhs) {
+  case let (l?, r?):
+    return l > r
+  default:
+    return rhs < lhs
+  }
+}
+
 
 private extension Selector {
     static let handleTextFieldTextDidChange = #selector(PKFoldersTableViewController.handleTextFieldTextDidChange)
@@ -27,7 +47,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     var addBarButton: UIBarButtonItem!
     
     lazy var doneBarButton: UIBarButtonItem = {
-        return UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: .doneAction)
+        return UIBarButtonItem(barButtonSystemItem: .done, target: self, action: .doneAction)
     }()
     
     lazy var editBarButton: UIBarButtonItem = {
@@ -39,8 +59,8 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     }()
     
     lazy var deleteBarButton: UIBarButtonItem = {
-        let barButton = UIBarButtonItem(title: "Delete", style: .Plain, target: self, action: .deleteAction)
-        barButton.enabled = false
+        let barButton = UIBarButtonItem(title: "Delete", style: .plain, target: self, action: .deleteAction)
+        barButton.isEnabled = false
         return barButton
     }()
     
@@ -52,13 +72,13 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         return UILongPressGestureRecognizer(target: self, action: .handleTap)
     }()
     
-    override var fetchedResultsController: NSFetchedResultsController {
+    override var fetchedResultsController: NSFetchedResultsController<NSFetchRequestResult> {
         if _fetchedResultsController != nil {
             return _fetchedResultsController!
         }
         
-        let fetchRequest = NSFetchRequest()
-        let entity = NSEntityDescription.entityForName("Folder", inManagedObjectContext: self.managedObjectContext)
+        let fetchRequest: NSFetchRequest<NSFetchRequestResult> = NSFetchRequest()
+        let entity = NSEntityDescription.entity(forEntityName: "Folder", in: self.managedObjectContext)
         let sortDescriptor = NSSortDescriptor(key: "name", ascending: true)
         
         fetchRequest.entity = entity
@@ -77,17 +97,17 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         
         return _fetchedResultsController!
     }
-    var _fetchedResultsController: NSFetchedResultsController? = nil
+    var _fetchedResultsController: NSFetchedResultsController<NSFetchRequestResult>? = nil
     
     // MARK: - Notifications
     
     func handleTextFieldTextDidChange() {
-        self.saveAlertAction!.enabled = self.inputTextField?.text?.characters.count > 0
+        self.saveAlertAction!.isEnabled = self.inputTextField?.text?.characters.count > 0
     }
     
     func keyboardDidShow() {
-        self.inputTextField?.selectedTextRange = self.inputTextField?.textRangeFromPosition(self.inputTextField!.beginningOfDocument,
-                                                                                            toPosition: self.inputTextField!.endOfDocument)
+        self.inputTextField?.selectedTextRange = self.inputTextField?.textRange(from: self.inputTextField!.beginningOfDocument,
+                                                                                            to: self.inputTextField!.endOfDocument)
     }
     
     // MARK: - Actions
@@ -96,7 +116,7 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         var folders = [PKFolder]()
         
         self.tableView.indexPathsForSelectedRows!.forEach {
-            let folder = self.fetchedResultsController.objectAtIndexPath($0) as! PKFolder
+            let folder = self.fetchedResultsController.object(at: $0) as! PKFolder
             
             folders.append(folder)
         }
@@ -109,21 +129,21 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         self.tableView.removeGestureRecognizer(self.tapGesture)
         self.tableView.removeGestureRecognizer(self.longTapGesture)
         self.navigationItem.title = self.navigationItemDefaultName
-        self.deleteBarButton.enabled = false
+        self.deleteBarButton.isEnabled = false
         self.changeButtons(rightBarButtonItem: self.editBarButton, toolbarButtonItem: self.addBarButton)
     }
     
-    @IBAction func editAction(sender: UIBarButtonItem) {
+    @IBAction func editAction(_ sender: UIBarButtonItem) {
         self.tableView.setEditing(true, animated: true)
         self.tableView.addGestureRecognizer(self.tapGesture)
         self.tableView.addGestureRecognizer(self.longTapGesture)
         self.changeButtons(rightBarButtonItem: self.doneBarButton, toolbarButtonItem: self.deleteBarButton)
     }
     
-    @IBAction func newFolderAction(sender: UIBarButtonItem) {
-        let alertController = UIAlertController(title: "New Folder", message: "Enter a name for this folder.", preferredStyle: .Alert)
-        let cancelAction = UIAlertAction(title: "Cancel", style: .Cancel, handler: nil)
-        let saveAction = UIAlertAction(title: "Save", style: .Default) { _ in
+    @IBAction func newFolderAction(_ sender: UIBarButtonItem) {
+        let alertController = UIAlertController(title: "New Folder", message: "Enter a name for this folder.", preferredStyle: .alert)
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
+        let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
             let folderName = (self.inputTextField?.text)!
             
             guard !self.names.contains(folderName) else {
@@ -134,64 +154,64 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
             self.insertFolder(name: folderName)
         }
         
-        saveAction.enabled = false
+        saveAction.isEnabled = false
         self.saveAlertAction = saveAction
         
         alertController.view.tag = 1002
         alertController.addAction(cancelAction)
         alertController.addAction(saveAction)
-        alertController.addTextFieldWithConfigurationHandler {
+        alertController.addTextField {
             self.inputTextField = $0
             $0.tag = 102
             $0.placeholder = "Name"
-            $0.clearButtonMode = .WhileEditing
-            $0.keyboardAppearance = .Dark
-            $0.autocapitalizationType = .Words
+            $0.clearButtonMode = .whileEditing
+            $0.keyboardAppearance = .dark
+            $0.autocapitalizationType = .words
             
-            NSNotificationCenter.defaultCenter().removeObserver(self)
-            NSNotificationCenter.defaultCenter().addObserver(self, selector: .handleTextFieldTextDidChange,
-                                                                   name: UITextFieldTextDidChangeNotification,
+            NotificationCenter.default.removeObserver(self)
+            NotificationCenter.default.addObserver(self, selector: .handleTextFieldTextDidChange,
+                                                                   name: NSNotification.Name.UITextFieldTextDidChange,
                                                                    object: $0)
         }
         
-        self.presentViewController(alertController, animated: true, completion: nil)
+        self.present(alertController, animated: true, completion: nil)
     }
     
     // MARK: - UIGestureRecognizerDelegate
     
-    func gestureRecognizerShouldBegin(gestureRecognizer: UIGestureRecognizer) -> Bool {
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         let tableView = gestureRecognizer.view as? UITableView
         if tableView == nil { return false }
         
-        let point = gestureRecognizer.locationInView(gestureRecognizer.view)
+        let point = gestureRecognizer.location(in: gestureRecognizer.view)
         
-        if (tableView!.indexPathForRowAtPoint(point) != nil) { return true }
+        if (tableView!.indexPathForRow(at: point) != nil) { return true }
         return false
     }
     
-    func handleTap(tap: UIGestureRecognizer) {
+    func handleTap(_ tap: UIGestureRecognizer) {
         if tap is UILongPressGestureRecognizer { return }
         
-        if tap.state == UIGestureRecognizerState.Ended {
+        if tap.state == UIGestureRecognizerState.ended {
             let tableView = tap.view as? UITableView
             if tableView == nil { return }
             
-            let point = tap.locationInView(tap.view)
-            let indexPath = tableView!.indexPathForRowAtPoint(point)
+            let point = tap.location(in: tap.view)
+            let indexPath = tableView!.indexPathForRow(at: point)
             if indexPath == nil { return }
             
-            let cell = tableView!.cellForRowAtIndexPath(indexPath!)
+            let cell = tableView!.cellForRow(at: indexPath!)
             if cell == nil || cell?.textLabel?.text == firstFolderName { return }
             
             let indent = cell!.contentView.frame.origin.x + cell!.indentationWidth
-            let rect = CGRectMake(cell!.frame.origin.x + indent, cell!.frame.origin.y, cell!.frame.size.width - indent, cell!.frame.size.height)
+            let rect = CGRect(x: cell!.frame.origin.x + indent, y: cell!.frame.origin.y, width: cell!.frame.size.width - indent, height: cell!.frame.size.height)
 
-            if CGRectContainsPoint(rect, point) {
-                let alertController = UIAlertController(title: "Rename Folder", message: "Enter a new name for this folder.", preferredStyle: .Alert)
+            if rect.contains(point) {
+                let alertController = UIAlertController(title: "Rename Folder", message: "Enter a new name for this folder.", preferredStyle: .alert)
                 
-                let cancelAction = UIAlertAction(title: "Cancel", style: .Cancel, handler: nil)
+                let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
                 
-                let saveAction = UIAlertAction(title: "Save", style: .Default) { _ in
+                let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
                     let folderName = (self.inputTextField?.text)!
                     
                     if self.names.contains(folderName) {
@@ -207,36 +227,36 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
                 alertController.view.tag = 1001
                 alertController.addAction(cancelAction)
                 alertController.addAction(saveAction)
-                alertController.addTextFieldWithConfigurationHandler {
+                alertController.addTextField {
                     self.inputTextField = $0
                     $0.tag = 101
                     $0.placeholder = "Name"
                     $0.text = cell!.textLabel?.text
-                    $0.clearButtonMode = .WhileEditing
-                    $0.keyboardAppearance = .Dark
-                    $0.autocapitalizationType = .Words
+                    $0.clearButtonMode = .whileEditing
+                    $0.keyboardAppearance = .dark
+                    $0.autocapitalizationType = .words
                     
-                    NSNotificationCenter.defaultCenter().removeObserver(self)
-                    NSNotificationCenter.defaultCenter().addObserver(self, selector: .handleTextFieldTextDidChange,
-                                                                           name: UITextFieldTextDidChangeNotification,
+                    NotificationCenter.default.removeObserver(self)
+                    NotificationCenter.default.addObserver(self, selector: .handleTextFieldTextDidChange,
+                                                                           name: NSNotification.Name.UITextFieldTextDidChange,
                                                                            object: $0)
-                    NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardDidShow, name:UIKeyboardDidShowNotification, object: nil)
+                    NotificationCenter.default.addObserver(self, selector: .keyboardDidShow, name:NSNotification.Name.UIKeyboardDidShow, object: nil)
                 }
                 
-                self.presentViewController(alertController, animated: true, completion: nil)
+                self.present(alertController, animated: true, completion: nil)
             } else {
-                if cell!.selected {
-                    tableView!.deselectRowAtIndexPath(indexPath!, animated: true)
+                if cell!.isSelected {
+                    tableView!.deselectRow(at: indexPath!, animated: true)
                 } else {
-                    tableView!.selectRowAtIndexPath(indexPath, animated: true, scrollPosition: .None)
+                    tableView!.selectRow(at: indexPath, animated: true, scrollPosition: .none)
                 }
                 
                 if let selectedCount = tableView!.indexPathsForSelectedRows?.count {
                     self.navigationItem.title = "\(selectedCount) Selected"
-                    self.deleteBarButton.enabled = true
+                    self.deleteBarButton.isEnabled = true
                 } else {
                     self.navigationItem.title = self.navigationItemDefaultName
-                    self.deleteBarButton.enabled = false
+                    self.deleteBarButton.isEnabled = false
                 }
             }
         }
@@ -259,39 +279,39 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     
     // MARK: - Table View
     
-    override func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {
-        if editingStyle == .Delete {
-            let folder = self.fetchedResultsController.objectAtIndexPath(indexPath) as! PKFolder
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            let folder = self.fetchedResultsController.object(at: indexPath) as! PKFolder
             
             self.checkFolders([folder], isMany: false)
         }
     }
     
-    override func tableView(tableView: UITableView, canEditRowAtIndexPath indexPath: NSIndexPath) -> Bool {
-        let folder = self.fetchedResultsController.objectAtIndexPath(indexPath) as! PKFolder
+    override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
+        let folder = self.fetchedResultsController.object(at: indexPath) as! PKFolder
         return !(folder.name == firstFolderName)
     }
     
-    override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCellWithIdentifier("FolderCell", forIndexPath: indexPath)
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "FolderCell", for: indexPath)
         self.configureCell(cell, atIndexPath: indexPath)
         return cell
     }
     
-    override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // FIXME: - double load when isLocked is off. Screen is locked after close app from tray and open, however is locked = false
         if isLocked { return 0 }
         
         let number = super.tableView(tableView, numberOfRowsInSection: section)
-        self.editBarButton.enabled = (number > 1)
+        self.editBarButton.isEnabled = (number > 1)
 
         return number
     }
     
     // MARK: - CoreDataTableViewController
     
-    override func configureCell(cell: UITableViewCell, atIndexPath indexPath: NSIndexPath) {
-        let folder = self.fetchedResultsController.objectAtIndexPath(indexPath) as! PKFolder
+    override func configureCell(_ cell: UITableViewCell, atIndexPath indexPath: IndexPath) {
+        let folder = self.fetchedResultsController.object(at: indexPath) as! PKFolder
         
         cell.textLabel!.text = folder.name
         cell.detailTextLabel!.text = "\(folder.records!.count)"
@@ -299,23 +319,23 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
     
     // MARK: - My Functions
     
-    func deleteFolders(folders: [PKFolder]) {
+    func deleteFolders(_ folders: [PKFolder]) {
         let context = self.fetchedResultsController.managedObjectContext
         var folderNames = [String]()
         
         folders.forEach {
             folderNames.append($0.name!)
-            context.deleteObject($0)
+            context.delete($0)
         }
         
         PKCoreDataManager.sharedManager.saveContext()
         
         folderNames.forEach { self.names.remove($0) }
         
-        if self.tableView.editing { self.doneAction() }
+        if self.tableView.isEditing { self.doneAction() }
     }
     
-    func showDeleteFolderAlert(isMany: Bool, folders: [PKFolder]) {
+    func showDeleteFolderAlert(_ isMany: Bool, folders: [PKFolder]) {
         var alertTitle: String!
         var deleteAllTitle: String!
         var deleteFolderTitle: String!
@@ -333,22 +353,22 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
             message = "If you delete the folder only, its records will move to the \(firstFolderName) folder"
         }
         
-        let alertController = UIAlertController(title: alertTitle, message: message, preferredStyle: .Alert)
+        let alertController = UIAlertController(title: alertTitle, message: message, preferredStyle: .alert)
         
-        let deleteAllAction = UIAlertAction(title: deleteAllTitle, style: .Destructive) { _ in
+        let deleteAllAction = UIAlertAction(title: deleteAllTitle, style: .destructive) { _ in
             self.deleteFolders(folders)
         }
         
-        let deleteFolderAction = UIAlertAction(title: deleteFolderTitle, style: .Destructive) { _ in
+        let deleteFolderAction = UIAlertAction(title: deleteFolderTitle, style: .destructive) { _ in
             let context = self.fetchedResultsController.managedObjectContext
             var mainFolder: PKFolder!
             let predicate = NSPredicate(format: "name == %@", firstFolderName)
-            let fetchRequest = NSFetchRequest(entityName: "Folder")
+            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Folder")
             
             fetchRequest.predicate = predicate
             
             do {
-                let fetchedFolders = try context.executeFetchRequest(fetchRequest) as! [PKFolder]
+                let fetchedFolders = try context.fetch(fetchRequest) as! [PKFolder]
                 mainFolder = fetchedFolders.first
             } catch {
                 abort()//
@@ -359,8 +379,8 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
                     let record = record as! PKRecord
                     
                     record.folder = mainFolder
-                    record.date = NSDate()
-                    mainFolder.date = NSDate()
+                    record.date = Date()
+                    mainFolder.date = Date()
                 }
             }
             
@@ -369,15 +389,15 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
             self.deleteFolders(folders)
         }
         
-        let cancelAction = UIAlertAction(title: "Cancel", style: .Cancel, handler: nil)
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
         
         alertController.addAction(deleteAllAction)
         alertController.addAction(deleteFolderAction)
         alertController.addAction(cancelAction)
-        self.presentViewController(alertController, animated: true, completion: nil)
+        self.present(alertController, animated: true, completion: nil)
     }
     
-    func checkFolders(folders: [PKFolder], isMany: Bool) {
+    func checkFolders(_ folders: [PKFolder], isMany: Bool) {
         var isEmpty = true
         
         loop: for folder in folders {
@@ -391,43 +411,43 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         if isEmpty { self.deleteFolders(folders) }
     }
     
-    func changeButtons(rightBarButtonItem rightBarButtonItem: UIBarButtonItem, toolbarButtonItem: UIBarButtonItem) {
-        self.navigationItem.setRightBarButtonItem(rightBarButtonItem, animated: true)
+    func changeButtons(rightBarButtonItem: UIBarButtonItem, toolbarButtonItem: UIBarButtonItem) {
+        self.navigationItem.setRightBarButton(rightBarButtonItem, animated: true)
         
         self.toolbarButtons[1] = toolbarButtonItem
         self.setToolbarItems(self.toolbarButtons, animated: true)
     }
     
     func showNameTakenAlert() {
-        let alertController = UIAlertController(title: "Name Taken", message: "Please choose a different name.", preferredStyle: .Alert)
-        let okAction = UIAlertAction(title: "OK", style: .Default, handler: nil)
+        let alertController = UIAlertController(title: "Name Taken", message: "Please choose a different name.", preferredStyle: .alert)
+        let okAction = UIAlertAction(title: "OK", style: .default, handler: nil)
         
         alertController.addAction(okAction)
-        self.presentViewController(alertController, animated: true, completion: nil)
+        self.present(alertController, animated: true, completion: nil)
     }
     
-    func insertFolder(name name: String) {
+    func insertFolder(name: String) {
         let newFolder: PKFolder = self.managedObjectContext.insertObject()
         newFolder.name = name
-        newFolder.date = NSDate()
-        newFolder.uuid = NSUUID().UUIDString
+        newFolder.date = Date()
+        newFolder.uuid = UUID().uuidString
         
         PKCoreDataManager.sharedManager.saveContext()
         
         self.names.insert(name)
     }
     
-    func updateFolder(oldName oldName: String, newName: String) {
+    func updateFolder(oldName: String, newName: String) {
         let predicate = NSPredicate(format: "name == %@", oldName)
-        let fetchRequest = NSFetchRequest(entityName: "Folder")
+        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Folder")
         fetchRequest.predicate = predicate
         
         do {
-            let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+            let folders = try self.managedObjectContext.fetch(fetchRequest) as! [PKFolder]
             guard folders.count == 1 else { return }
             
             folders.first?.name = newName
-            folders.first?.date = NSDate()
+            folders.first?.date = Date()
         } catch {
             print("Unresolved error \(error), \(error)")
             return
@@ -450,28 +470,28 @@ class PKFoldersTableViewController: PKCoreDataTableViewController, PKLoginContro
         folders.forEach() { self.names.insert($0.name!) } // DOESNT ENTRY EVER
     }
     
-    override func viewWillAppear(animated: Bool) {
+    override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
 //        self.navigationController?.navigationBar.setBackgroundImage(UIImage(), forBarPosition: .Any, barMetrics: .Default)
 //        self.navigationController?.navigationBar.shadowImage = UIImage()
     }
     
-    override func viewDidAppear(animated: Bool) {
+    override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         if isLocked { PKServerManager.sharedManager.authorizeUser() }
     }
 
     // MARK: - Navigation
     
-    override func shouldPerformSegueWithIdentifier(identifier: String?, sender: AnyObject?) -> Bool {
-        return !self.tableView.editing
+    override func shouldPerformSegue(withIdentifier identifier: String?, sender: Any?) -> Bool {
+        return !self.tableView.isEditing
     }
     
-    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if segue.identifier == "FolderToRecordsSegue" {
-            let vc = segue.destinationViewController as! PKRecordsTableViewController
-            let indexPath = self.tableView.indexPathForCell(sender as! UITableViewCell)
-            let folder = self.fetchedResultsController.objectAtIndexPath(indexPath!) as! PKFolder
+            let vc = segue.destination as! PKRecordsTableViewController
+            let indexPath = self.tableView.indexPath(for: sender as! UITableViewCell)
+            let folder = self.fetchedResultsController.object(at: indexPath!) as! PKFolder
             
             let backItem = UIBarButtonItem()
             backItem.title = ""

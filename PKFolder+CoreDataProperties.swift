@@ -15,7 +15,7 @@ import CoreData
 extension PKFolder {
     
     @NSManaged var uuid: String?
-    @NSManaged var date: NSDate?
+    @NSManaged var date: Date?
     @NSManaged var name: String?
     @NSManaged var records: NSSet?
     

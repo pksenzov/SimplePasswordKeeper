@@ -26,7 +26,7 @@ let kSettingsClearClipboard             = "clearclipboard"
 
 let firstFolderName = "Records"
 
-var isLocked                    = NSUserDefaults.standardUserDefaults().boolForKey(kSettingsLockOnExit)
+var isLocked                    = UserDefaults.standard.bool(forKey: kSettingsLockOnExit)
 var isNeededAuthorization       = false
 var isSpotlightWaiting          = false
 var isNeededClearTimerRestart   = false
@@ -60,7 +60,7 @@ var isNeededClearTimerRestart   = false
 // MARK: - PKFoldersTableViewController, PKMoveRecordsViewController
 
 extension UIAlertController {
-    override public func viewWillDisappear(animated: Bool) {
+    override open func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         
         let tag = self.view.tag
@@ -69,7 +69,7 @@ extension UIAlertController {
             let textField = self.view.viewWithTag(tag - 900) as! UITextField // UITextField tag = UIAlertController tag - 900
             let zeroPosition = textField.beginningOfDocument
             
-            textField.selectedTextRange = textField.textRangeFromPosition(zeroPosition, toPosition: zeroPosition)
+            textField.selectedTextRange = textField.textRange(from: zeroPosition, to: zeroPosition)
         }
     }
 }
@@ -80,7 +80,7 @@ extension UITextView {
     var adjustHeightToRealIPhoneSize: Bool {
         set {
             if newValue {
-                self.constraints.filter{ $0.identifier == "DescriptionHeight" }.first!.constant = UIScreen.mainScreen().bounds.size.height - self.frame.origin.y - 80.0
+                self.constraints.filter{ $0.identifier == "DescriptionHeight" }.first!.constant = UIScreen.main.bounds.size.height - self.frame.origin.y - 80.0
             }
         }
         
@@ -93,8 +93,8 @@ extension UITextView {
 // MARK: - CoreData
 
 extension NSManagedObjectContext {
-    func insertObject<A: NSManagedObject where A: ManagedObjectType>() -> A {
-        guard let obj = NSEntityDescription.insertNewObjectForEntityForName(A.entityName, inManagedObjectContext: self) as? A else {
+    func insertObject<A: NSManagedObject>() -> A where A: ManagedObjectType {
+        guard let obj = NSEntityDescription.insertNewObject(forEntityName: A.entityName, into: self) as? A else {
             fatalError("Entity \(A.entityName) does not correspond to \(A.self)")
         }
         

@@ -9,6 +9,26 @@
 import UIKit
 import CoreData
 import CoreSpotlight
+fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
+  switch (lhs, rhs) {
+  case let (l?, r?):
+    return l < r
+  case (nil, _?):
+    return true
+  default:
+    return false
+  }
+}
+
+fileprivate func > <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
+  switch (lhs, rhs) {
+  case let (l?, r?):
+    return l > r
+  default:
+    return rhs < lhs
+  }
+}
+
 
 private extension Selector {
     static let keyboardWillShowOrHide = #selector(PKRecordEditingViewController.keyboardWillShowOrHide(_:))
@@ -16,9 +36,9 @@ private extension Selector {
 
 class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITextFieldDelegate, UIScrollViewDelegate {
     enum TextFieldTag: Int {
-        case PKRecordEditingViewControllerTextFieldTagTitle = 0,
-        PKRecordEditingViewControllerTextFieldTagLogin,
-        PKRecordEditingViewControllerTextFieldTagPassword
+        case pkRecordEditingViewControllerTextFieldTagTitle = 0,
+        pkRecordEditingViewControllerTextFieldTagLogin,
+        pkRecordEditingViewControllerTextFieldTagPassword
     }
     
     var savedTitle:     String?
@@ -61,8 +81,8 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     @IBOutlet weak var revealButton: UIButton! {
         didSet {
             let image = UIImage(named: "eye.png")
-            revealButton.imageView?.contentMode = .ScaleAspectFit
-            revealButton.setImage(image, forState: .Normal)
+            revealButton.imageView?.contentMode = .scaleAspectFit
+            revealButton.setImage(image, for: UIControlState())
         }
     }
     
@@ -70,7 +90,7 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         didSet {
             if self.record == nil || self.record?.detailedDescription == "" {
                 descriptionTextView.text = "Details"
-                descriptionTextView.textColor = .lightGrayColor()
+                descriptionTextView.textColor = .lightGray
             }
         }
     }
@@ -105,7 +125,7 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
             var forcePassword: String?
             
             if record.password != nil && !(record.password is String) {
-                self.managedObjectContext.refreshObject(record, mergeChanges: false)
+                self.managedObjectContext.refresh(record, mergeChanges: false)
                 
                 if !(record.password is String) {
                     forcePassword = PKPwdTransformer().reversTransformValue(record.password) //HACK =((
@@ -128,10 +148,10 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         self.savedPassword  = self.passwordTextField.text
         self.savedDetails   = self.descriptionTextView.text
         
-        self.savedIsTitleOnFocus    = self.titleTextField.isFirstResponder()
-        self.savedIsLoginOnFocus    = self.loginTextField.isFirstResponder()
-        self.savedIsPasswordOnFocus = self.passwordTextField.isFirstResponder()
-        self.savedIsDetailsOnFocus  = self.descriptionTextView.isFirstResponder()
+        self.savedIsTitleOnFocus    = self.titleTextField.isFirstResponder
+        self.savedIsLoginOnFocus    = self.loginTextField.isFirstResponder
+        self.savedIsPasswordOnFocus = self.passwordTextField.isFirstResponder
+        self.savedIsDetailsOnFocus  = self.descriptionTextView.isFirstResponder
         
         if self.savedIsTitleOnFocus!            { self.savedRange       = self.titleTextField.selectedTextRange          }
         else if self.savedIsLoginOnFocus!       { self.savedRange       = self.loginTextField.selectedTextRange          }
@@ -141,17 +161,17 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     
     // MARK: - Spotlight
     
-    func titleIndexing(title: String, id: String) {
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
+    func titleIndexing(_ title: String, id: String) {
+        DispatchQueue.global().async {
             let attributeSet = CSSearchableItemAttributeSet(itemContentType: kContentType)
             attributeSet.title = title
             attributeSet.contentDescription = "Secure Record"
             attributeSet.keywords = [title]
             
             let item = CSSearchableItem(uniqueIdentifier: id, domainIdentifier: nil, attributeSet: attributeSet)
-            item.expirationDate = NSDate.distantFuture()
+            item.expirationDate = Date.distantFuture
             
-            CSSearchableIndex.defaultSearchableIndex().indexSearchableItems([item]) { error in
+            CSSearchableIndex.default().indexSearchableItems([item]) { error in
                 if error != nil {
                     print(error?.localizedDescription)
                 } else {
@@ -163,10 +183,10 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
     
     // MARK: - UITextFieldDelegate
     
-    func textFieldShouldReturn(textField: UITextField) -> Bool {
-        guard let index = self.allTextFields.indexOf(textField) else { return false }
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        guard let index = self.allTextFields.index(of: textField) else { return false }
         
-        if textField.tag == TextFieldTag.PKRecordEditingViewControllerTextFieldTagPassword.rawValue {
+        if textField.tag == TextFieldTag.pkRecordEditingViewControllerTextFieldTagPassword.rawValue {
             self.descriptionTextView.becomeFirstResponder()
             return false
         }
@@ -177,73 +197,73 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
         return true
     }
     
-    func textFieldDidBeginEditing(textField: UITextField) {
-        if textField.tag == TextFieldTag.PKRecordEditingViewControllerTextFieldTagPassword.rawValue {
+    func textFieldDidBeginEditing(_ textField: UITextField) {
+        if textField.tag == TextFieldTag.pkRecordEditingViewControllerTextFieldTagPassword.rawValue {
             textField.font = nil
-            textField.font = UIFont.systemFontOfSize(14.0)
-            textField.secureTextEntry = false
-            self.revealButton.enabled = false
+            textField.font = UIFont.systemFont(ofSize: 14.0)
+            textField.isSecureTextEntry = false
+            self.revealButton.isEnabled = false
         }
     }
     
-    func textFieldDidEndEditing(textField: UITextField) {
-        if textField.tag == TextFieldTag.PKRecordEditingViewControllerTextFieldTagPassword.rawValue {
-            textField.secureTextEntry = true
-            self.revealButton.enabled = true
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        if textField.tag == TextFieldTag.pkRecordEditingViewControllerTextFieldTagPassword.rawValue {
+            textField.isSecureTextEntry = true
+            self.revealButton.isEnabled = true
         }
     }
     
     // MARK: - UITextViewDelegate
     
-    func textViewDidBeginEditing(textView: UITextView) {
-        if textView.textColor == .lightGrayColor() {
+    func textViewDidBeginEditing(_ textView: UITextView) {
+        if textView.textColor == .lightGray {
             textView.text = nil
-            textView.textColor = .blackColor()
+            textView.textColor = .black
         }
     }
     
-    func textViewDidEndEditing(textView: UITextView) {
+    func textViewDidEndEditing(_ textView: UITextView) {
         if textView.text.isEmpty {
             textView.text = "Details"
-            textView.textColor = .lightGrayColor()
+            textView.textColor = .lightGray
         }
     }
     
     // MARK: - UIScrollViewDelegate
     
-    func scrollViewWillBeginDragging(scrollView: UIScrollView) { self.descriptionTextView.resignFirstResponder() }
+    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) { self.descriptionTextView.resignFirstResponder() }
     
     // MARK: - Notifications
     
-    func keyboardWillShowOrHide(notification: NSNotification) {
-        if let userInfo = notification.userInfo,
-            endValue = userInfo[UIKeyboardFrameEndUserInfoKey],
-            durationValue = userInfo[UIKeyboardAnimationDurationUserInfoKey],
-            curveValue = userInfo[UIKeyboardAnimationCurveUserInfoKey] {
+    func keyboardWillShowOrHide(_ notification: Notification) {
+        if let userInfo = (notification as NSNotification).userInfo,
+            let endValue = userInfo[UIKeyboardFrameEndUserInfoKey],
+            let durationValue = userInfo[UIKeyboardAnimationDurationUserInfoKey],
+            let curveValue = userInfo[UIKeyboardAnimationCurveUserInfoKey] {
             
-            let endRect = self.view.convertRect(endValue.CGRectValue, fromView: self.view.window)
+            let endRect = self.view.convert((endValue as AnyObject).cgRectValue, from: self.view.window)
             let keyboardOverlap = self.scrollView.frame.maxY - endRect.origin.y
             
             self.scrollView.contentInset.bottom = keyboardOverlap + (keyboardOverlap == 0 ? 0 : 20)
             self.scrollView.scrollIndicatorInsets.bottom = keyboardOverlap + (keyboardOverlap == 0 ? 0 : 20)
             
-            let duration = durationValue.doubleValue
-            let options = UIViewAnimationOptions(rawValue: UInt(curveValue.integerValue << 16))
-            UIView.animateWithDuration(duration, delay: 0, options: options, animations: {
+            let duration = (durationValue as AnyObject).doubleValue
+            let options = UIViewAnimationOptions(rawValue: UInt((curveValue as AnyObject).intValue << 16))
+            UIView.animate(withDuration: duration!, delay: 0, options: options, animations: {
                 self.view.layoutIfNeeded()
                 }, completion: nil)
             
-            if notification.name == "UIKeyboardWillShowNotification" && self.savedRange != nil {
+            if notification.name == NSNotification.Name.UIKeyboardWillShow && self.savedRange != nil {
                 self.allTextFields.forEach() {
-                    if $0.isFirstResponder() {
-                        $0.selectedTextRange = $0.textRangeFromPosition(self.savedRange!.start, toPosition: self.savedRange!.end)
+                    if $0.isFirstResponder {
+                        $0.selectedTextRange = $0.textRange(from: self.savedRange!.start, to: self.savedRange!.end)
                         self.savedRange = nil
                         return
                     }
                 }
                 
                 if self.savedRange != nil {
-                    self.descriptionTextView.selectedTextRange = self.descriptionTextView.textRangeFromPosition(self.savedRange!.start, toPosition: self.savedRange!.end)
+                    self.descriptionTextView.selectedTextRange = self.descriptionTextView.textRange(from: self.savedRange!.start, to: self.savedRange!.end)
                     self.savedRange = nil
                 }
             }
@@ -262,94 +282,94 @@ class PKRecordEditingViewController: UIViewController, UITextViewDelegate, UITex
             return
         }
         
-        guard self.descriptionTextView.intrinsicContentSize().height > self.defaultDescriptionHeightConstraintHeight else { return }
+        guard self.descriptionTextView.intrinsicContentSize.height > self.defaultDescriptionHeightConstraintHeight else { return }
         
         self.scrollView.contentSize.height = self.descriptionTextView.frame.origin.y + self.descriptionTextView.frame.size.height
-        descriptionHeightConstraint!.constant = self.descriptionTextView.intrinsicContentSize().height
+        descriptionHeightConstraint!.constant = self.descriptionTextView.intrinsicContentSize.height
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
     }
     
-    override func viewWillAppear(animated: Bool) {
+    override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
         self.navigationController?.setToolbarHidden(true, animated: false)
         self.defaultDescriptionHeightConstraintHeight = self.descriptionTextView.constraints.filter{ $0.identifier == "DescriptionHeight" }.first!.constant
         
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardWillShowOrHide, name: UIKeyboardWillShowNotification, object: nil)
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: .keyboardWillShowOrHide, name: UIKeyboardWillHideNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: .keyboardWillShowOrHide, name: NSNotification.Name.UIKeyboardWillShow, object: nil)
+        NotificationCenter.default.addObserver(self, selector: .keyboardWillShowOrHide, name: NSNotification.Name.UIKeyboardWillHide, object: nil)
         
         self.fillInData()
         
-        self.navigationController?.navigationBar.setBackgroundImage(UIImage(), forBarPosition: .Any, barMetrics: .Default)
+        self.navigationController?.navigationBar.setBackgroundImage(UIImage(), for: .any, barMetrics: .default)
         self.navigationController?.navigationBar.shadowImage = UIImage()
     }
     
-    override func viewWillDisappear(animated: Bool) {
+    override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         self.navigationController?.setToolbarHidden(false, animated: false)
-        NSNotificationCenter.defaultCenter().removeObserver(self, name: UIKeyboardWillShowNotification, object: nil)
-        NSNotificationCenter.defaultCenter().removeObserver(self, name: UIKeyboardWillHideNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name.UIKeyboardWillShow, object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name.UIKeyboardWillHide, object: nil)
         
-        self.navigationController?.navigationBar.setBackgroundImage(nil, forBarPosition: .Any, barMetrics: .Default)
+        self.navigationController?.navigationBar.setBackgroundImage(nil, for: .any, barMetrics: .default)
         self.navigationController?.navigationBar.shadowImage = nil
     }
     
     // MARK: - Init & Deinit
     
-    deinit { NSNotificationCenter.defaultCenter().removeObserver(self, name: UIApplicationWillResignActiveNotification, object: nil) }
+    deinit { NotificationCenter.default.removeObserver(self, name: NSNotification.Name.UIApplicationWillResignActive, object: nil) }
     
     // MARK: - Actions
     
-    @IBAction func revealAction(sender: UIButton) {
-        let index = TextFieldTag.PKRecordEditingViewControllerTextFieldTagPassword.rawValue
-        self.allTextFields[index].secureTextEntry = !self.allTextFields[index].secureTextEntry
+    @IBAction func revealAction(_ sender: UIButton) {
+        let index = TextFieldTag.pkRecordEditingViewControllerTextFieldTagPassword.rawValue
+        self.allTextFields[index].isSecureTextEntry = !self.allTextFields[index].isSecureTextEntry
     }
     
-    @IBAction func saveAction(sender: UIBarButtonItem) {
-        let title = self.allTextFields[TextFieldTag.PKRecordEditingViewControllerTextFieldTagTitle.rawValue].text
+    @IBAction func saveAction(_ sender: UIBarButtonItem) {
+        let title = self.allTextFields[TextFieldTag.pkRecordEditingViewControllerTextFieldTagTitle.rawValue].text
         
         guard !title!.isEmpty else {
-            let alertController = UIAlertController(title: "The title is empty", message: "Please fill in the title field", preferredStyle: .Alert)
-            let action = UIAlertAction(title: "OK", style: .Default, handler: nil)
+            let alertController = UIAlertController(title: "The title is empty", message: "Please fill in the title field", preferredStyle: .alert)
+            let action = UIAlertAction(title: "OK", style: .default, handler: nil)
             
             alertController.addAction(action)
-            self.presentViewController(alertController, animated: true, completion: nil)
+            self.present(alertController, animated: true, completion: nil)
             
             return
         }
         
-        let login = self.allTextFields[TextFieldTag.PKRecordEditingViewControllerTextFieldTagLogin.rawValue].text
+        let login = self.allTextFields[TextFieldTag.pkRecordEditingViewControllerTextFieldTagLogin.rawValue].text
         
-        var password = self.allTextFields[TextFieldTag.PKRecordEditingViewControllerTextFieldTagPassword.rawValue].text
+        var password = self.allTextFields[TextFieldTag.pkRecordEditingViewControllerTextFieldTagPassword.rawValue].text
         if password == "" { password = nil }
         
-        let description = (self.descriptionTextView.textColor == .lightGrayColor()) ? "" : self.descriptionTextView.text
-        let date =  NSDate()
+        let description = (self.descriptionTextView.textColor == .lightGray) ? "" : self.descriptionTextView.text
+        let date =  Date()
         
         let record: PKRecord = self.record ?? self.managedObjectContext.insertObject()
         
         record.title = title
         record.login = login
-        record.password = password
+        record.password = password as NSObject?
         record.detailedDescription = description
         record.date = date
         record.folder = self.folder
         if self.record == nil {
-            record.creationDate = NSDate()
-            record.uuid = NSUUID().UUIDString
+            record.creationDate = Date()
+            record.uuid = UUID().uuidString
         }
         
         PKCoreDataManager.sharedManager.saveContext()
         
-        let isSpotlightEnabled = NSUserDefaults.standardUserDefaults().boolForKey(kSettingsSpotlight)
+        let isSpotlightEnabled = UserDefaults.standard.bool(forKey: kSettingsSpotlight)
         
         if isSpotlightEnabled {
-            self.titleIndexing(title!, id: String(record.objectID))
+            self.titleIndexing(title!, id: String(describing: record.objectID))
         }
         
-        self.navigationController?.popViewControllerAnimated(true)
+        _ = self.navigationController?.popViewController(animated: true)
     }
 }

@@ -11,7 +11,7 @@ import CloudKit
 
 struct PKFolderS: PKObjectS {
     let uuid: String
-    let date: NSDate
+    let date: Date
     let name: String
     var recordsUUID = Set<String>()
     
@@ -27,7 +27,7 @@ struct PKFolderS: PKObjectS {
     
     init(folder: CKRecord) {
         uuid = folder.recordID.recordName
-        date = folder["date"] as! NSDate
+        date = folder["date"] as! Date
         name = folder["name"] as! String
         
         let references = folder["records"] as! [CKReference]

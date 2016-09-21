@@ -13,12 +13,12 @@ import CoreData
 class PKCloudKitManager: NSObject {
     static let sharedManager = PKCloudKitManager()
     
-    let privateDatabase = CKContainer.defaultContainer().privateCloudDatabase
-    let defaults = NSUserDefaults.standardUserDefaults()
+    let privateDatabase = CKContainer.default().privateCloudDatabase
+    let defaults = UserDefaults.standard
     
-    lazy var operationQueue: NSOperationQueue = {
-        let queue = NSOperationQueue()
-        queue.qualityOfService = .Background
+    lazy var operationQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.qualityOfService = .background
         
         return queue
     }()
@@ -40,14 +40,14 @@ class PKCloudKitManager: NSObject {
     // MARK: - Sync
     
     func getFolders() -> [CKRecord] {
-        let iCloudFoldersGroup = dispatch_group_create()
-        dispatch_group_enter(iCloudFoldersGroup)
+        let iCloudFoldersGroup = DispatchGroup()
+        iCloudFoldersGroup.enter()
         
         var folders: [CKRecord]!
         
         let predicate = NSPredicate(format: "TRUEPREDICATE")
         let query = CKQuery(recordType: "Folder", predicate: predicate)
-        self.privateDatabase.performQuery(query, inZoneWithID: nil) {
+        self.privateDatabase.perform(query, inZoneWith: nil) {
             if $1 != nil {
                 abort()
             }
@@ -56,23 +56,23 @@ class PKCloudKitManager: NSObject {
             
             folders = $0!
             
-            dispatch_group_leave(iCloudFoldersGroup)
+            iCloudFoldersGroup.leave()
         }
         
-        dispatch_group_wait(iCloudFoldersGroup, DISPATCH_TIME_FOREVER)
+        _ = iCloudFoldersGroup.wait(timeout: DispatchTime.distantFuture)
         
         return folders
     }
     
     func getRecords() -> [CKRecord] {
-        let iCloudRecordsGroup = dispatch_group_create()
-        dispatch_group_enter(iCloudRecordsGroup)
+        let iCloudRecordsGroup = DispatchGroup()
+        iCloudRecordsGroup.enter()
         
         var records: [CKRecord]!
         
         let predicate = NSPredicate(format: "TRUEPREDICATE")
         let query = CKQuery(recordType: "Record", predicate: predicate)
-        self.privateDatabase.performQuery(query, inZoneWithID: nil) {
+        self.privateDatabase.perform(query, inZoneWith: nil) {
             if $1 != nil {
                 abort()
             }
@@ -81,23 +81,23 @@ class PKCloudKitManager: NSObject {
             
             records = $0!
             
-            dispatch_group_leave(iCloudRecordsGroup)
+            iCloudRecordsGroup.leave()
         }
         
-        dispatch_group_wait(iCloudRecordsGroup, DISPATCH_TIME_FOREVER)
+        _ = iCloudRecordsGroup.wait(timeout: DispatchTime.distantFuture)
         
         return records
     }
     
     func getDeletedObjects() -> [CKRecord] {
-        let iCloudDeletedObjectsGroup = dispatch_group_create()
-        dispatch_group_enter(iCloudDeletedObjectsGroup)
+        let iCloudDeletedObjectsGroup = DispatchGroup()
+        iCloudDeletedObjectsGroup.enter()
         
         var deletedObjects: [CKRecord]!
         
         let predicate = NSPredicate(format: "TRUEPREDICATE")
         let query = CKQuery(recordType: "DeletedObject", predicate: predicate)
-        self.privateDatabase.performQuery(query, inZoneWithID: nil) {
+        self.privateDatabase.perform(query, inZoneWith: nil) {
             if $1 != nil {
                 abort()
             }
@@ -106,21 +106,21 @@ class PKCloudKitManager: NSObject {
             
             deletedObjects = $0!
             
-            dispatch_group_leave(iCloudDeletedObjectsGroup)
+            iCloudDeletedObjectsGroup.leave()
         }
         
-        dispatch_group_wait(iCloudDeletedObjectsGroup, DISPATCH_TIME_FOREVER)
+        _ = iCloudDeletedObjectsGroup.wait(timeout: DispatchTime.distantFuture)
         
         return deletedObjects
     }
     
     // MARK: - Update CoreData
     
-    func updateCoreData(recordID: CKRecordID, reason: CKQueryNotificationReason, isFolder: Bool) {
+    func updateCoreData(_ recordID: CKRecordID, reason: CKQueryNotificationReason, isFolder: Bool) {
         //dispatch_group_wait(self.notificationGroup, DISPATCH_TIME_FOREVER)
         //dispatch_group_enter(self.notificationGroup)
         
-        if reason == .RecordDeleted {
+        if reason == .recordDeleted {
             if isFolder {
                 PKCoreDataManager.sharedManager.update("Deleted", type: "Folder", object: recordID.recordName)
             } else {
@@ -129,7 +129,7 @@ class PKCloudKitManager: NSObject {
             return
         }
         
-        self.privateDatabase.fetchRecordWithID(recordID) { (object, error) in
+        self.privateDatabase.fetch(withRecordID: recordID) { (object, error) in
             if error != nil {
                 print(error!.localizedDescription)
                 abort()
@@ -139,13 +139,13 @@ class PKCloudKitManager: NSObject {
             let type = object!.recordType
             
             switch (reason, type) {
-            case (.RecordCreated, "Folder"):
+            case (.recordCreated, "Folder"):
                 PKCoreDataManager.sharedManager.update("Created", type: type, object: PKFolderS(folder: object!))
-            case (.RecordCreated, "Record"):
+            case (.recordCreated, "Record"):
                 PKCoreDataManager.sharedManager.update("Created", type: type, object: PKRecordS(record: object!))
-            case (.RecordUpdated, "Folder"):
+            case (.recordUpdated, "Folder"):
                 PKCoreDataManager.sharedManager.update("Updated", type: type, object: PKFolderS(folder: object!))
-            case (.RecordUpdated, "Record"):
+            case (.recordUpdated, "Record"):
                 PKCoreDataManager.sharedManager.update("Updated", type: type, object: PKRecordS(record: object!))
             default:
                 break
@@ -253,9 +253,9 @@ class PKCloudKitManager: NSObject {
 //    }
     
     func checkAndAddSubscriptions() {
-        guard !self.defaults.boolForKey(kSettingsSubscriptions) else { return }
+        guard !self.defaults.bool(forKey: kSettingsSubscriptions) else { return }
         
-        self.privateDatabase.fetchAllSubscriptionsWithCompletionHandler() {
+        self.privateDatabase.fetchAllSubscriptions() {
             if $1 != nil {
                 print($1?.localizedDescription)
                 abort()
@@ -265,8 +265,8 @@ class PKCloudKitManager: NSObject {
         }
         
         let predicate = NSPredicate(format: "TRUEPREDICATE")
-        let folderSubscription = CKSubscription(recordType: "Folder", predicate: predicate, options: [.FiresOnRecordCreation, .FiresOnRecordDeletion, .FiresOnRecordUpdate])
-        let recordSubscription = CKSubscription(recordType: "Record", predicate: predicate, options: [.FiresOnRecordCreation, .FiresOnRecordDeletion, .FiresOnRecordUpdate])
+        let folderSubscription = CKSubscription(recordType: "Folder", predicate: predicate, options: [.firesOnRecordCreation, .firesOnRecordDeletion, .firesOnRecordUpdate])
+        let recordSubscription = CKSubscription(recordType: "Record", predicate: predicate, options: [.firesOnRecordCreation, .firesOnRecordDeletion, .firesOnRecordUpdate])
         
         let folderNotificationInfo = CKNotificationInfo()
         folderNotificationInfo.desiredKeys = ["name"]
@@ -280,16 +280,18 @@ class PKCloudKitManager: NSObject {
         let operation = CKModifySubscriptionsOperation(subscriptionsToSave: [folderSubscription, recordSubscription], subscriptionIDsToDelete: nil)
         operation.modifySubscriptionsCompletionBlock = {
             if $2 != nil {
-                print($2?.localizedDescription)
-                if $2?.code == 9 || $2?.code == 2 { self.defaults.setBool(true, forKey: kSettingsSubscriptions) }
+                let error = $2 as! NSError
+                
+                print(error.localizedDescription)
+                if error.code == 9 || error.code == 2 { self.defaults.set(true, forKey: kSettingsSubscriptions) }
                 else { abort() }
             } else {
-                self.defaults.setBool(true, forKey: kSettingsSubscriptions)
+                self.defaults.set(true, forKey: kSettingsSubscriptions)
             }
         }
         
-        operation.qualityOfService = .Utility
-        self.privateDatabase.addOperation(operation)
+        operation.qualityOfService = .utility
+        self.privateDatabase.add(operation)
     }
     
     // MARK: - Context
@@ -309,7 +311,7 @@ class PKCloudKitManager: NSObject {
 //        self.sharedDB.add(changesOperation)
 //    }
     
-    func saveContext(deleted: [PKObjectS], updated: [PKObjectS], inserted: [PKObjectS]) {
+    func saveContext(_ deleted: [PKObjectS], updated: [PKObjectS], inserted: [PKObjectS]) {
         var deletedRecordsSet = Set<String>()
         deleted.forEach() {
             if let record = $0 as? PKRecordS {
@@ -355,13 +357,13 @@ class PKCloudKitManager: NSObject {
                 let folderS = $0 as! PKFolderS
                 let folderID = CKRecordID(recordName: folderS.uuid)
                 
-                let reference = CKReference(recordID: folderID, action: .None)
+                let reference = CKReference(recordID: folderID, action: .none)
                 foldersDictToUpdate[reference] = folderS
             case is PKRecordS:
                 let recordS = $0 as! PKRecordS
                 let recordID = CKRecordID(recordName: recordS.uuid)
                 
-                let reference = CKReference(recordID: recordID, action: .None)
+                let reference = CKReference(recordID: recordID, action: .none)
                 recordsDictToUpdate[reference] = recordS
             default:
                 break
@@ -423,7 +425,7 @@ class PKCloudKitManager: NSObject {
                 
                 let folderID = CKRecordID(recordName: recordS.folderUUID)
                 
-                let reference = CKReference(recordID: folderID, action: .None)
+                let reference = CKReference(recordID: folderID, action: .none)
                 foldersReferenceToUpdate.insert(reference)
             default:
                 break
@@ -440,8 +442,8 @@ class PKCloudKitManager: NSObject {
         var deletedObjects = [CKRecord]()
         recordsUUIDToDelete.forEach() {
             let deletedObject = CKRecord(recordType: "DeletedObject")
-            deletedObject["uuid"] = $0
-            deletedObject["date"] = NSDate()
+            deletedObject["uuid"] = $0 as CKRecordValue?
+            deletedObject["date"] = Date() as CKRecordValue?
             
             deletedObjects.append(deletedObject)
         }
@@ -462,39 +464,39 @@ class PKCloudKitManager: NSObject {
         }
     }
     
-    func saveFolder(folderS: PKFolderS) -> CKRecord {
+    func saveFolder(_ folderS: PKFolderS) -> CKRecord {
         let folderID = CKRecordID(recordName: folderS.uuid)
         let folder = CKRecord(recordType: "Folder", recordID: folderID)
         
-        folder["date"] = folderS.date
-        folder["name"] = folderS.name
+        folder["date"] = folderS.date as CKRecordValue?
+        folder["name"] = folderS.name as CKRecordValue?
         
         var records = [CKReference]()
         
         folderS.recordsUUID.forEach() {
             let recordID = CKRecordID(recordName: $0)
-            let recordReference = CKReference(recordID: recordID, action: .None)
+            let recordReference = CKReference(recordID: recordID, action: .none)
             records.append(recordReference)
         }
         
-        folder["records"] = records
+        folder["records"] = records as CKRecordValue?
         
         return folder
     }
     
-    func saveRecord(recordS: PKRecordS) -> CKRecord {
+    func saveRecord(_ recordS: PKRecordS) -> CKRecord {
         let recordID = CKRecordID(recordName: recordS.uuid)
         let record = CKRecord(recordType: "Record", recordID: recordID)
         
-        record["date"] = recordS.date
-        record["createdDT"] = recordS.creationDate
-        record["detailedDescription"] = recordS.detailedDescription
-        record["login"] = recordS.login
+        record["date"] = recordS.date as CKRecordValue?
+        record["createdDT"] = recordS.creationDate as CKRecordValue?
+        record["detailedDescription"] = recordS.detailedDescription as CKRecordValue?
+        record["login"] = recordS.login as CKRecordValue?
         record["password"] = PKPwdTransformer().transformValue(recordS.password)
-        record["title"] = recordS.title
+        record["title"] = recordS.title as CKRecordValue?
         
         let folderID = CKRecordID(recordName: recordS.folderUUID)
-        let folderReference = CKReference(recordID: folderID, action: .None)//.DeleteSelf
+        let folderReference = CKReference(recordID: folderID, action: .none)//.DeleteSelf
         record["folder"] = folderReference
         
         return record
@@ -502,17 +504,19 @@ class PKCloudKitManager: NSObject {
     
     //Deleted
     
-    func executeQueryOperation(queryOperation: CKQueryOperation, onOperationQueue operationQueue: NSOperationQueue, deletedRecordsSet: Set<String>) {
+    func executeQueryOperation(_ queryOperation: CKQueryOperation, onOperationQueue operationQueue: OperationQueue, deletedRecordsSet: Set<String>) {
         queryOperation.database = self.privateDatabase
         
         queryOperation.recordFetchedBlock = { (record: CKRecord) -> Void in
             self.updateFolder(record, deletedRecordsSet: deletedRecordsSet)
         }
         
-        queryOperation.queryCompletionBlock = { (cursor: CKQueryCursor?, error: NSError?) -> Void in
+        queryOperation.queryCompletionBlock = { (cursor: CKQueryCursor?, error: Error?) -> Void in
             if error != nil {
-                print(error!)
-                print(error!.code)
+                let error = error as! NSError
+                
+                print(error)
+                print(error.code)
                 abort()
             } else if let queryCursor = cursor {
                 let queryCursorOperation = CKQueryOperation(cursor: queryCursor)
@@ -525,21 +529,23 @@ class PKCloudKitManager: NSObject {
         self.operationQueue.addOperation(queryOperation)
     }
     
-    func updateFolder(folder: CKRecord, deletedRecordsSet: Set<String>) {
+    func updateFolder(_ folder: CKRecord, deletedRecordsSet: Set<String>) {
         var records = folder["records"] as! [CKReference]
         records = records.filter() {
             !deletedRecordsSet.contains($0.recordID.recordName)
         }
         
-        folder["records"] = records
+        folder["records"] = records as CKRecordValue?
         
         let updateFoldersOperation = CKModifyRecordsOperation(recordsToSave: [folder], recordIDsToDelete: nil)
         updateFoldersOperation.database = self.privateDatabase
         
         updateFoldersOperation.modifyRecordsCompletionBlock = {
             if $2 != nil {
+                let error = $2 as! NSError
+                
                 print($2)
-                print($2?.code)
+                print(error.code)
                 abort()
             }
         }
@@ -549,11 +555,11 @@ class PKCloudKitManager: NSObject {
     
     //Updated
     
-    func executeQueryOperation(queryOperation: CKQueryOperation, onOperationQueue operationQueue: NSOperationQueue, dict: [CKReference: PKObjectS]) {
+    func executeQueryOperation(_ queryOperation: CKQueryOperation, onOperationQueue operationQueue: OperationQueue, dict: [CKReference: PKObjectS]) {
         queryOperation.database = self.privateDatabase
         
         queryOperation.recordFetchedBlock = { (record: CKRecord) -> Void in
-            let ref = CKReference(record: record, action: .None)
+            let ref = CKReference(record: record, action: .none)
             
             if let dict = dict as? [CKReference: PKFolderS] {
                 print(dict[ref])
@@ -563,10 +569,12 @@ class PKCloudKitManager: NSObject {
             }
         }
         
-        queryOperation.queryCompletionBlock = { (cursor: CKQueryCursor?, error: NSError?) -> Void in
+        queryOperation.queryCompletionBlock = { (cursor: CKQueryCursor?, error: Error?) -> Void in
             if error != nil {
-                print(error!)
-                print(error!.code)
+                let error = error as! NSError
+                
+                print(error)
+                print(error.code)
                 abort()
             } else if let queryCursor = cursor {
                 let queryCursorOperation = CKQueryOperation(cursor: queryCursor)
@@ -578,30 +586,32 @@ class PKCloudKitManager: NSObject {
         self.operationQueue.addOperation(queryOperation)
     }
     
-    func updateFolder(folder: CKRecord, fromFolderS folderS: PKFolderS) {
-        folder["date"] = folderS.date
-        folder["name"] = folderS.name
+    func updateFolder(_ folder: CKRecord, fromFolderS folderS: PKFolderS) {
+        folder["date"] = folderS.date as CKRecordValue?
+        folder["name"] = folderS.name as CKRecordValue?
         
         var records = [CKReference]()
         
         folderS.recordsUUID.forEach() {
             let recordID = CKRecordID(recordName: $0)
-            let recordReference = CKReference(recordID: recordID, action: .None)
+            let recordReference = CKReference(recordID: recordID, action: .none)
             records.append(recordReference)
         }
         
-        folder["records"] = records
+        folder["records"] = records as CKRecordValue?
         
         let updateFoldersOperation = CKModifyRecordsOperation(recordsToSave: [folder], recordIDsToDelete: nil)
         updateFoldersOperation.database = self.privateDatabase
         
         updateFoldersOperation.modifyRecordsCompletionBlock = {
             if $2 != nil {
-                print($2)
-                print($2?.code)
+                let error = $2 as! NSError
                 
-                if $2!.code == 2 {
-                    print($2!.userInfo[CKPartialErrorsByItemIDKey])
+                print(error)
+                print(error.code)
+                
+                if error.code == 2 {
+                    print(error.userInfo[CKPartialErrorsByItemIDKey])
                 } else {
                     abort()
                 }
@@ -611,16 +621,16 @@ class PKCloudKitManager: NSObject {
         self.operationQueue.addOperation(updateFoldersOperation)
     }
     
-    func updateRecord(record: CKRecord, fromRecordS recordS: PKRecordS) {
-        record["date"]                  = recordS.date
-        record["createdDT"]             = recordS.creationDate
-        record["detailedDescription"]   = recordS.detailedDescription
-        record["login"]                 = recordS.login
+    func updateRecord(_ record: CKRecord, fromRecordS recordS: PKRecordS) {
+        record["date"]                  = recordS.date as CKRecordValue?
+        record["createdDT"]             = recordS.creationDate as CKRecordValue?
+        record["detailedDescription"]   = recordS.detailedDescription as CKRecordValue?
+        record["login"]                 = recordS.login as CKRecordValue?
         record["password"]              = PKPwdTransformer().transformValue(recordS.password)
-        record["title"]                 = recordS.title
+        record["title"]                 = recordS.title as CKRecordValue?
         
         let folderID = CKRecordID(recordName: recordS.folderUUID)
-        let folderReference = CKReference(recordID: folderID, action: .None)//DeleteSelf
+        let folderReference = CKReference(recordID: folderID, action: .none)//DeleteSelf
         record["folder"] = folderReference
         
         let updateRecordsOperation = CKModifyRecordsOperation(recordsToSave: [record], recordIDsToDelete: nil)
@@ -628,14 +638,16 @@ class PKCloudKitManager: NSObject {
         
         updateRecordsOperation.modifyRecordsCompletionBlock = {
             if $2 != nil {
-                print($2)
-                print($2?.code)
+                let error = $2 as! NSError
                 
-                if $2!.code == 2 {
-                    print($2!.userInfo[CKPartialErrorsByItemIDKey])
-                } else if $2!.code == 23 {
-                    if let retryAfterValue = $2!.userInfo[CKErrorRetryAfterKey] as? NSNumber {
-                        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(retryAfterValue.doubleValue * Double(NSEC_PER_SEC))), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
+                print(error)
+                print(error.code)
+                
+                if error.code == 2 {
+                    print(error.userInfo[CKPartialErrorsByItemIDKey])
+                } else if error.code == 23 {
+                    if let retryAfterValue = error.userInfo[CKErrorRetryAfterKey] as? NSNumber {
+                        DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + Double(Int64(retryAfterValue.doubleValue * Double(NSEC_PER_SEC))) / Double(NSEC_PER_SEC)) {
                             self.updateRecord(record, fromRecordS: recordS)
                         }
                         return

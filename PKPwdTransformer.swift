@@ -9,17 +9,15 @@
 import CryptoSwift
 
 private extension String {
-    func aesDecrypt(key: String, iv: String) throws -> String {
-        let data = NSData(base64EncodedString: self, options: NSDataBase64DecodingOptions(rawValue: 0))
-        //let dec = try AES(key: key, iv: iv, blockMode:.CBC).decrypt(data!.arrayOfBytes(), padding: PKCS7())
+    func aesDecrypt(_ key: String, iv: String) throws -> String {
+        let data = Data(base64Encoded: self, options: NSData.Base64DecodingOptions(rawValue: 0))
         
         do {
-            let dec = try AES(key: key, iv: iv, blockMode: .CBC, padding: PKCS7()).decrypt(data!.arrayOfBytes())
-            let decData = NSData(bytes: dec, length: Int(dec.count))
-            let result = NSString(data: decData, encoding: NSUTF8StringEncoding)
+            let dataArr = data!.withUnsafeBytes() { [UInt8](UnsafeBufferPointer(start: $0, count: data!.count)) }
+            let dec = try AES(key: key, iv: iv, blockMode: .CBC, padding: PKCS7()).decrypt(dataArr)
+            let decData = Data(bytes: dec, count: Int(dec.count))
+            let result = NSString(data: decData, encoding: String.Encoding.utf8.rawValue)
             return String(result!)
-        } catch AES.Error.BlockSizeExceeded {
-            // block size exceeded
         } catch {
             // some error
         }
@@ -27,36 +25,35 @@ private extension String {
         return ""
     }
     
-    func aesEncrypt(key: String, iv: String) throws -> NSData {
-        let data = self.dataUsingEncoding(NSUTF8StringEncoding)
-        //let enc = try AES(key: key, iv: iv, blockMode:.CBC).encrypt(data!.arrayOfBytes(), padding: PKCS7())
+    func aesEncrypt(_ key: String, iv: String) throws -> Data {
+        let data = self.data(using: String.Encoding.utf8)
+        
         do {
-            let enc = try AES(key: key, iv: iv, blockMode: .CBC, padding: PKCS7()).encrypt(data!.arrayOfBytes())
-            let encData = NSData(bytes: enc, length: Int(enc.count))
-            let base64String: String = encData.base64EncodedStringWithOptions(NSDataBase64EncodingOptions(rawValue: 0));
+            let dataArr = data!.withUnsafeBytes() { [UInt8](UnsafeBufferPointer(start: $0, count: data!.count)) }
+            let enc = try AES(key: key, iv: iv, blockMode: .CBC, padding: PKCS7()).encrypt(dataArr)
+            let encData = Data(bytes: enc, count: Int(enc.count))
+            let base64String: String = encData.base64EncodedString(options: Data.Base64EncodingOptions(rawValue: 0))
             let result = iv + String(base64String)
-            let dataResult = result.dataUsingEncoding(NSUTF8StringEncoding)
+            let dataResult = result.data(using: String.Encoding.utf8)
             
             return dataResult!
-        } catch AES.Error.BlockSizeExceeded {
-            // block size exceeded
         } catch {
             // some error
         }
         
-        return NSData()
+        return Data()
     }
     
-    mutating func truncate(count: Int) -> String? {
+    mutating func truncate(_ count: Int) -> String? {
         guard count > 0 && count < self.characters.count else { return nil }
         
         var newString = self
         let start = self.startIndex
-        let end = self.startIndex.advancedBy(count)
+        let end = self.characters.index(self.startIndex, offsetBy: count)
         let range = start..<end
         
-        newString = self.substringToIndex(end)
-        self.removeRange(range)
+        newString = self.substring(to: end)
+        self.removeSubrange(range)
         
         return newString
     }
@@ -70,7 +67,7 @@ class PKPwdTransformer {
     private func strike() -> String {
         var value = ""
         
-        for (i, char) in self.luckystrike.characters.enumerate() {
+        for (i, char) in self.luckystrike.characters.enumerated() {
             if i % 21 == 0 {
                 value += String(char)
             }
@@ -93,7 +90,7 @@ class PKPwdTransformer {
         
         for _ in 0..<16 {
             let index = Int(arc4random_uniform(count))
-            iv += String(letters[letters.startIndex.advancedBy(index)])
+            iv += String(letters[letters.index(letters.startIndex, offsetBy: index)])
         }
         
         return iv
@@ -101,20 +98,20 @@ class PKPwdTransformer {
     
     // MARK: - Transform
     
-    func transformValue(value: AnyObject?) -> NSData? {
+    func transformValue(_ value: AnyObject?) -> NSData? {
         guard let value = value as? String else {
             return nil
         }
         
-        return try! value.aesEncrypt(strike(), iv: getInitVector())
+        return NSData(data: try! value.aesEncrypt(strike(), iv: getInitVector()))
     }
     
-    func reversTransformValue(value: AnyObject?) -> String? {
-        guard let encData = value as? NSData else {
+    func reversTransformValue(_ value: AnyObject?) -> String? {
+        guard let encData = value as? Data else {
             return nil
         }
         
-        var str = NSString(data: encData, encoding: NSUTF8StringEncoding) as! String
+        var str = NSString(data: encData, encoding: String.Encoding.utf8.rawValue) as! String
         let iv = str.truncate(16)
         
         return try! str.aesDecrypt(strike(), iv: iv!)

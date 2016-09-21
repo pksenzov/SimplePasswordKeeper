@@ -20,18 +20,18 @@ class PKCoreDataManager: NSObject {
     
     // MARK: - Sync
     
-    func removeDeletedObjects(deletedObjects: [PKDeletedObject]) {
+    func removeDeletedObjects(_ deletedObjects: [PKDeletedObject]) {
         deletedObjects.forEach() {
-            self.managedObjectContext.deleteObject($0)
+            self.managedObjectContext.delete($0)
         }
         
         self.saveWithIgnoringUI()
     }
     
     func getFolders() -> [PKFolder] {
-        let fetchRequest = NSFetchRequest(entityName: "Folder")
+        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Folder")
         do {
-            let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+            let folders = try self.managedObjectContext.fetch(fetchRequest) as! [PKFolder]
             return folders
         } catch {
             abort()
@@ -39,9 +39,9 @@ class PKCoreDataManager: NSObject {
     }
     
     func getRecords() -> [PKRecord] {
-        let fetchRequest = NSFetchRequest(entityName: "Record")
+        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Record")
         do {
-            let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
+            let records = try self.managedObjectContext.fetch(fetchRequest) as! [PKRecord]
             return records
         } catch {
             abort()
@@ -49,9 +49,9 @@ class PKCoreDataManager: NSObject {
     }
     
     func getDeletedObjects() -> [PKDeletedObject] {
-        let fetchRequest = NSFetchRequest(entityName: "DeletedObject")
+        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "DeletedObject")
         do {
-            let deletedObjects = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKDeletedObject]
+            let deletedObjects = try self.managedObjectContext.fetch(fetchRequest) as! [PKDeletedObject]
             return deletedObjects
         } catch {
             abort()
@@ -60,7 +60,7 @@ class PKCoreDataManager: NSObject {
     
     // MARK: - CloudKit update
     
-    func update(reason: String, type: String, object: Any) {
+    func update(_ reason: String, type: String, object: Any) {
         switch (reason, type) {
         case ("Created", "Folder"):
             let folderS = object as! PKFolderS
@@ -81,12 +81,12 @@ class PKCoreDataManager: NSObject {
             newRecord.uuid = recordS.uuid
             
             let predicate = NSPredicate(format: "uuid == %@", recordS.folderUUID)
-            let fetchRequest = NSFetchRequest(entityName: "Folder")
+            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Folder")
             fetchRequest.predicate = predicate
             
             var folder: PKFolder!
             do {
-                let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+                let folders = try self.managedObjectContext.fetch(fetchRequest) as! [PKFolder]
                 if folders.isEmpty {
                     //dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
                     return
@@ -103,12 +103,12 @@ class PKCoreDataManager: NSObject {
             let folderS = object as! PKFolderS
             
             let predicate = NSPredicate(format: "uuid == %@", folderS.uuid)
-            let fetchRequest = NSFetchRequest(entityName: "Folder")
+            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Folder")
             fetchRequest.predicate = predicate
             
             var folder: PKFolder!
             do {
-                let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+                let folders = try self.managedObjectContext.fetch(fetchRequest) as! [PKFolder]
                 if folders.isEmpty {
                     //dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
                     return
@@ -123,16 +123,16 @@ class PKCoreDataManager: NSObject {
             
             let recordsUUID = folderS.recordsUUID
             let recordsPredicate = NSPredicate(format: "uuid in %@", recordsUUID)
-            let recordsRequest = NSFetchRequest(entityName: "Record")
+            let recordsRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Record")
             recordsRequest.predicate = recordsPredicate
             
             do {
-                let records = try self.managedObjectContext.executeFetchRequest(recordsRequest) as! [PKRecord]
+                let records = try self.managedObjectContext.fetch(recordsRequest) as! [PKRecord]
                 if records.isEmpty {
                     //dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
                     return
                 }
-                folder.records = Set(records)
+                folder.records = Set(records) as NSSet?
             } catch {
                 // что-то делаем в зависимости от ошибки
             }
@@ -140,12 +140,12 @@ class PKCoreDataManager: NSObject {
             let recordS = object as! PKRecordS
             
             let predicate = NSPredicate(format: "uuid == %@", recordS.uuid)
-            let fetchRequest = NSFetchRequest(entityName: "Record")
+            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Record")
             fetchRequest.predicate = predicate
             
             var record: PKRecord!
             do {
-                let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
+                let records = try self.managedObjectContext.fetch(fetchRequest) as! [PKRecord]
                 if records.isEmpty {
                     //dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
                     return
@@ -163,11 +163,11 @@ class PKCoreDataManager: NSObject {
             record.date = recordS.date
             
             let foldersPredicate = NSPredicate(format: "uuid == %@", recordS.folderUUID)
-            let foldersRequest = NSFetchRequest(entityName: "Folder")
+            let foldersRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Folder")
             foldersRequest.predicate = foldersPredicate
             
             do {
-                let folders = try self.managedObjectContext.executeFetchRequest(foldersRequest) as! [PKFolder]
+                let folders = try self.managedObjectContext.fetch(foldersRequest) as! [PKFolder]
                 if folders.isEmpty {
                     //dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
                     return
@@ -182,12 +182,12 @@ class PKCoreDataManager: NSObject {
             let uuid = object as! String
             
             let predicate = NSPredicate(format: "uuid == %@", uuid)
-            let fetchRequest = NSFetchRequest(entityName: "Folder")
+            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Folder")
             fetchRequest.predicate = predicate
             
             var folder: PKFolder!
             do {
-                let folders = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKFolder]
+                let folders = try self.managedObjectContext.fetch(fetchRequest) as! [PKFolder]
                 if folders.isEmpty {
                     //dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
                     return
@@ -197,17 +197,17 @@ class PKCoreDataManager: NSObject {
                 // что-то делаем в зависимости от ошибки
             }
             
-            self.managedObjectContext.deleteObject(folder)
+            self.managedObjectContext.delete(folder)
         case ("Deleted", "Record"):
             let uuid = object as! String
             
             let predicate = NSPredicate(format: "uuid == %@", uuid)
-            let fetchRequest = NSFetchRequest(entityName: "Record")
+            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Record")
             fetchRequest.predicate = predicate
             
             var record: PKRecord!
             do {
-                let records = try self.managedObjectContext.executeFetchRequest(fetchRequest) as! [PKRecord]
+                let records = try self.managedObjectContext.fetch(fetchRequest) as! [PKRecord]
                 if records.isEmpty {
                     //dispatch_group_leave(PKCloudKitManager.sharedManager.notificationGroup)
                     return
@@ -217,7 +217,7 @@ class PKCoreDataManager: NSObject {
                 // что-то делаем в зависимости от ошибки
             }
             
-            self.managedObjectContext.deleteObject(record)
+            self.managedObjectContext.delete(record)
         default:
             break
         }
@@ -235,33 +235,33 @@ class PKCoreDataManager: NSObject {
         }
     }
     
-    func refreshObjectIfNeeded(object: NSManagedObject) {
+    func refreshObjectIfNeeded(_ object: NSManagedObject) {
         if let record = object as? PKRecord {
             if record.folder == nil {
-                self.managedObjectContext.refreshObject(record, mergeChanges: false)
+                self.managedObjectContext.refresh(record, mergeChanges: false)
             }
         }
     }
     
     // MARK: - Core Data stack
     
-    lazy var applicationDocumentsDirectory: NSURL = {
+    lazy var applicationDocumentsDirectory: URL = {
         // The directory the application uses to store the Core Data store file. This code uses a directory named "com.pavelksenzov.SimplePasswordKeeper" in the application's documents Application Support directory.
-        let urls = NSFileManager.defaultManager().URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask)
+        let urls = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         return urls[urls.count-1]
     }()
     
     lazy var managedObjectModel: NSManagedObjectModel = {
         // The managed object model for the application. This property is not optional. It is a fatal error for the application not to be able to find and load its model.
-        let modelURL = NSBundle.mainBundle().URLForResource("Records", withExtension: "momd")!
-        return NSManagedObjectModel(contentsOfURL: modelURL)!
+        let modelURL = Bundle.main.url(forResource: "Records", withExtension: "momd")!
+        return NSManagedObjectModel(contentsOf: modelURL)!
     }()
     
     lazy var persistentStoreCoordinator: NSPersistentStoreCoordinator = {
         // The persistent store coordinator for the application. This implementation creates and returns a coordinator, having added the store for the application to it. This property is optional since there are legitimate error conditions that could cause the creation of the store to fail.
         // Create the coordinator and store
         let coordinator = NSPersistentStoreCoordinator(managedObjectModel: self.managedObjectModel)
-        let url = self.applicationDocumentsDirectory.URLByAppendingPathComponent("Records.sqlite")
+        let url = self.applicationDocumentsDirectory.appendingPathComponent("Records.sqlite")
         let failureReason = "There was an error creating or loading the application's saved data."
         
         //NEEDED ?
@@ -272,12 +272,12 @@ class PKCoreDataManager: NSObject {
 //        ]
         
         do {
-            try coordinator.addPersistentStoreWithType(NSSQLiteStoreType, configuration: nil, URL: url, options: nil)
+            try coordinator.addPersistentStore(ofType: NSSQLiteStoreType, configurationName: nil, at: url, options: nil)
         } catch {
             // Report any error we got.
             var dict = [String: AnyObject]()
-            dict[NSLocalizedDescriptionKey] = "Failed to initialize the application's saved data"
-            dict[NSLocalizedFailureReasonErrorKey] = failureReason
+            dict[NSLocalizedDescriptionKey] = "Failed to initialize the application's saved data" as AnyObject?
+            dict[NSLocalizedFailureReasonErrorKey] = failureReason as AnyObject?
             dict[NSUnderlyingErrorKey] = error as NSError
             
             let wrappedError = NSError(domain: "YOUR_ERROR_DOMAIN", code: 9999, userInfo: dict)
@@ -293,7 +293,7 @@ class PKCoreDataManager: NSObject {
     lazy var managedObjectContext: NSManagedObjectContext = {
         // Returns the managed object context for the application (which is already bound to the persistent store coordinator for the application.) This property is optional since there are legitimate error conditions that could cause the creation of the context to fail.
         let coordinator = self.persistentStoreCoordinator
-        var managedObjectContext = NSManagedObjectContext(concurrencyType: .MainQueueConcurrencyType)
+        var managedObjectContext = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
         managedObjectContext.persistentStoreCoordinator = coordinator
         //managedObjectContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy// NEW
         return managedObjectContext
@@ -303,32 +303,32 @@ class PKCoreDataManager: NSObject {
     
     func saveContext () {
         if self.managedObjectContext.hasChanges {
-            if PKAppDelegate.iCloudAccountIsSignedIn() && NSUserDefaults.standardUserDefaults().boolForKey(kSettingsICloud) {
+            if PKAppDelegate.iCloudAccountIsSignedIn() && UserDefaults.standard.bool(forKey: kSettingsICloud) {
                 var deleted     = [PKObjectS]()
                 var updated     = [PKObjectS]()
                 var inserted    = [PKObjectS]()
                 
                 self.managedObjectContext.deletedObjects.forEach() {
                     if $0 is PKFolder {
-                        deleted.insert(PKFolderS(folder: $0 as! PKFolder), atIndex: 0)
+                        deleted.insert(PKFolderS(folder: $0 as! PKFolder), at: 0)
                     } else {
-                        deleted.insert(PKRecordS(record: $0 as! PKRecord), atIndex: max(inserted.count - 1, 0))
+                        deleted.insert(PKRecordS(record: $0 as! PKRecord), at: max(inserted.count - 1, 0))
                     }
                 }
                 
                 self.managedObjectContext.updatedObjects.forEach() {
                     if $0 is PKFolder {
-                        updated.insert(PKFolderS(folder: $0 as! PKFolder), atIndex: 0)
+                        updated.insert(PKFolderS(folder: $0 as! PKFolder), at: 0)
                     } else {
-                        updated.insert(PKRecordS(record: $0 as! PKRecord), atIndex: max(inserted.count - 1, 0))
+                        updated.insert(PKRecordS(record: $0 as! PKRecord), at: max(inserted.count - 1, 0))
                     }
                 }
                 
                 self.managedObjectContext.insertedObjects.forEach() {
                     if $0 is PKFolder {
-                        inserted.insert(PKFolderS(folder: $0 as! PKFolder), atIndex: 0)
+                        inserted.insert(PKFolderS(folder: $0 as! PKFolder), at: 0)
                     } else {
-                        inserted.insert(PKRecordS(record: $0 as! PKRecord), atIndex: max(inserted.count - 1, 0))
+                        inserted.insert(PKRecordS(record: $0 as! PKRecord), at: max(inserted.count - 1, 0))
                     }
                 }
                 
@@ -347,16 +347,16 @@ class PKCoreDataManager: NSObject {
                             let record = record as! PKRecord
                             
                             let deletedObject: PKDeletedObject = self.managedObjectContext.insertObject()
-                            deletedObject.date = NSDate()
+                            deletedObject.date = Date()
                             deletedObject.uuid = record.uuid
                         }
                         
                         let deletedObject: PKDeletedObject = self.managedObjectContext.insertObject()
-                        deletedObject.date = NSDate()
+                        deletedObject.date = Date()
                         deletedObject.uuid = folder.uuid
                     case is PKRecord:
                         let deletedObject: PKDeletedObject = self.managedObjectContext.insertObject()
-                        deletedObject.date = NSDate()
+                        deletedObject.date = Date()
                         deletedObject.uuid = ($0 as! PKRecord).uuid
                     case is PKDeletedObject:
                         break
@@ -381,8 +381,8 @@ class PKCoreDataManager: NSObject {
             abort()
         }
         
-        let application =  UIApplication.sharedApplication()
-        if  application.isIgnoringInteractionEvents() { application.endIgnoringInteractionEvents() }
+        let application =  UIApplication.shared
+        if  application.isIgnoringInteractionEvents { application.endIgnoringInteractionEvents() }
     }
     
     func saveWithIgnoringUI() {

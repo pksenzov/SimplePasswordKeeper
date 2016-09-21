@@ -14,7 +14,7 @@ import CoreData
 
 extension PKDeletedObject {
 
-    @NSManaged var date: NSDate?
+    @NSManaged var date: Date?
     @NSManaged var uuid: String?
 
 }

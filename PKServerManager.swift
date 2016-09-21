@@ -14,7 +14,7 @@ class PKServerManager: NSObject {
     // MARK: - My Functions
     
     static func getTopViewController() -> UIViewController? {
-        var topVC = UIApplication.sharedApplication().windows.first?.rootViewController
+        var topVC = UIApplication.shared.windows.first?.rootViewController
         
         while (topVC?.presentedViewController != nil) {
             topVC = topVC?.presentedViewController;
@@ -25,23 +25,23 @@ class PKServerManager: NSObject {
     
     // MARK: - Authorization
     
-    func presentLoginViewControllerOn(topVC: UIViewController?) {
-        let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewControllerWithIdentifier("PKLoginViewController") as! PKLoginViewController
+    func presentLoginViewControllerOn(_ topVC: UIViewController?) {
+        let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "PKLoginViewController") as! PKLoginViewController
         
         guard !(topVC is PKLoginViewController) else { return }
         
         vc.delegate = (topVC as? UINavigationController)?.topViewController as? PKFoldersTableViewController
         ((topVC as? UINavigationController)?.topViewController as? PKRecordEditingViewController)?.saveData()
         
-        UIApplication.sharedApplication().sendAction(#selector(UIApplication.sharedApplication().resignFirstResponder), to: nil, from: nil, forEvent: nil)
-        topVC?.presentViewController(vc, animated: false, completion: nil)
+        UIApplication.shared.sendAction(#selector(UIApplication.shared.resignFirstResponder), to: nil, from: nil, for: nil)
+        topVC?.present(vc, animated: false, completion: nil)
     }
     
     func authorizeUser() {
         var topVC = PKServerManager.getTopViewController()
         
         if topVC is UIAlertController {
-            topVC?.dismissViewControllerAnimated(false) {
+            topVC?.dismiss(animated: false) {
                 topVC = PKServerManager.getTopViewController()
                 self.presentLoginViewControllerOn(topVC)
                 
@@ -94,7 +94,7 @@ class PKServerManager: NSObject {
     
     // MARK: - Notification Update UI
     
-    func popIfNeeded(object: AnyObject) {
+    func popIfNeeded(_ object: AnyObject) {
         let topVC = PKServerManager.getTopViewController()
         let navVC = topVC as? UINavigationController
         
@@ -139,36 +139,36 @@ class PKServerManager: NSObject {
         }
     }
     
-    func holdAndPop(navVC: UINavigationController) {
-        UIApplication.sharedApplication().beginIgnoringInteractionEvents()
+    func holdAndPop(_ navVC: UINavigationController) {
+        UIApplication.shared.beginIgnoringInteractionEvents()
         
-        dispatch_async(dispatch_get_main_queue()) {
-            navVC.popViewControllerAnimated(true)
+        DispatchQueue.main.async {
+            navVC.popViewController(animated: true)
         }
     }
     
-    func holdAndPopToRoot(navVC: UINavigationController) {
-        UIApplication.sharedApplication().beginIgnoringInteractionEvents()
+    func holdAndPopToRoot(_ navVC: UINavigationController) {
+        UIApplication.shared.beginIgnoringInteractionEvents()
         
-        dispatch_async(dispatch_get_main_queue()) {
-            navVC.popToRootViewControllerAnimated(true)
+        DispatchQueue.main.async {
+            navVC.popToRootViewController(animated: true)
         }
     }
     
-    func holdAndDismiss(navVC: UINavigationController) {
-        UIApplication.sharedApplication().beginIgnoringInteractionEvents()
+    func holdAndDismiss(_ navVC: UINavigationController) {
+        UIApplication.shared.beginIgnoringInteractionEvents()
         
-        dispatch_async(dispatch_get_main_queue()) {
-            navVC.dismissViewControllerAnimated(true, completion: nil)
+        DispatchQueue.main.async {
+            navVC.dismiss(animated: true, completion: nil)
         }
     }
     
-    func holdAndDismissAndPop(navVC: UINavigationController) {
-        UIApplication.sharedApplication().beginIgnoringInteractionEvents()
+    func holdAndDismissAndPop(_ navVC: UINavigationController) {
+        UIApplication.shared.beginIgnoringInteractionEvents()
         
-        dispatch_async(dispatch_get_main_queue()) {
-            navVC.dismissViewControllerAnimated(true, completion: nil)
-            navVC.popViewControllerAnimated(true)
+        DispatchQueue.main.async {
+            navVC.dismiss(animated: true, completion: nil)
+            navVC.popViewController(animated: true)
         }
     }
 }
