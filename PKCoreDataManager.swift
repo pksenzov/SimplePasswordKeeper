@@ -16,48 +16,6 @@ protocol ManagedObjectType {
 class PKCoreDataManager: NSObject {
     static let sharedManager = PKCoreDataManager()
     
-    //let cloudGroup = dispatch_group_create()
-    
-    // MARK: - Sync
-    
-    func removeDeletedObjects(_ deletedObjects: [PKDeletedObject]) {
-        deletedObjects.forEach() {
-            self.managedObjectContext.delete($0)
-        }
-        
-        self.saveWithIgnoringUI()
-    }
-    
-    func getFolders() -> [PKFolder] {
-        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Folder")
-        do {
-            let folders = try self.managedObjectContext.fetch(fetchRequest) as! [PKFolder]
-            return folders
-        } catch {
-            abort()
-        }
-    }
-    
-    func getRecords() -> [PKRecord] {
-        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Record")
-        do {
-            let records = try self.managedObjectContext.fetch(fetchRequest) as! [PKRecord]
-            return records
-        } catch {
-            abort()
-        }
-    }
-    
-    func getDeletedObjects() -> [PKDeletedObject] {
-        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "DeletedObject")
-        do {
-            let deletedObjects = try self.managedObjectContext.fetch(fetchRequest) as! [PKDeletedObject]
-            return deletedObjects
-        } catch {
-            abort()
-        }
-    }
-    
     // MARK: - CloudKit update
     
     func update(_ reason: String, type: String, object: Any) {
@@ -332,12 +290,7 @@ class PKCoreDataManager: NSObject {
                     }
                 }
                 
-//                dispatch_async(dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)) {
-//                    dispatch_group_wait(self.cloudGroup, DISPATCH_TIME_FOREVER)
-//                    dispatch_group_enter(self.cloudGroup)
                 PKCloudKitManager.sharedManager.saveContext(deleted, updated: updated, inserted: inserted)
-//                    dispatch_group_leave(self.cloudGroup)
-//                }
             } else {
                 self.managedObjectContext.deletedObjects.forEach() {
                     switch $0 {

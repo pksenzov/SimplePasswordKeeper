@@ -23,6 +23,7 @@ let kSettingsAutoLock                   = "autolock"
 let kSettingsICloud                     = "icloud"
 let kSettingsSubscriptions              = "subscriptions"
 let kSettingsClearClipboard             = "clearclipboard"
+let kSettingsToken                      = "token"
 
 let firstFolderName = "Records"
 

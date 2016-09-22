@@ -62,7 +62,10 @@ class PKLoginViewController: UIViewController {
         let settingsAction: ((UIAlertAction) -> ()) = { action in
             let settingsURL = URL(string: UIApplicationOpenSettingsURLString)!
             
-            DispatchQueue.main.async(execute: { UIApplication.shared.openURL(settingsURL) })
+            DispatchQueue.main.async(execute: {
+                let options = [String: Any]()
+                UIApplication.shared.open(settingsURL, options: options, completionHandler: nil)
+            })
         }
         
         context.localizedFallbackTitle = ""

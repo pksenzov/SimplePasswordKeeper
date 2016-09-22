@@ -23,95 +23,79 @@ class PKCloudKitManager: NSObject {
         return queue
     }()
     
-//    private var _notificationGroup = dispatch_group_create()
-//    
-//    var notificationGroup: dispatch_group_t! {
-//        var notificationGroupCopy: dispatch_group_t!
-//        
-//        dispatch_sync(concurrentNotificationGroupQueue) {
-//            notificationGroupCopy = self._notificationGroup
-//        }
-//        
-//        return notificationGroupCopy
-//    }
-//    
-//    private let concurrentNotificationGroupQueue = dispatch_queue_create("com.pavelksenzov.records.notificationGroupQueue", DISPATCH_QUEUE_CONCURRENT)
-    
     // MARK: - Sync
     
-    func getFolders() -> [CKRecord] {
-        let iCloudFoldersGroup = DispatchGroup()
-        iCloudFoldersGroup.enter()
+    func prepareRecord(_ record: CKRecord) {
+        var deleted     = [PKObjectS]()
+        var updated     = [PKObjectS]()
+        var inserted    = [PKObjectS]()
         
-        var folders: [CKRecord]!
-        
-        let predicate = NSPredicate(format: "TRUEPREDICATE")
-        let query = CKQuery(recordType: "Folder", predicate: predicate)
-        self.privateDatabase.perform(query, inZoneWith: nil) {
-            if $1 != nil {
-                abort()
+        self.managedObjectContext.deletedObjects.forEach() {
+            if $0 is PKFolder {
+                deleted.insert(PKFolderS(folder: $0 as! PKFolder), at: 0)
+            } else {
+                deleted.insert(PKRecordS(record: $0 as! PKRecord), at: max(inserted.count - 1, 0))
             }
-            
-            guard $0 != nil else { abort() }
-            
-            folders = $0!
-            
-            iCloudFoldersGroup.leave()
         }
         
-        _ = iCloudFoldersGroup.wait(timeout: DispatchTime.distantFuture)
+        self.managedObjectContext.updatedObjects.forEach() {
+            if $0 is PKFolder {
+                updated.insert(PKFolderS(folder: $0 as! PKFolder), at: 0)
+            } else {
+                updated.insert(PKRecordS(record: $0 as! PKRecord), at: max(inserted.count - 1, 0))
+            }
+        }
         
-        return folders
+        self.managedObjectContext.insertedObjects.forEach() {
+            if $0 is PKFolder {
+                inserted.insert(PKFolderS(folder: $0 as! PKFolder), at: 0)
+            } else {
+                inserted.insert(PKRecordS(record: $0 as! PKRecord), at: max(inserted.count - 1, 0))
+            }
+        }
+        
+        PKCloudKitManager.sharedManager.saveContext(deleted, updated: updated, inserted: inserted)
     }
     
-    func getRecords() -> [CKRecord] {
-        let iCloudRecordsGroup = DispatchGroup()
-        iCloudRecordsGroup.enter()
+    func sync() {
+        let token = self.defaults.object(forKey: kSettingsToken) as? CKServerChangeToken
+        let zoneID = CKRecordZone.default().zoneID
+        let options = CKFetchRecordZoneChangesOptions()
+        options.previousServerChangeToken = token
         
-        var records: [CKRecord]!
+        let changesOperation = CKFetchRecordZoneChangesOperation(recordZoneIDs: [zoneID], optionsByRecordZoneID: [zoneID: options])
         
-        let predicate = NSPredicate(format: "TRUEPREDICATE")
-        let query = CKQuery(recordType: "Record", predicate: predicate)
-        self.privateDatabase.perform(query, inZoneWith: nil) {
-            if $1 != nil {
-                abort()
-            }
-            
-            guard $0 != nil else { abort() }
-            
-            records = $0!
-            
-            iCloudRecordsGroup.leave()
+        changesOperation.recordChangedBlock = { record in
+            self.prepareRecord(record)
         }
         
-        _ = iCloudRecordsGroup.wait(timeout: DispatchTime.distantFuture)
-        
-        return records
-    }
-    
-    func getDeletedObjects() -> [CKRecord] {
-        let iCloudDeletedObjectsGroup = DispatchGroup()
-        iCloudDeletedObjectsGroup.enter()
-        
-        var deletedObjects: [CKRecord]!
-        
-        let predicate = NSPredicate(format: "TRUEPREDICATE")
-        let query = CKQuery(recordType: "DeletedObject", predicate: predicate)
-        self.privateDatabase.perform(query, inZoneWith: nil) {
-            if $1 != nil {
+        changesOperation.recordZoneFetchCompletionBlock = { (zoneID: CKRecordZoneID,
+                                                             newToken: CKServerChangeToken?,
+                                                             data: Data?,
+                                                             more: Bool,
+                                                             error: Error?) in
+            
+            if error != nil {
                 abort()
+            } else {
+                self.defaults.set(newToken, forKey: kSettingsToken)
             }
-            
-            guard $0 != nil else { abort() }
-            
-            deletedObjects = $0!
-            
-            iCloudDeletedObjectsGroup.leave()
         }
         
-        _ = iCloudDeletedObjectsGroup.wait(timeout: DispatchTime.distantFuture)
+        self.privateDatabase.add(changesOperation)
         
-        return deletedObjects
+        //        let changesOperation = CKFetchDatabaseChangesOperation(previousServerChangeToken: sharedDBChangeToken) // previously cached
+        //        changesOperation.fetchAllChanges = true
+        //        changesOperation.recordZoneWithIDChangedBlock = { … } // collect zone IDs
+        //        changesOperation.recordZoneWithIDWasDeletedBlock = { … } // delete local cache
+        //        changesOperation.changeTokenUpdatedBlock = { … } // cache new token
+        //        changesOperation.fetchDatabaseChangesCompletionBlock = {
+        //            (newToken: CKServerChangeToken?, more: Bool, error: NSError?) -> Void in
+        //            // error handling here
+        //            self.sharedDBChangeToken = newToken // cache new token
+        //            self.fetchZoneChanges(callback) // using CKFetchRecordZoneChangesOperation
+        //        }
+        //        self.sharedDB.add(changesOperation)
     }
     
     // MARK: - Update CoreData
@@ -155,118 +139,25 @@ class PKCloudKitManager: NSObject {
     
     // MARK: - Subscriptions
     
-//    func deleteSubscriptions() {
-//        self.privateDatabase.fetchAllSubscriptionsWithCompletionHandler() { (subs, error) in
-//            if subs == nil || subs?.count == 0 { return }
-//            
-//            if error != nil {
-//                print(error?.localizedDescription)
-//                abort()
-//            }
-//            
-//            subs!.forEach() {
-//                self.privateDatabase.deleteSubscriptionWithID($0.subscriptionID) { (_, error) in
-//                    if error != nil {
-//                        abort()
-//                    }
-//                }
-//            }
-//        }
-//    }
-    
-//    func addSubscriptions() {
-//        let predicate = NSPredicate(format: "TRUEPREDICATE")
-//        let folderSubscription = CKSubscription(recordType: "Folder", predicate: predicate, options: [.FiresOnRecordCreation, .FiresOnRecordDeletion, .FiresOnRecordUpdate])
-//        let recordSubscription = CKSubscription(recordType: "Record", predicate: predicate, options: [.FiresOnRecordCreation, .FiresOnRecordDeletion, .FiresOnRecordUpdate])
-//        
-//        let folderNotificationInfo = CKNotificationInfo()
-//        folderNotificationInfo.desiredKeys = ["name"]
-//        folderNotificationInfo.shouldSendContentAvailable = true
-//        folderSubscription.notificationInfo = folderNotificationInfo
-//        
-//        let recordNotificationInfo = CKNotificationInfo()
-//        recordNotificationInfo.shouldSendContentAvailable = true
-//        recordSubscription.notificationInfo = recordNotificationInfo
-//        
-//        self.privateDatabase.saveSubscription(folderSubscription) { (sub, error) in
-//            if error != nil {
-//                print(error?.localizedDescription)
-//                abort()
-//            }
-//            
-//            self.privateDatabase.saveSubscription(recordSubscription) { (sub, error) in
-//                if error != nil {
-//                    print(error?.localizedDescription)
-//                    abort()
-//                }
-//                
-//                self.defaults.setBool(true, forKey: kSettingsSubscriptions)
-//            }
-//        }
-//    }
-//    
-//    func addSubscriptionWithType(recordType: String) {
-//        let predicate = NSPredicate(format: "TRUEPREDICATE")
-//        let subscription = CKSubscription(recordType: recordType, predicate: predicate, options: [.FiresOnRecordCreation, .FiresOnRecordDeletion, .FiresOnRecordUpdate])
-//        
-//        if recordType == "Folder" {
-//            let folderNotificationInfo = CKNotificationInfo()
-//            folderNotificationInfo.desiredKeys = ["name"]
-//            folderNotificationInfo.shouldSendContentAvailable = true
-//            subscription.notificationInfo = folderNotificationInfo
-//        } else {
-//            let recordNotificationInfo = CKNotificationInfo()
-//            recordNotificationInfo.shouldSendContentAvailable = true
-//            subscription.notificationInfo = recordNotificationInfo
-//        }
-//        
-//        self.privateDatabase.saveSubscription(subscription) { (sub, error) in
-//            if error != nil {
-//                print(error?.localizedDescription)
-//                abort()
-//            }
-//            
-//            self.defaults.setBool(true, forKey: kSettingsSubscriptions)
-//        }
-//    }
-//    
-//    func checkAndAddSubscriptionsOLD() {
-//        guard !self.defaults.boolForKey(kSettingsSubscriptions) else { return }
-//        
-//        self.privateDatabase.fetchAllSubscriptionsWithCompletionHandler() { (subs, error) in
-//            if subs == nil || subs?.count == 0 {
-//                self.addSubscriptions()
-//                return
-//            } else if subs?.count == 1 {
-//                let recordType = (subs!.first!.recordType == "Folder") ? "Record" : "Folder"
-//                self.addSubscriptionWithType(recordType)
-//                return
-//            }
-//            
-//            if error != nil {
-//                print(error?.localizedDescription)
-//                abort()
-//            }
-//            
-//            self.defaults.setBool(true, forKey: kSettingsSubscriptions)
-//        }
-//    }
-    
     func checkAndAddSubscriptions() {
         guard !self.defaults.bool(forKey: kSettingsSubscriptions) else { return }
         
-        self.privateDatabase.fetchAllSubscriptions() {
-            if $1 != nil {
-                print($1?.localizedDescription)
-                abort()
-            } else {
-                
-            }
-        }
+//        self.privateDatabase.fetchAllSubscriptions() {
+//            if $1 != nil {
+//                print($1?.localizedDescription)
+//                abort()
+//            } else {
+//                
+//            }
+//        }
         
         let predicate = NSPredicate(format: "TRUEPREDICATE")
-        let folderSubscription = CKSubscription(recordType: "Folder", predicate: predicate, options: [.firesOnRecordCreation, .firesOnRecordDeletion, .firesOnRecordUpdate])
-        let recordSubscription = CKSubscription(recordType: "Record", predicate: predicate, options: [.firesOnRecordCreation, .firesOnRecordDeletion, .firesOnRecordUpdate])
+        let folderSubscription = CKQuerySubscription(recordType: "Folder",
+                                                     predicate: predicate,
+                                                     options: [.firesOnRecordCreation, .firesOnRecordDeletion, .firesOnRecordUpdate])
+        let recordSubscription = CKQuerySubscription(recordType: "Record",
+                                                     predicate: predicate,
+                                                     options: [.firesOnRecordCreation, .firesOnRecordDeletion, .firesOnRecordUpdate])
         
         let folderNotificationInfo = CKNotificationInfo()
         folderNotificationInfo.desiredKeys = ["name"]
@@ -283,8 +174,13 @@ class PKCloudKitManager: NSObject {
                 let error = $2 as! NSError
                 
                 print(error.localizedDescription)
-                if error.code == 9 || error.code == 2 { self.defaults.set(true, forKey: kSettingsSubscriptions) }
-                else { abort() }
+                abort()
+//                if error.code == 9 || error.code == 2 {
+//                    self.defaults.set(true, forKey: kSettingsSubscriptions)
+//                }
+//                else {
+//                    abort()
+//                }
             } else {
                 self.defaults.set(true, forKey: kSettingsSubscriptions)
             }
@@ -295,21 +191,6 @@ class PKCloudKitManager: NSObject {
     }
     
     // MARK: - Context
-    
-//    func fetchSharedChanges(callback: () -> Void) {
-//        let changesOperation = CKFetchDatabaseChangesOperation(previousServerChangeToken: sharedDBChangeToken) // previously cached
-//        changesOperation.fetchAllChanges = true
-//        changesOperation.recordZoneWithIDChangedBlock = { … } // collect zone IDs
-//        changesOperation.recordZoneWithIDWasDeletedBlock = { … } // delete local cache
-//        changesOperation.changeTokenUpdatedBlock = { … } // cache new token
-//        changesOperation.fetchDatabaseChangesCompletionBlock = {
-//            (newToken: CKServerChangeToken?, more: Bool, error: NSError?) -> Void in
-//            // error handling here
-//            self.sharedDBChangeToken = newToken // cache new token
-//            self.fetchZoneChanges(callback) // using CKFetchRecordZoneChangesOperation
-//        }
-//        self.sharedDB.add(changesOperation)
-//    }
     
     func saveContext(_ deleted: [PKObjectS], updated: [PKObjectS], inserted: [PKObjectS]) {
         var deletedRecordsSet = Set<String>()

@@ -76,23 +76,25 @@ class PKAppDelegate: UIResponder, UIApplicationDelegate {
     // MARK: - Application Lifecycle
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
+        let isSigned = PKAppDelegate.iCloudAccountIsSignedIn()
+        
         UserDefaults.standard.register(defaults: [kSettingsLockOnExit                 : true,
-                                                                kSettingsSpotlight                  : true,
-                                                                kSettingsSubscriptions              : false,
-                                                                kSettingsICloud                     : PKAppDelegate.iCloudAccountIsSignedIn(),
-                                                                kSettingsAutoLock                   : 15,
-                                                                kSettingsClearClipboard             : 0])
+                                                  kSettingsSpotlight                  : true,
+                                                  kSettingsSubscriptions              : false,
+                                                  kSettingsICloud                     : isSigned,
+                                                  kSettingsAutoLock                   : 15,
+                                                  kSettingsClearClipboard             : 0])
+        
+        let isSynced = UserDefaults.standard.bool(forKey: kSettingsICloud)
         
         NotificationCenter.default.addObserver(self, selector: .applicationDidTimeout, name: NSNotification.Name(rawValue: kApplicationDidTimeoutNotification), object: nil)
         NotificationCenter.default.addObserver(self, selector: .applicationDidTimeoutClear, name: NSNotification.Name(rawValue: kApplicationDidTimeoutClearNotification), object: nil)
         NotificationCenter.default.addObserver(self, selector: .pasteboardChanged, name: NSNotification.Name.UIPasteboardChanged, object: nil)
         
-        if PKAppDelegate.iCloudAccountIsSignedIn() && UserDefaults.standard.bool(forKey: kSettingsICloud) {
+        if isSigned && isSynced {
             PKServerManager.sharedManager.sync()
         }
         
-//        let notificationSettings = UIUserNotificationSettings(forTypes: .None, categories: nil)
-//        application.registerUserNotificationSettings(notificationSettings)
         application.registerForRemoteNotifications()
 
         return true
